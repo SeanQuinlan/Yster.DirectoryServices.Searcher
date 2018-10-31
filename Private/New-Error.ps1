@@ -83,6 +83,9 @@ function New-Error {
         $InnerException
     )
 
+    $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
+    $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name,$_.Key,($_.Value -join ' ')) }
+
     $null = $Exception_Arguments
     if ($Message -and $InnerObject) {
         $Exception_Arguments = $Message,$InnerException
@@ -95,8 +98,10 @@ function New-Error {
     $ErrorRecord = New-Object -TypeName 'System.Management.Automation.ErrorRecord' -ArgumentList $ErrorRecord_Arguments
 
     if ($Type -eq 'Terminating') {
+        Write-Verbose ('{0}|Sending terminating error' -f $Function_Name)
         $PSCmdlet.ThrowTerminatingError($ErrorRecord)
     } else {
+        Write-Verbose ('{0}|Sending non-terminating error' -f $Function_Name)
         $PSCmdlet.WriteError($ErrorRecord)
     }
 }
