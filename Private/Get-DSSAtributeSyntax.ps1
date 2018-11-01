@@ -123,6 +123,7 @@ $global:AttributeSyntax_Table = @{
     'adminDisplayName'                                      = '2.5.5.12'
     'adminMultiselectPropertyPages'                         = '2.5.5.12'
     'adminPropertyPages'                                    = '2.5.5.12'
+    'adspath'                                               = '2.5.5.2'
     'allowedAttributes'                                     = '2.5.5.2'
     'allowedAttributesEffective'                            = '2.5.5.2'
     'allowedChildClasses'                                   = '2.5.5.2'
@@ -1565,4 +1566,38 @@ $global:AttributeSyntax_Table = @{
     'wWWHomePage'                                           = '2.5.5.12'
     'x121Address'                                           = '2.5.5.6'
     'x500uniqueIdentifier'                                  = '2.5.5.10'
+}
+
+# Function to generate above hashtable:
+function Get-AttributeSyntaxHashtable {
+    $Schema_Path = ([adsi]"LDAP://RootDSE").schemaNamingContext
+    $Searcher = [adsisearcher]"(attributesyntax=*)"
+    $Searcher.SearchRoot = [adsi]"LDAP://$($Schema_Path)"
+    $Searcher.PageSize = 500
+    [void]$Searcher.PropertiesToLoad.Add('ldapdisplayname')
+    [void]$Searcher.PropertiesToLoad.Add('attributesyntax')
+    $Results = New-Object -TypeName 'System.Collections.ArrayList'
+    $Searcher.FindAll() | ForEach-Object {
+        $Object = [pscustomobject]@{
+            'ldapdisplayname' = $($_.Properties.ldapdisplayname)
+            'attributesyntax' = $($_.Properties.attributesyntax)
+        }
+        [void]$Results.Add($Object)
+    }
+    # Add any custom attributes here
+    $Results.Add([pscustomobject]@{'ldapdisplayname' = 'adspath'; 'attributesyntax' = '2.5.5.2'})
+    $Results = $Results | Sort-Object ldapdisplayname
+
+    $Tab_Width = 4
+    $Tab_MaxLength = $Results.ldapdisplayname | ForEach-Object { $_.Length } | Sort-Object -Descending | Select-Object -First 1
+    $Tab_Padding = [int]([math]::Ceiling(($Tab_Width + $Tab_MaxLength + 2)/$Tab_Width))*$Tab_Width
+
+    $Output_String = New-Object -TypeName 'System.Text.StringBuilder'
+    [void]$Output_String.AppendLine('$global:AttributeSyntax_Table = @{')
+    foreach ($Result in $Results) {
+        $Result_Padding = $Tab_Padding - ($Result.ldapdisplayname.Length + $Tab_Width + 2)
+        [void]$Output_String.AppendLine(("{0}'{1}'{2}= '{3}'" -f (' '*$Tab_Width),$Result.ldapdisplayname,(' '*$Result_Padding),$Result.attributesyntax))
+    }
+    [void]$Output_String.AppendLine('}')
+    $Output_String.ToString() | clip.exe
 }
