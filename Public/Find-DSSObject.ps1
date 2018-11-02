@@ -121,7 +121,8 @@ function Find-DSSObject {
                 $Result_Object[$Current_Searcher_Result_Property] = $Result_Object_Value
             }
 
-            $Result_Object
+            # Return the retrieved AD object as a PS object
+            New-Object -TypeName 'System.Management.Automation.PSObject' -Property $Result_Object
         }
     }
 }
