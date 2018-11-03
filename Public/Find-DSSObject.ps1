@@ -102,23 +102,17 @@ function Find-DSSObject {
                     # GUID
                     '2.5.5.10' {
                         Write-Verbose ('{0}|Reformatting to GUID object: {1}' -f $Function_Name,$Current_Searcher_Result_Property)
-                        $Result_Object_Value = New-Object 'System.Guid' -ArgumentList @(,$Current_Searcher_Result_Value)
+                        $Current_Searcher_Result_Value = New-Object 'System.Guid' -ArgumentList @(,$Current_Searcher_Result_Value)
                     }
 
                     # SID
                     '2.5.5.17' {
                         Write-Verbose ('{0}|Reformatting to SID object: {1}' -f $Function_Name,$Current_Searcher_Result_Property)
-                        $Result_Object_Value = New-Object 'System.Security.Principal.SecurityIdentifier' -ArgumentList @($Current_Searcher_Result_Value,0)
-                    }
-
-                    # Everything else
-                    Default {
-                        Write-Verbose ('{0}|Leaving value as is: {1}' -f $Function_Name,$Current_Searcher_Result_Property)
-                        $Result_Object_Value = $Current_Searcher_Result_Value
+                        $Current_Searcher_Result_Value = New-Object 'System.Security.Principal.SecurityIdentifier' -ArgumentList @($Current_Searcher_Result_Value,0)
                     }
                 }
 
-                $Result_Object[$Current_Searcher_Result_Property] = $Result_Object_Value
+                $Result_Object[$Current_Searcher_Result_Property] = $Current_Searcher_Result_Value
             }
 
             # Return the retrieved AD object as a PS object
