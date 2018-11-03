@@ -63,11 +63,11 @@ function Find-DSSObject {
         $Directory_Entry_Parameters = @{
             'Context' = $Context
         }
-        if ($PSBoundParameters.ContainsKey('Server')) {
-            $Directory_Entry_Parameters.Server = $Server
-        }
         if ($PSBoundParameters.ContainsKey('SearchBase')) {
             $Directory_Entry_Parameters.SearchBase = $SearchBase
+        }
+        if ($PSBoundParameters.ContainsKey('Server')) {
+            $Directory_Entry_Parameters.Server = $Server
         }
         if ($PSBoundParameters.ContainsKey('Credential')) {
             $Directory_Entry_Parameters.Credential = $Credential
