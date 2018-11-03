@@ -3,13 +3,13 @@ function Get-DSSAttributeSyntax {
     .SYNOPSIS
         Looks up the schema syntax of an LDAP attribute.
     .DESCRIPTION
-        Long description
+        Checks a local hashtable to determine the schema syntax of an LDAP attribute. If not found locally, will look up the syntax directly from the LDAP server.
     .EXAMPLE
-        Example of how to use this script
-    .EXAMPLE
-        Another example of how to use this script
-    .NOTES
+        Get-DSSAttributeSyntax -Name 'sn'
 
+        Gets the syntax for the AD attribute 'sn' (surname)
+    .NOTES
+        List of attribute types here: https://msdn.microsoft.com/en-us/library/cc223177.aspx
     #>
 
     [CmdletBinding()]
@@ -37,32 +37,37 @@ function Get-DSSAttributeSyntax {
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name,$_.Key,($_.Value -join ' ')) }
 
-    # If the details are not found in the table, look it up directly on the server, and then store it in the table for later.
-    if (-not $AttributeSyntax_Table[$Name]) {
-        Write-Verbose ('{0}|Unable to find attribute in AttributeSyntax_Table: {1}' -f $Function_Name,$Name)
-        $Object_Parameters = @{
-            'LDAPFilter' = ('(ldapdisplayname={0})' -f $Name)
-            'SearchBase' = (Get-DSSRootDSE).schemaNamingContext
-            'Properties' = 'attributeSyntax'
-        }
-        if ($PSBoundParameters.ContainsKey('Server')) {
-            $Object_Parameters.Server = $Server
-        }
-        if ($PSBoundParameters.ContainsKey('Credential')) {
-            $Object_Parameters.Credential = $Credential
-        }
-        $Attribute_Details = Find-DSSObject @Object_Parameters
+    try {
+        # If the details are not found in the table, look it up directly on the server, and then store it in the table for later.
+        if (-not $AttributeSyntax_Table[$Name]) {
+            Write-Verbose ('{0}|Unable to find attribute in AttributeSyntax_Table: {1}' -f $Function_Name,$Name)
+            $Object_Parameters = @{
+                'LDAPFilter' = ('(ldapdisplayname={0})' -f $Name)
+                'SearchBase' = (Get-DSSRootDSE).schemaNamingContext
+                'Properties' = 'attributeSyntax'
+            }
+            if ($PSBoundParameters.ContainsKey('Server')) {
+                $Object_Parameters.Server = $Server
+            }
+            if ($PSBoundParameters.ContainsKey('Credential')) {
+                $Object_Parameters.Credential = $Credential
+            }
+            $Attribute_Details = Find-DSSObject @Object_Parameters
 
-        if ($Attribute_Details) {
-            $AttributeSyntax_Table[$Name] = $Attribute_Details.attributeSyntax
-        } else {
-            Write-Warning ('{0}|Unable to retrieve LDAP attribute syntax for: {1}' -f $Function_Name,$Name)
+            if ($Attribute_Details) {
+                $AttributeSyntax_Table[$Name] = $Attribute_Details.attributeSyntax
+            } else {
+                Write-Warning ('{0}|Unable to retrieve LDAP attribute syntax for: {1}' -f $Function_Name,$Name)
+            }
         }
+
+        # Return the syntax version
+        Write-Verbose ('{0}|Returning: {1}' -f $Function_Name,$AttributeSyntax_Table[$Name])
+        $AttributeSyntax_Table[$Name]
     }
-
-    # Return the syntax version
-    Write-Verbose ('{0}|Returning: {1}' -f $Function_Name,$AttributeSyntax_Table[$Name])
-    $AttributeSyntax_Table[$Name]
+    catch {
+        $PSCmdlet.ThrowTerminatingError($_)
+    }
 }
 
 # Full list of attributes and their syntaxes, taken from a new Windows Server 2016 Active Directory installation.
