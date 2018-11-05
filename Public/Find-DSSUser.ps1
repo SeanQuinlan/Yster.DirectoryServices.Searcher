@@ -94,8 +94,8 @@ function Find-DSSUser {
             'name'
             'objectclass'
             'objectguid'
+            'objectsid'
             'samaccountname'
-            'sid'
             'sn'
             'userprincipalname'
         )
