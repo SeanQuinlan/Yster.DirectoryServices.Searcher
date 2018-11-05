@@ -3,11 +3,15 @@ function Find-DSSUser {
     .SYNOPSIS
         Finds a user object(s) in Active Directory.
     .DESCRIPTION
-        Long description
+        Performs an Ambiguous Name Recognition (ANR) search through Active Directory for the supplied Name, or uses a custom LDAPFilter.
     .EXAMPLE
-        Example of how to use this script
+        Find-DSSUser "administrator"
+
+        Finds all the users that match "administrator" on one of the common indexed attributes.
     .EXAMPLE
-        Another example of how to use this script
+        Find-DSSUser -LDAPFilter '(samaccountname=test*)' -SearchBase 'CN=Users,DC=contoso,DC=com' -SearchScope 'OneLevel'
+
+        Finds all users that have the samaccountname starting with "test", in the Users container or the immediate children of Users.
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'Name')]
@@ -109,7 +113,9 @@ function Find-DSSUser {
         }
 
         $Default_User_LDAPFilter = '(sAMAccountType=805306368)'     # sAMAccountType is best method to search just user accounts - http://www.selfadsi.org/extended-ad/search-user-accounts.htm
-        if ($LDAPFilter) {
+        if ($Name -eq '*') {
+            $Directory_Search_LDAPFilter = $Default_User_LDAPFilter
+        } elseif ($LDAPFilter) {
             $Directory_Search_LDAPFilter = '(&{0}{1})' -f $Default_User_LDAPFilter,$LDAPFilter
         } else {
             $Directory_Search_LDAPFilter = '(&{0}(ANR={1}))' -f $Default_User_LDAPFilter,$Name
