@@ -33,18 +33,23 @@ function Get-DSSRootDSE {
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name,$_.Key,($_.Value -join ' ')) }
 
-    $Directory_Entry_Parameters = @{
-        'Context'       = 'Domain'
-        'SearchBase'    = 'RootDSE'
-    }
-    if ($PSBoundParameters.ContainsKey('Server')) {
-        $Directory_Entry_Parameters.Server = $Server
-    }
-    if ($PSBoundParameters.ContainsKey('Credential')) {
-        $Directory_Entry_Parameters.Credential = $Credential
-    }
-    $Directory_Entry = Get-DSSDirectoryEntry @Directory_Entry_Parameters
+    try {
+        $Directory_Entry_Parameters = @{
+            'Context'       = 'Domain'
+            'SearchBase'    = 'RootDSE'
+        }
+        if ($PSBoundParameters.ContainsKey('Server')) {
+            $Directory_Entry_Parameters.Server = $Server
+        }
+        if ($PSBoundParameters.ContainsKey('Credential')) {
+            $Directory_Entry_Parameters.Credential = $Credential
+        }
+        $Directory_Entry = Get-DSSDirectoryEntry @Directory_Entry_Parameters
 
-    # Simply return the DirectoryEntry object
-    $Directory_Entry
+        # Simply return the DirectoryEntry object
+        $Directory_Entry
+    }
+    catch {
+        $PSCmdlet.ThrowTerminatingError($_)
+    }
 }
