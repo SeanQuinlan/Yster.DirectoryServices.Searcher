@@ -64,12 +64,15 @@ function Find-DSSObject {
             'Context' = $Context
         }
         if ($PSBoundParameters.ContainsKey('SearchBase')) {
+            Write-Verbose ('{0}|Using SearchBase: {1}' -f $Function_Name,$SearchBase)
             $Directory_Entry_Parameters.SearchBase = $SearchBase
         }
         if ($PSBoundParameters.ContainsKey('Server')) {
+            Write-Verbose ('{0}|Using Server: {1}' -f $Function_Name,$Server)
             $Directory_Entry_Parameters.Server = $Server
         }
         if ($PSBoundParameters.ContainsKey('Credential')) {
+            Write-Verbose ('{0}|Using custom Credential' -f $Function_Name)
             $Directory_Entry_Parameters.Credential = $Credential
         }
         $Directory_Entry = Get-DSSDirectoryEntry @Directory_Entry_Parameters
@@ -81,9 +84,11 @@ function Find-DSSObject {
         $Directory_Searcher = New-Object -TypeName 'System.DirectoryServices.DirectorySearcher' -ArgumentList $Directory_Searcher_Arguments
 
         if ($PSBoundParameters.ContainsKey('Properties')) {
+            Write-Verbose ('{0}|Adding Properties: {1}' -f $Function_Name,($Properties -join ','))
             $Directory_Searcher.PropertiesToLoad.AddRange($Properties)
         }
         if ($PSBoundParameters.ContainsKey('SearchScope')) {
+            Write-Verbose ('{0}|Adding SearchScope: {1}' -f $Function_Name,$SearchScope)
             $Directory_Searcher.SearchScope = $SearchScope
         }
 
