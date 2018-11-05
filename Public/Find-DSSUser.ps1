@@ -10,10 +10,16 @@ function Find-DSSUser {
         Another example of how to use this script
     #>
 
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName = 'Name')]
     param(
+        # The name to use in the search.
+        [Parameter(Mandatory = $true, Position = 1, ParameterSetName = 'Name')]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $Name,
+
         # An LDAP filter to use for the search.
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory = $true, ParameterSetName = 'LDAPFilter')]
         [ValidateNotNullOrEmpty()]
         [String]
         $LDAPFilter,
@@ -102,9 +108,11 @@ function Find-DSSUser {
             $Directory_Search_Parameters.Properties = $Directory_Search_Properties
         }
 
-        $Directory_Search_LDAPFilter = '(samAccountType=805306368)'     # Best method to search just user accounts - http://www.selfadsi.org/extended-ad/search-user-accounts.htm
+        $Default_User_LDAPFilter = '(sAMAccountType=805306368)'     # sAMAccountType is best method to search just user accounts - http://www.selfadsi.org/extended-ad/search-user-accounts.htm
         if ($LDAPFilter) {
-            $Directory_Search_LDAPFilter = '(&{0}{1})' -f $Directory_Search_LDAPFilter,$LDAPFilter
+            $Directory_Search_LDAPFilter = '(&{0}{1})' -f $Default_User_LDAPFilter,$LDAPFilter
+        } else {
+            $Directory_Search_LDAPFilter = '(&{0}(ANR={1}))' -f $Default_User_LDAPFilter,$Name
         }
         $Directory_Search_Parameters.LDAPFilter = $Directory_Search_LDAPFilter
 
