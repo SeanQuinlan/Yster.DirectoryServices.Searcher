@@ -92,8 +92,10 @@ function Find-DSSObject {
             $Directory_Searcher.SearchScope = $SearchScope
         }
 
+        Write-Verbose ('{0}|Performing search...' -f $Function_Name)
         $Directory_Searcher_Results = $Directory_Searcher.FindAll()
         if ($Directory_Searcher_Results) {
+            Write-Verbose ('{0}|Found {1} result(s)' -f $Function_Name,$Directory_Searcher_Results.Count)
             $Directory_Searcher_Results_To_Return = New-Object -TypeName 'System.Collections.ArrayList'
             foreach ($Directory_Searcher_Result in $Directory_Searcher_Results) {
                 $Result_Object = [ordered]@{}
@@ -122,12 +124,15 @@ function Find-DSSObject {
                     $Result_Object[$Current_Searcher_Result_Property] = $Current_Searcher_Result_Value
                 }
 
-                $Directory_Searcher_Retrieved_Object = New-Object -TypeName 'System.Management.Automation.PSObject' -Property $Result_Object
-                [void]$Directory_Searcher_Results_To_Return.Add($Directory_Searcher_Retrieved_Object)
+                $Directory_Searcher_Result_Object = New-Object -TypeName 'System.Management.Automation.PSObject' -Property $Result_Object
+                [void]$Directory_Searcher_Results_To_Return.Add($Directory_Searcher_Result_Object)
             }
+            # Return the search results object
+            $Directory_Searcher_Results_To_Return
+        } else {
+            Write-Verbose ('{0}|No results found!' -f $Function_Name)
         }
-        # Return the search results object
-        $Directory_Searcher_Results_To_Return
+
     }
     catch {
         $PSCmdlet.ThrowTerminatingError($_)
