@@ -94,9 +94,10 @@ function Find-DSSObject {
 
         $Directory_Searcher_Results = $Directory_Searcher.FindAll()
         if ($Directory_Searcher_Results) {
+            $Directory_Searcher_Results_To_Return = New-Object -TypeName 'System.Collections.ArrayList'
             foreach ($Directory_Searcher_Result in $Directory_Searcher_Results) {
-                $Result_Object = @{}
-                $Directory_Searcher_Result.Properties.GetEnumerator() | ForEach-Object {
+                $Result_Object = [ordered]@{}
+                $Directory_Searcher_Result.Properties.GetEnumerator() | Sort-Object 'Name' | ForEach-Object {
                     $Current_Searcher_Result_Property   = $_.Name
                     $Current_Searcher_Result_Value      = $($_.Value)
                     $Current_Searcher_Result_Syntax     = Get-DSSAttributeSyntax -Name $Current_Searcher_Result_Property
@@ -121,12 +122,14 @@ function Find-DSSObject {
                     $Result_Object[$Current_Searcher_Result_Property] = $Current_Searcher_Result_Value
                 }
 
-                # Return the retrieved AD object as a PS object
-                New-Object -TypeName 'System.Management.Automation.PSObject' -Property $Result_Object
+                $Directory_Searcher_Retrieved_Object = New-Object -TypeName 'System.Management.Automation.PSObject' -Property $Result_Object
+                [void]$Directory_Searcher_Results_To_Return.Add($Directory_Searcher_Retrieved_Object)
             }
         }
+        # Return the search results object
+        $Directory_Searcher_Results_To_Return
     }
     catch {
-
+        $PSCmdlet.ThrowTerminatingError($_)
     }
 }
