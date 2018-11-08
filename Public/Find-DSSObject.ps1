@@ -75,6 +75,11 @@ function Find-DSSObject {
         'lockedout'
         'passwordexpired'
     )
+    # THe list of other properties that are retrieved with "-Properties *" on Get-ADUser
+    # From: https://social.technet.microsoft.com/wiki/contents/articles/12037.active-directory-get-aduser-default-and-extended-properties.aspx
+    $Additional_Wildcard_Properties = @(
+        'canonicalname'
+    )
 
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name,$_.Key,($_.Value -join ' ')) }
@@ -103,13 +108,18 @@ function Find-DSSObject {
         )
         $Directory_Searcher = New-Object -TypeName 'System.DirectoryServices.DirectorySearcher' -ArgumentList $Directory_Searcher_Arguments
 
-        # All the UserAccountControl properties are generated via flags to the single "useraccountcontrol" LDAP property.
+        # All the UserAccountControl properties are generated via flags on the single "useraccountcontrol" LDAP property.
         # So the 'useraccountcontrol' property is added to the search properties list if any of the relevant UserAccountControl properties are requested.
         $Properties_To_Add = New-Object -TypeName 'System.Collections.ArrayList'
         foreach ($Property in $Properties) {
             [void]$Properties_To_Add.Add($Property)
             if (($UserAccountControl_Properties.GetEnumerator().Name -contains $Property) -and ($Properties_To_Add -notcontains 'useraccountcontrol')) {
                 [void]$Properties_To_Add.Add('useraccountcontrol')
+            }
+            if ($Property -eq '*') {
+                foreach ($Additional_Wildcard_Property in $Additional_Wildcard_Properties) {
+                    [void]$Properties_To_Add.Add($Additional_Wildcard_Property)
+                }
             }
         }
         Write-Verbose ('{0}|Adding Properties: {1}' -f $Function_Name,($Properties_To_Add -join ' '))
@@ -132,7 +142,7 @@ function Find-DSSObject {
                     $Current_Searcher_Result_Syntax     = Get-DSSAttributeSyntax -Name $Current_Searcher_Result_Property
                     Write-Verbose ('{0}|Property={1} Syntax={2} Value={3}' -f $Function_Name,$Current_Searcher_Result_Property,$Current_Searcher_Result_Syntax,$Current_Searcher_Result_Value)
 
-                    # Reformat certain attribute types
+                    # Reformat certain attribute types:
                     switch ($Current_Searcher_Result_Syntax) {
                         # GUID
                         '2.5.5.10' {
@@ -161,11 +171,11 @@ function Find-DSSObject {
                         # - Loops through all the properties specified to the function and if there is a match, it will do this:
                         #   - 1. Set a default bool value of $true if the property is named "enabled" and $false for everything else.
                         #   - 2. If the flag is set, then it will flip the bool value to the opposite.
-                        $UserAccountControl_Attributes = [Enum]::Parse('userAccountControlFlags', $Current_Searcher_Result_Value)
+                        $UserAccountControl_Attributes = [Enum]::Parse('DSSUserAccountControlFlags', $Current_Searcher_Result_Value)
                         Write-Verbose ('{0}|UAC: Attributes currently set: {1}' -f $Function_Name,($UserAccountControl_Attributes -join ' '))
                         $UserAccountControl_Properties.GetEnumerator() | ForEach-Object {
-                            $UserAccountControl_Property_Name = $_.Name
-                            $UserAccountControl_Property_Value = $_.Value
+                            $UserAccountControl_Property_Name   = $_.Name
+                            $UserAccountControl_Property_Value  = $_.Value
                             Write-Verbose ('{0}|UAC: Checking UAC property: {1}={2}' -f $Function_Name,$UserAccountControl_Property_Name,$UserAccountControl_Property_Value)
                             if (($Properties -contains '*') -or ($Properties -contains $UserAccountControl_Property_Name)) {
                                 Write-Verbose ('{0}|UAC: Processing Property: {1}' -f $Function_Name,$UserAccountControl_Property_Name)
@@ -212,7 +222,7 @@ function Find-DSSObject {
 # - https://support.microsoft.com/en-us/help/305144/how-to-use-the-useraccountcontrol-flags-to-manipulate-user-account-pro
 Add-Type -TypeDefinition @"
     [System.Flags]
-    public enum userAccountControlFlags {
+    public enum DSSUserAccountControlFlags {
         SCRIPT                          = 0x0000001,
         ACCOUNTDISABLE                  = 0x0000002,
         HOMEDIR_REQUIRED                = 0x0000008,
