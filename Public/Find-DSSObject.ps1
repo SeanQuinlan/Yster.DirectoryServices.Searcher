@@ -8,6 +8,9 @@ function Find-DSSObject {
         Example of how to use this script
     .EXAMPLE
         Another example of how to use this script
+    .NOTES
+        NOTE: Calling this function directly with "*" anywhere in the properties may not return all the correct UAC-related attributes, even if specifying the property in addition to the wildcard.
+        Use the relevant Find-DSSUser/Find-DSSComputer/etc function instead.
     #>
 
     [CmdletBinding()]
@@ -56,30 +59,29 @@ function Find-DSSObject {
         $Credential = [System.Management.Automation.PSCredential]::Empty
     )
 
-    # Taken from: https://social.technet.microsoft.com/wiki/contents/articles/12037.active-directory-get-aduser-default-and-extended-properties.aspx
-    $UserAccountControl_Properties = @{
-        'accountnotdelegated'                   = 'NOT_DELEGATED'
-        'allowreversiblepasswordencryption'     = 'ENCRYPTED_TEXT_PWD_ALLOWED'
-        'doesnotrequirepreauth'                 = 'DONT_REQ_PREAUTH'
-        'enabled'                               = 'ACCOUNTDISABLE'
-        'homedirrequired'                       = 'HOMEDIR_REQUIRED'
-        'mnslogonaccount'                       = 'MNS_LOGON_ACCOUNT'
-        'passwordneverexpires'                  = 'DONT_EXPIRE_PASSWORD'
-        'passwordnotrequired'                   = 'PASSWD_NOTREQD'
-        'smartcardlogonrequired'                = 'SMARTCARD_REQUIRED'
-        'trustedfordelegation'                  = 'TRUSTED_FOR_DELEGATION'
-        'trustedtoauthfordelegation'            = 'TRUSTED_TO_AUTH_FOR_DELEGATION'
-        'usedeskeyonly'                         = 'USE_DES_KEY_ONLY'
+    # A number of properties returned by the AD Cmdlets are calculated based on flags to one of the UserAccountControl LDAP properties.
+    # The list of flags and their corresponding values are taken from here:
+    # - https://support.microsoft.com/en-us/help/305144/how-to-use-the-useraccountcontrol-flags-to-manipulate-user-account-pro
+    $UAC_Calculated_Properties = @{
+        'useraccountcontrol' = @{
+            'accountnotdelegated'                   = '0x0100000'
+            'allowreversiblepasswordencryption'     = '0x0000080'
+            'doesnotrequirepreauth'                 = '0x0400000'
+            'enabled'                               = '0x0000002'
+            'homedirrequired'                       = '0x0000008'
+            'mnslogonaccount'                       = '0x0020000'
+            'passwordneverexpires'                  = '0x0010000'
+            'passwordnotrequired'                   = '0x0000020'
+            'smartcardlogonrequired'                = '0x0040000'
+            'trustedfordelegation'                  = '0x0080000'
+            'trustedtoauthfordelegation'            = '0x1000000'
+            'usedeskeyonly'                         = '0x0200000'
+        }
+        'msds-user-account-control-computed' = @{
+            'lockedout'                             = '0x0000010'
+            'passwordexpired'                       = '0x0800000'
+        }
     }
-    $UserAccountControl_Computed_Properties = @(
-        'lockedout'
-        'passwordexpired'
-    )
-    # THe list of other properties that are retrieved with "-Properties *" on Get-ADUser
-    # From: https://social.technet.microsoft.com/wiki/contents/articles/12037.active-directory-get-aduser-default-and-extended-properties.aspx
-    $Additional_Wildcard_Properties = @(
-        'canonicalname'
-    )
 
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name,$_.Key,($_.Value -join ' ')) }
@@ -108,13 +110,14 @@ function Find-DSSObject {
         )
         $Directory_Searcher = New-Object -TypeName 'System.DirectoryServices.DirectorySearcher' -ArgumentList $Directory_Searcher_Arguments
 
-        # All the UserAccountControl properties are generated via flags on the single "useraccountcontrol" LDAP property.
-        # So the 'useraccountcontrol' property is added to the search properties list if any of the relevant UserAccountControl properties are requested.
+        # The relevant "UserAccountControl_Calculated" property is added to the search properties list if any of the calculated properties are requested.
         $Properties_To_Add = New-Object -TypeName 'System.Collections.ArrayList'
         foreach ($Property in $Properties) {
             [void]$Properties_To_Add.Add($Property)
-            if (($UserAccountControl_Properties.GetEnumerator().Name -contains $Property) -and ($Properties_To_Add -notcontains 'useraccountcontrol')) {
-                [void]$Properties_To_Add.Add('useraccountcontrol')
+            foreach ($UAC_Calculated_Property in $UAC_Calculated_Properties.GetEnumerator().Name) {
+                if (($UAC_Calculated_Properties.$UAC_Calculated_Property.GetEnumerator().Name -contains $Property) -and ($Properties_To_Add -notcontains $UAC_Calculated_Property)) {
+                    [void]$Properties_To_Add.Add($UAC_Calculated_Property)
+                }
             }
             if ($Property -eq '*') {
                 foreach ($Additional_Wildcard_Property in $Additional_Wildcard_Properties) {
@@ -157,39 +160,36 @@ function Find-DSSObject {
                         }
                     }
 
-                    # Add additional constructed properties from the UserAccountControl property.
-                    if ($Current_Searcher_Result_Property -eq 'useraccountcontrol') {
-                        Write-Verbose ('{0}|UserAccountControl property found, possibly adding constructed properties...' -f $Function_Name)
-                        # Only output the 'useraccountcontrol' property if it is explicitly asked for.
-                        if (($Properties -contains '*') -or ($Properties -contains 'useraccountcontrol')) {
-                            Write-Verbose ('{0}|UserAccountControl property specified directly' -f $Function_Name)
+                    # Add additional constructed properties from the "UserAccountControl" properties.
+                    if ($UAC_Calculated_Properties.GetEnumerator().Name -contains $Current_Searcher_Result_Property) {
+                        Write-Verbose ('{0}|UAC property found: {1}={2}' -f $Function_Name,$Current_Searcher_Result_Property,$Current_Searcher_Result_Value)
+                        # Only output the "UserAccountControl" property if it is explicitly requested.
+                        if ($Properties -contains $Current_Searcher_Result_Property) {
+                            Write-Verbose ('{0}|UAC property specified directly: {0}' -f $Function_Name,$Current_Searcher_Result_Property)
                             $Result_Object[$Current_Searcher_Result_Property] = $Current_Searcher_Result_Value
                         }
 
                         # This does the following:
-                        # - Looks through the 'useraccountcontrol' integer and extracts the flag(s) that this integer refers to.
+                        # - Looks through the "UserAccountControl" integer and extracts the flag(s) that this integer matches.
                         # - Loops through all the properties specified to the function and if there is a match, it will do this:
                         #   - 1. Set a default bool value of $true if the property is named "enabled" and $false for everything else.
                         #   - 2. If the flag is set, then it will flip the bool value to the opposite.
-                        $UserAccountControl_Attributes = [Enum]::Parse('DSSUserAccountControlFlags', $Current_Searcher_Result_Value)
-                        Write-Verbose ('{0}|UAC: Attributes currently set: {1}' -f $Function_Name,($UserAccountControl_Attributes -join ' '))
-                        $UserAccountControl_Properties.GetEnumerator() | ForEach-Object {
-                            $UserAccountControl_Property_Name   = $_.Name
-                            $UserAccountControl_Property_Value  = $_.Value
-                            Write-Verbose ('{0}|UAC: Checking UAC property: {1}={2}' -f $Function_Name,$UserAccountControl_Property_Name,$UserAccountControl_Property_Value)
-                            if (($Properties -contains '*') -or ($Properties -contains $UserAccountControl_Property_Name)) {
-                                Write-Verbose ('{0}|UAC: Processing Property: {1}' -f $Function_Name,$UserAccountControl_Property_Name)
-                                if ($UserAccountControl_Property_Name -eq 'enabled') {
-                                    $UserAccountControl_Property_Return = $true
+                        $UAC_Calculated_Properties.$Current_Searcher_Result_Property.GetEnumerator() | ForEach-Object {
+                            $UAC_Calculated_Property_Name = $_.Name
+                            $UAC_Calculated_Property_Flag = $_.Value
+                            Write-Verbose ('{0}|UAC: Checking UAC calculated property: {1}={2}' -f $Function_Name,$UAC_Calculated_Property_Name,$UAC_Calculated_Property_Flag)
+                            if ($Properties -contains $UAC_Calculated_Property_Name) {
+                                Write-Verbose ('{0}|UAC: Processing property: {1}' -f $Function_Name,$UAC_Calculated_Property_Name)
+                                if ($UAC_Calculated_Property_Name -eq 'enabled') {
+                                    $UAC_Calculated_Property_Return = $true
                                 } else {
-                                    $UserAccountControl_Property_Return = $false
+                                    $UAC_Calculated_Property_Return = $false
                                 }
-                                Write-Verbose ('{0}|UAC: Default value for Property "{1}" is: {2}' -f $Function_Name,$UserAccountControl_Property_Name,$UserAccountControl_Property_Return)
-                                if ($UserAccountControl_Attributes -match $UserAccountControl_Property_Value) {
-                                    $UserAccountControl_Property_Return = -not $UserAccountControl_Property_Return
+                                if (($Current_Searcher_Result_Value -band $UAC_Calculated_Property_Flag) -eq $UAC_Calculated_Property_Flag) {
+                                    $UAC_Calculated_Property_Return = -not $UAC_Calculated_Property_Return
                                 }
-                                Write-Verbose ('{0}|UAC: Return value for Property "{1}" is: {2}' -f $Function_Name,$UserAccountControl_Property_Name,$UserAccountControl_Property_Return)
-                                $Result_Object[$UserAccountControl_Property_Name] = $UserAccountControl_Property_Return
+                                Write-Verbose ('{0}|UAC: Return value for "{1}" is "{2}"' -f $Function_Name,$UAC_Calculated_Property_Name,$UAC_Calculated_Property_Return)
+                                $Result_Object[$UAC_Calculated_Property_Name] = $UAC_Calculated_Property_Return
                             }
                         }
                     } else {
@@ -216,34 +216,3 @@ function Find-DSSObject {
         $PSCmdlet.ThrowTerminatingError($_)
     }
 }
-
-# Taken from:
-# - https://github.com/zloeber/PSAD
-# - https://support.microsoft.com/en-us/help/305144/how-to-use-the-useraccountcontrol-flags-to-manipulate-user-account-pro
-Add-Type -TypeDefinition @"
-    [System.Flags]
-    public enum DSSUserAccountControlFlags {
-        SCRIPT                          = 0x0000001,
-        ACCOUNTDISABLE                  = 0x0000002,
-        HOMEDIR_REQUIRED                = 0x0000008,
-        LOCKOUT                         = 0x0000010,
-        PASSWD_NOTREQD                  = 0x0000020,
-        PASSWD_CANT_CHANGE              = 0x0000040,
-        ENCRYPTED_TEXT_PWD_ALLOWED      = 0x0000080,
-        TEMP_DUPLICATE_ACCOUNT          = 0x0000100,
-        NORMAL_ACCOUNT                  = 0x0000200,
-        INTERDOMAIN_TRUST_ACCOUNT       = 0x0000800,
-        WORKSTATION_TRUST_ACCOUNT       = 0x0001000,
-        SERVER_TRUST_ACCOUNT            = 0x0002000,
-        DONT_EXPIRE_PASSWORD            = 0x0010000,
-        MNS_LOGON_ACCOUNT               = 0x0020000,
-        SMARTCARD_REQUIRED              = 0x0040000,
-        TRUSTED_FOR_DELEGATION          = 0x0080000,
-        NOT_DELEGATED                   = 0x0100000,
-        USE_DES_KEY_ONLY                = 0x0200000,
-        DONT_REQ_PREAUTH                = 0x0400000,
-        PASSWORD_EXPIRED                = 0x0800000,
-        TRUSTED_TO_AUTH_FOR_DELEGATION  = 0x1000000,
-        PARTIAL_SECRETS_ACCOUNT         = 0x4000000,
-    }
-"@
