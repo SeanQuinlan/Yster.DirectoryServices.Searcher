@@ -86,7 +86,7 @@ function Find-DSSUser {
             $Directory_Search_Parameters.Credential = $Credential
         }
 
-        # Default properties as per Get-ADUser
+        # Default properties as per Get-ADUser. Used when no Properties is specified.
         $Default_Properties = @(
             'distinguishedname'
             'enabled'
@@ -99,8 +99,84 @@ function Find-DSSUser {
             'sn'
             'userprincipalname'
         )
+        # Full list of all properties returned with a wildcard.
+        # Due to some constructed properties not being returned when search results include a wildcard, simply replace the wildcard with the full array of properties.
+        # See http://www.rlmueller.net/UserAttributes.htm
+        $Wildcard_Properties = @(
+            'allowreversiblepasswordencryption'
+            'accountexpires'
+            'badpasswordtime'
+            'badpwdcount'
+            'c'
+            'cannotchangepassword'
+            'cn'
+            'co'
+            'codepage'
+            'company'
+            'countrycode'
+            'department'
+            'description'
+            'displayname'
+            'dscorepropagationdata'
+            'enabled'
+            'facsimiletelephonenumber'
+            'givenname'
+            'homedirectory'
+            'homedirectory'
+            'homedrive'
+            'homephone'
+            'info'
+            'initials'
+            'instancetype'
+            'ipphone'
+            'l'
+            'lastlogoff'
+            'lastlogon'
+            'lockouttime'
+            'logonhours'
+            'logoncount'
+            'mail'
+            'manager'
+            'mobile'
+            'msds-supportedencryptiontypes'
+            'objectcategory'
+            'objectclass'
+            'objectguid'
+            'objectsid'
+            'otherfacsimiletelephonenumber'
+            'otherhomephone'
+            'otheripphone'
+            'othermobile'
+            'otherpager'
+            'othertelephone'
+            'pager'
+            'passwordneverexpires'
+            'physicaldeliveryofficename'
+            'postofficebox'
+            'postalcode'
+            'primarygroupid'
+            'profilepath'
+            'pwdlastset'
+            'samaccountname'
+            'samaccounttype'
+            'scriptpath'
+            'sn'
+            'st'
+            'streetaddress'
+            'telephonenumber'
+            'title'
+            'url'
+            'userprincipalname'
+            'userworkstations'
+            'usnchanged'
+            'usncreated'
+            'wwwhomepage'
+            'whenchanged'
+            'whencreated'
+        )
         if ($Properties -eq '*') {
-            $Directory_Search_Parameters.Properties = '*'
+            Write-Verbose ('{0}|Replacing wildcard with list of properties' -f $Function_Name)
+            $Directory_Search_Properties = $Wildcard_Properties
         } else {
             $Directory_Search_Properties = New-Object -TypeName 'System.Collections.ArrayList'
             [void]$Directory_Search_Properties.AddRange($Default_Properties)
@@ -109,8 +185,8 @@ function Find-DSSUser {
                     [void]$Directory_Search_Properties.Add($Property)
                 }
             }
-            $Directory_Search_Parameters.Properties = $Directory_Search_Properties
         }
+        $Directory_Search_Parameters.Properties = $Directory_Search_Properties
 
         $Default_User_LDAPFilter = '(sAMAccountType=805306368)'     # sAMAccountType is best method to search just user accounts - http://www.selfadsi.org/extended-ad/search-user-accounts.htm
         if ($Name -eq '*') {
