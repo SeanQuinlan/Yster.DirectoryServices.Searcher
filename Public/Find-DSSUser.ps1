@@ -174,18 +174,27 @@ function Find-DSSUser {
             'whenchanged'
             'whencreated'
         )
-        if ($Properties -eq '*') {
-            Write-Verbose ('{0}|Replacing wildcard with list of properties' -f $Function_Name)
-            $Directory_Search_Properties = $Wildcard_Properties
-        } else {
-            $Directory_Search_Properties = New-Object -TypeName 'System.Collections.ArrayList'
-            [void]$Directory_Search_Properties.AddRange($Default_Properties)
+
+        $Directory_Search_Properties = New-Object -TypeName 'System.Collections.ArrayList'
+        if ($PSBoundParameters.ContainsKey('Properties')) {
+            if ($Properties -contains '*') {
+                Write-Verbose ('{0}|Replacing wildcard with list of properties' -f $Function_Name)
+                [void]$Directory_Search_Properties.AddRange($Wildcard_Properties)
+            } else {
+                Write-Verbose ('{0}|Properties specified, adding default properties first' -f $Function_Name)
+                [void]$Directory_Search_Properties.AddRange($Default_Properties)
+            }
             foreach ($Property in $Properties) {
-                if ($Directory_Search_Properties -notcontains $Property) {
+                if (($Property -ne '*') -and ($Directory_Search_Properties -notcontains $Property)) {
+                    Write-Verbose ('{0}|Adding Property: {1}' -f $Function_Name,$Property)
                     [void]$Directory_Search_Properties.Add($Property)
                 }
             }
+        } else {
+            Write-Verbose ('{0}|No properties specified, adding default properties only' -f $Function_Name)
+            [void]$Directory_Search_Properties.AddRange($Default_Properties)
         }
+        Write-Verbose ('{0}|Properties: {1}' -f $Function_Name,($Directory_Search_Properties -join ' '))
         $Directory_Search_Parameters.Properties = $Directory_Search_Properties
 
         $Default_User_LDAPFilter = '(sAMAccountType=805306368)'     # sAMAccountType is best method to search just user accounts - http://www.selfadsi.org/extended-ad/search-user-accounts.htm
@@ -196,8 +205,10 @@ function Find-DSSUser {
         } else {
             $Directory_Search_LDAPFilter = '(&{0}(ANR={1}))' -f $Default_User_LDAPFilter,$Name
         }
+        Write-Verbose ('{0}|LDAPFilter: {1}' -f $Function_Name,$Directory_Search_LDAPFilter)
         $Directory_Search_Parameters.LDAPFilter = $Directory_Search_LDAPFilter
 
+        Write-Verbose ('{0}|Finding users using Find-DSSObject' -f $Function_Name)
         Find-DSSObject @Directory_Search_Parameters
     }
     catch {
