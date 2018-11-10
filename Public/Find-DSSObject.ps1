@@ -83,6 +83,18 @@ function Find-DSSObject {
         }
     }
 
+    # Get-ADUser also adds a number of other useful properties based on calculations of other properties. Like creating a datetime object from an integer property.
+    $Useful_Calculated_Properties = @{
+        'int_to_datetime' = @{
+            'lockouttime'                           = 'accountlockouttime'
+            'badpasswordtime'                       = 'lastbadpasswordattempt'
+            'pwdlastset'                            = 'passwordlastset'
+        }
+        'groupid_to_distinguishedname' = @{
+            'primarygroupid'                        = 'primarygroup'
+        }
+    }
+
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name,$_.Key,($_.Value -join ' ')) }
 
@@ -110,18 +122,21 @@ function Find-DSSObject {
         )
         $Directory_Searcher = New-Object -TypeName 'System.DirectoryServices.DirectorySearcher' -ArgumentList $Directory_Searcher_Arguments
 
-        # The relevant "UserAccountControl_Calculated" property is added to the search properties list if any of the calculated properties are requested.
         $Properties_To_Add = New-Object -TypeName 'System.Collections.ArrayList'
         foreach ($Property in $Properties) {
             [void]$Properties_To_Add.Add($Property)
+
+            # The relevant "UserAccountControl_Calculated" property is added to the search properties list if any of the calculated properties are requested.
             foreach ($UAC_Calculated_Property in $UAC_Calculated_Properties.GetEnumerator().Name) {
                 if (($UAC_Calculated_Properties.$UAC_Calculated_Property.GetEnumerator().Name -contains $Property) -and ($Properties_To_Add -notcontains $UAC_Calculated_Property)) {
                     [void]$Properties_To_Add.Add($UAC_Calculated_Property)
                 }
             }
-            if ($Property -eq '*') {
-                foreach ($Additional_Wildcard_Property in $Additional_Wildcard_Properties) {
-                    [void]$Properties_To_Add.Add($Additional_Wildcard_Property)
+
+            # Add any of the "Useful Calculated Properties" if required.
+            foreach ($Useful_Calculated_Property in ($Useful_Calculated_Properties.GetEnumerator() | ForEach-Object { $_.Value.GetEnumerator() })) {
+                if (($Useful_Calculated_Property.Value -contains $Property) -and ($Properties_To_Add -notcontains $Useful_Calculated_Property.Name)) {
+                    [void]$Properties_To_Add.Add($Useful_Calculated_Property.Name)
                 }
             }
         }
@@ -190,6 +205,29 @@ function Find-DSSObject {
                                 }
                                 Write-Verbose ('{0}|UAC: Return value for "{1}" is "{2}"' -f $Function_Name,$UAC_Calculated_Property_Name,$UAC_Calculated_Property_Return)
                                 $Result_Object[$UAC_Calculated_Property_Name] = $UAC_Calculated_Property_Return
+                            }
+                        }
+
+                    # Check and add additional properties from the "Useful Constructed Properties" list if required.
+                    } elseif (($Useful_Calculated_Properties.GetEnumerator() | ForEach-Object { $_.Value.GetEnumerator().Name }) -contains $Current_Searcher_Result_Property) {
+                        $Useful_Calculated_Property_Object = $Useful_Calculated_Properties.GetEnumerator() | Where-Object { $_.Value.GetEnumerator().Name -eq $Current_Searcher_Result_Property }
+                        $Useful_Calculated_Property_Type = $Useful_Calculated_Property_Object.Name
+                        $Useful_Calculated_Property_CalculatedName = $Useful_Calculated_Property_Object.Value.$Current_Searcher_Result_Property
+                        Write-Verbose ('{0}|Useful base property of type [{1}] found: {2}' -f $Function_Name,$Useful_Calculated_Property_Type,$Current_Searcher_Result_Property)
+                        if ($Properties -contains $Current_Searcher_Result_Property) {
+                            Write-Verbose ('{0}|Useful property specified directly: {1}' -f $Function_Name,$Current_Searcher_Result_Property)
+                            $Result_Object[$Current_Searcher_Result_Property] = $Current_Searcher_Result_Value
+                        }
+
+                        if ($Properties -contains $Useful_Calculated_Property_CalculatedName) {
+                            switch ($Useful_Calculated_Property_Type) {
+                                'int_to_datetime' {
+                                    Write-Verbose ('{0}|Useful: Adding property: {1}' -f $Function_Name,$Useful_Calculated_Property_CalculatedName)
+                                    $Result_Object[$Useful_Calculated_Property_CalculatedName] = [DateTime]::FromFileTime($Current_Searcher_Result_Value)
+                                }
+                                'groupid_to_distinguishedname' {
+                                    Write-Verbose ('{0}|Useful: Adding property: {1}' -f $Function_Name,$Useful_Calculated_Property_CalculatedName)
+                                }
                             }
                         }
                     } else {
