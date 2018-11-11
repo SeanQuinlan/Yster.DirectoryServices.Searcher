@@ -175,6 +175,11 @@ function Find-DSSObject {
                         }
                     }
 
+                    # Reformat certain properties:
+                    if ($Current_Searcher_Result_Property -eq 'ntsecuritydescriptor') {
+                        $Current_Searcher_Result_Value = $Directory_Searcher_Result.GetDirectoryEntry().ObjectSecurity
+                    }
+
                     # Add additional constructed properties from the "UserAccountControl" properties.
                     if ($UAC_Calculated_Properties.GetEnumerator().Name -contains $Current_Searcher_Result_Property) {
                         Write-Verbose ('{0}|UAC property found: {1}={2}' -f $Function_Name,$Current_Searcher_Result_Property,$Current_Searcher_Result_Value)
@@ -248,7 +253,6 @@ function Find-DSSObject {
         } else {
             Write-Verbose ('{0}|No results found!' -f $Function_Name)
         }
-
     }
     catch {
         $PSCmdlet.ThrowTerminatingError($_)
