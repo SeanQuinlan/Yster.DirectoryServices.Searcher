@@ -93,6 +93,9 @@ function Find-DSSObject {
         'groupid_to_distinguishedname' = @{
             'primarygroupid'                        = 'primarygroup'
         }
+        'cannotchangepassword' = @{
+            'ntsecuritydescriptor'                  = 'cannotchangepassword'
+        }
     }
 
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
@@ -176,6 +179,7 @@ function Find-DSSObject {
                     }
 
                     # Reformat certain properties:
+                    # - NTSecurityDescriptor - replace with the System.DirectoryServices.ActiveDirectorySecurity object instead.
                     if ($Current_Searcher_Result_Property -eq 'ntsecuritydescriptor') {
                         $Current_Searcher_Result_Value = $Directory_Searcher_Result.GetDirectoryEntry().ObjectSecurity
                     }
@@ -215,9 +219,9 @@ function Find-DSSObject {
 
                     # Check and add additional properties from the "Useful Constructed Properties" list if required.
                     } elseif (($Useful_Calculated_Properties.GetEnumerator() | ForEach-Object { $_.Value.GetEnumerator().Name }) -contains $Current_Searcher_Result_Property) {
-                        $Useful_Calculated_Property_Object = $Useful_Calculated_Properties.GetEnumerator() | Where-Object { $_.Value.GetEnumerator().Name -eq $Current_Searcher_Result_Property }
-                        $Useful_Calculated_Property_Type = $Useful_Calculated_Property_Object.Name
-                        $Useful_Calculated_Property_CalculatedName = $Useful_Calculated_Property_Object.Value.$Current_Searcher_Result_Property
+                        $Useful_Calculated_Property_Object          = $Useful_Calculated_Properties.GetEnumerator() | Where-Object { $_.Value.GetEnumerator().Name -eq $Current_Searcher_Result_Property }
+                        $Useful_Calculated_Property_Type            = $Useful_Calculated_Property_Object.Name
+                        $Useful_Calculated_Property_CalculatedName  = $Useful_Calculated_Property_Object.Value.$Current_Searcher_Result_Property
                         Write-Verbose ('{0}|Useful base property of type [{1}] found: {2}' -f $Function_Name,$Useful_Calculated_Property_Type,$Current_Searcher_Result_Property)
                         if ($Properties -contains $Current_Searcher_Result_Property) {
                             Write-Verbose ('{0}|Useful property specified directly: {1}' -f $Function_Name,$Current_Searcher_Result_Property)
@@ -232,6 +236,33 @@ function Find-DSSObject {
                                 }
                                 'groupid_to_distinguishedname' {
                                     Write-Verbose ('{0}|Useful: Adding property: {1}' -f $Function_Name,$Useful_Calculated_Property_CalculatedName)
+                                }
+                                'cannotchangepassword' {
+                                    Write-Verbose ('{0}|Useful: Adding property: {1}' -f $Function_Name,$Useful_Calculated_Property_CalculatedName)
+                                    # This requires 2 Deny permissions to be set: the "Everyone" group and "NT AUTHORITY\SELF" user. Only if both are set to Deny, will "cannotchangepassword" be true.
+                                    # Adapted from: https://social.technet.microsoft.com/Forums/scriptcenter/en-US/e947d590-d183-46b9-9a7a-4e785638c6fb/how-can-i-get-a-list-of-active-directory-user-accounts-where-the-user-cannot-change-the-password?forum=ITCG
+                                    $ChangePassword_GUID = 'ab721a53-1e2f-11d0-9819-00aa0040529b'
+                                    $ChangePassword_Identity_Everyone = 'Everyone'
+                                    $ChangePassword_Identity_Self = 'NT AUTHORITY\SELF'
+                                    $ChangePassword_Rules = ($Result_Object['ntsecuritydescriptor']).Access | Where-Object { $_.ObjectType -eq $ChangePassword_GUID }
+                                    $null = $ChangePassword_Identity_Everyone_Correct = $ChangePassword_Identity_Self_Correct
+                                    foreach ($ChangePassword_Rule in $ChangePassword_Rules) {
+                                        if (($ChangePassword_Rule.IdentityReference -eq $ChangePassword_Identity_Everyone) -and ($ChangePassword_Rule.AccessControlType -eq 'Deny')) {
+                                            Write-Verbose ('{0}|Useful: CannotChangePassword: Found correct permission for "Everyone" group: {1}' -f $Function_Name,$ChangePassword_Identity_Everyone)
+                                            $ChangePassword_Identity_Everyone_Correct = $true
+                                        }
+                                        if (($ChangePassword_Rule.IdentityReference -eq $ChangePassword_Identity_Self) -and ($ChangePassword_Rule.AccessControlType -eq 'Deny')) {
+                                            Write-Verbose ('{0}|Useful: CannotChangePassword: Found correct permission for "Self" user: {1}' -f $Function_Name,$ChangePassword_Identity_Self)
+                                            $ChangePassword_Identity_Self_Correct = $true
+                                        }
+                                    }
+                                    if ($ChangePassword_Identity_Everyone_Correct -and $ChangePassword_Identity_Self_Correct) {
+                                        Write-Verbose ('{0}|Useful: CannotChangePassword: Both permissions correct, returning $true' -f $Function_Name)
+                                        $Result_Object[$Useful_Calculated_Property_CalculatedName] = $true
+                                    } else {
+                                        Write-Verbose ('{0}|Useful: CannotChangePassword: Both permissions not correct, returning $false' -f $Function_Name)
+                                        $Result_Object[$Useful_Calculated_Property_CalculatedName] = $false
+                                    }
                                 }
                             }
                         }

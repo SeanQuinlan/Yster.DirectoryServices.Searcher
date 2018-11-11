@@ -141,6 +141,7 @@ function Find-DSSUser {
             'manager'
             'mobile'
             'msds-supportedencryptiontypes'
+            'ntsecuritydescriptor'
             'objectcategory'
             'objectclass'
             'objectguid'
