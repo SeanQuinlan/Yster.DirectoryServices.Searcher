@@ -84,18 +84,17 @@ function Find-DSSObject {
     }
 
     # Get-ADUser also adds a number of other useful properties based on calculations of other properties. Like creating a datetime object from an integer property.
-    $Useful_Calculated_Properties = @{
-        'int_to_datetime' = @{
-            'lockouttime'                           = 'accountlockouttime'
-            'badpasswordtime'                       = 'lastbadpasswordattempt'
-            'pwdlastset'                            = 'passwordlastset'
-        }
-        'groupid_to_distinguishedname' = @{
-            'primarygroupid'                        = 'primarygroup'
-        }
-        'cannotchangepassword' = @{
-            'ntsecuritydescriptor'                  = 'cannotchangepassword'
-        }
+    $Useful_Calculated_Time_Properties = @{
+        'lockouttime'       = 'accountlockouttime'
+        'badpasswordtime'   = 'lastbadpasswordattempt'
+        'pwdlastset'        = 'passwordlastset'
+    }
+    $Useful_Calculated_Security_Properties = @(
+        'cannotchangepassword'
+        'protectedfromaccidentaldeletion'
+    )
+    $Useful_Calculated_Group_Properties = @{
+        'primarygroupid'    = 'primarygroup'
     }
 
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
@@ -137,9 +136,19 @@ function Find-DSSObject {
             }
 
             # Add any of the "Useful Calculated Properties" if required.
-            foreach ($Useful_Calculated_Property in ($Useful_Calculated_Properties.GetEnumerator() | ForEach-Object { $_.Value.GetEnumerator() })) {
-                if (($Useful_Calculated_Property.Value -contains $Property) -and ($Properties_To_Add -notcontains $Useful_Calculated_Property.Name)) {
-                    [void]$Properties_To_Add.Add($Useful_Calculated_Property.Name)
+            foreach ($Useful_Calculated_Time_Property in $Useful_Calculated_Time_Properties) {
+                if (($Useful_Calculated_Time_Property.Value -eq $Property) -and ($Properties_To_Add -notcontains $Useful_Calculated_Time_Property.Name)) {
+                    [void]$Properties_To_Add.Add($Useful_Calculated_Time_Property.Name)
+                }
+            }
+            foreach ($Useful_Calculated_Group_Property in $Useful_Calculated_Group_Properties) {
+                if (($Useful_Calculated_Group_Property.Value -eq $Property) -and ($Properties_To_Add -notcontains $Useful_Calculated_Group_Property.Name)) {
+                    [void]$Properties_To_Add.Add($Useful_Calculated_Group_Property.Name)
+                }
+            }
+            foreach ($Useful_Calculated_Security_Property in $Useful_Calculated_Security_Properties) {
+                if (($Useful_Calculated_Security_Property -eq $Property) -and ($Properties_To_Add -notcontains 'ntsecuritydescriptor')) {
+                    [void]$Properties_To_Add.Add('ntsecuritydescriptor')
                 }
             }
         }
@@ -218,52 +227,63 @@ function Find-DSSObject {
                         }
 
                     # Check and add additional properties from the "Useful Constructed Properties" list if required.
-                    } elseif (($Useful_Calculated_Properties.GetEnumerator() | ForEach-Object { $_.Value.GetEnumerator().Name }) -contains $Current_Searcher_Result_Property) {
-                        $Useful_Calculated_Property_Object          = $Useful_Calculated_Properties.GetEnumerator() | Where-Object { $_.Value.GetEnumerator().Name -eq $Current_Searcher_Result_Property }
-                        $Useful_Calculated_Property_Type            = $Useful_Calculated_Property_Object.Name
-                        $Useful_Calculated_Property_CalculatedName  = $Useful_Calculated_Property_Object.Value.$Current_Searcher_Result_Property
-                        Write-Verbose ('{0}|Useful base property of type [{1}] found: {2}' -f $Function_Name,$Useful_Calculated_Property_Type,$Current_Searcher_Result_Property)
+                    } elseif ($Useful_Calculated_Time_Properties.GetEnumerator().Name -contains $Current_Searcher_Result_Property) {
+                        Write-Verbose ('{0}|Useful_Calculated_Time base property found: {1}' -f $Function_Name,$Current_Searcher_Result_Property)
+                        $Useful_Calculated_Time_Property_Name = $Useful_Calculated_Time_Properties.$Current_Searcher_Result_Property
                         if ($Properties -contains $Current_Searcher_Result_Property) {
-                            Write-Verbose ('{0}|Useful property specified directly: {1}' -f $Function_Name,$Current_Searcher_Result_Property)
+                            Write-Verbose ('{0}|Useful_Calculated_Time property specified directly: {1}' -f $Function_Name,$Current_Searcher_Result_Property)
                             $Result_Object[$Current_Searcher_Result_Property] = $Current_Searcher_Result_Value
                         }
-
-                        if ($Properties -contains $Useful_Calculated_Property_CalculatedName) {
-                            switch ($Useful_Calculated_Property_Type) {
-                                'int_to_datetime' {
-                                    Write-Verbose ('{0}|Useful: Adding property: {1}' -f $Function_Name,$Useful_Calculated_Property_CalculatedName)
-                                    $Result_Object[$Useful_Calculated_Property_CalculatedName] = [DateTime]::FromFileTime($Current_Searcher_Result_Value)
+                        if ($Properties -contains $Useful_Calculated_Time_Property_Name) {
+                            Write-Verbose ('{0}|Useful_Calculated_Time returning calculated property: {1}' -f $Function_Name,$Useful_Calculated_Time_Property_Name)
+                            $Result_Object[$Useful_Calculated_Time_Property_Name] = [DateTime]::FromFileTime($Current_Searcher_Result_Value)
+                        }
+                    } elseif ($Current_Searcher_Result_Property -eq 'ntsecuritydescriptor') {
+                        Write-Verbose ('{0}|Useful_Calculated_Security: base property found: {1}' -f $Function_Name,$Current_Searcher_Result_Property)
+                        if ($Properties -contains $Current_Searcher_Result_Property) {
+                            Write-Verbose ('{0}|Useful_Calculated_Security: Property specified directly: {1}' -f $Function_Name,$Current_Searcher_Result_Property)
+                            $Result_Object[$Current_Searcher_Result_Property] = $Current_Searcher_Result_Value
+                        }
+                        if ($Properties -contains 'cannotchangepassword') {
+                            $Useful_Calculated_Security_Property_Name = 'cannotchangepassword'
+                            Write-Verbose ('{0}|Useful_Calculated_Security: Returning calculated property: {1}' -f $Function_Name,$Useful_Calculated_Security_Property_Name)
+                            # This requires 2 Deny permissions to be set: the "Everyone" group and "NT AUTHORITY\SELF" user. Only if both are set to Deny, will "cannotchangepassword" be true.
+                            # Adapted from: https://social.technet.microsoft.com/Forums/scriptcenter/en-US/e947d590-d183-46b9-9a7a-4e785638c6fb/how-can-i-get-a-list-of-active-directory-user-accounts-where-the-user-cannot-change-the-password?forum=ITCG
+                            $ChangePassword_GUID = 'ab721a53-1e2f-11d0-9819-00aa0040529b'
+                            $ChangePassword_Identity_Everyone = 'Everyone'
+                            $ChangePassword_Identity_Self = 'NT AUTHORITY\SELF'
+                            $ChangePassword_Rules = $Current_Searcher_Result_Value.Access | Where-Object { $_.ObjectType -eq $ChangePassword_GUID }
+                            $null = $ChangePassword_Identity_Everyone_Correct = $ChangePassword_Identity_Self_Correct
+                            foreach ($ChangePassword_Rule in $ChangePassword_Rules) {
+                                if (($ChangePassword_Rule.IdentityReference -eq $ChangePassword_Identity_Everyone) -and ($ChangePassword_Rule.AccessControlType -eq 'Deny')) {
+                                    Write-Verbose ('{0}|Useful_Calculated_Security: CannotChangePassword: Found correct permission for "Everyone" group: {1}' -f $Function_Name,$ChangePassword_Identity_Everyone)
+                                    $ChangePassword_Identity_Everyone_Correct = $true
                                 }
-                                'groupid_to_distinguishedname' {
-                                    Write-Verbose ('{0}|Useful: Adding property: {1}' -f $Function_Name,$Useful_Calculated_Property_CalculatedName)
+                                if (($ChangePassword_Rule.IdentityReference -eq $ChangePassword_Identity_Self) -and ($ChangePassword_Rule.AccessControlType -eq 'Deny')) {
+                                    Write-Verbose ('{0}|Useful_Calculated_Security: CannotChangePassword: Found correct permission for "Self" user: {1}' -f $Function_Name,$ChangePassword_Identity_Self)
+                                    $ChangePassword_Identity_Self_Correct = $true
                                 }
-                                'cannotchangepassword' {
-                                    Write-Verbose ('{0}|Useful: Adding property: {1}' -f $Function_Name,$Useful_Calculated_Property_CalculatedName)
-                                    # This requires 2 Deny permissions to be set: the "Everyone" group and "NT AUTHORITY\SELF" user. Only if both are set to Deny, will "cannotchangepassword" be true.
-                                    # Adapted from: https://social.technet.microsoft.com/Forums/scriptcenter/en-US/e947d590-d183-46b9-9a7a-4e785638c6fb/how-can-i-get-a-list-of-active-directory-user-accounts-where-the-user-cannot-change-the-password?forum=ITCG
-                                    $ChangePassword_GUID = 'ab721a53-1e2f-11d0-9819-00aa0040529b'
-                                    $ChangePassword_Identity_Everyone = 'Everyone'
-                                    $ChangePassword_Identity_Self = 'NT AUTHORITY\SELF'
-                                    $ChangePassword_Rules = ($Result_Object['ntsecuritydescriptor']).Access | Where-Object { $_.ObjectType -eq $ChangePassword_GUID }
-                                    $null = $ChangePassword_Identity_Everyone_Correct = $ChangePassword_Identity_Self_Correct
-                                    foreach ($ChangePassword_Rule in $ChangePassword_Rules) {
-                                        if (($ChangePassword_Rule.IdentityReference -eq $ChangePassword_Identity_Everyone) -and ($ChangePassword_Rule.AccessControlType -eq 'Deny')) {
-                                            Write-Verbose ('{0}|Useful: CannotChangePassword: Found correct permission for "Everyone" group: {1}' -f $Function_Name,$ChangePassword_Identity_Everyone)
-                                            $ChangePassword_Identity_Everyone_Correct = $true
-                                        }
-                                        if (($ChangePassword_Rule.IdentityReference -eq $ChangePassword_Identity_Self) -and ($ChangePassword_Rule.AccessControlType -eq 'Deny')) {
-                                            Write-Verbose ('{0}|Useful: CannotChangePassword: Found correct permission for "Self" user: {1}' -f $Function_Name,$ChangePassword_Identity_Self)
-                                            $ChangePassword_Identity_Self_Correct = $true
-                                        }
-                                    }
-                                    if ($ChangePassword_Identity_Everyone_Correct -and $ChangePassword_Identity_Self_Correct) {
-                                        Write-Verbose ('{0}|Useful: CannotChangePassword: Both permissions correct, returning $true' -f $Function_Name)
-                                        $Result_Object[$Useful_Calculated_Property_CalculatedName] = $true
-                                    } else {
-                                        Write-Verbose ('{0}|Useful: CannotChangePassword: Both permissions not correct, returning $false' -f $Function_Name)
-                                        $Result_Object[$Useful_Calculated_Property_CalculatedName] = $false
-                                    }
-                                }
+                            }
+                            if ($ChangePassword_Identity_Everyone_Correct -and $ChangePassword_Identity_Self_Correct) {
+                                Write-Verbose ('{0}|Useful_Calculated_Security: CannotChangePassword: Both permissions correct, returning $true' -f $Function_Name)
+                                $Result_Object[$Useful_Calculated_Security_Property_Name] = $true
+                            } else {
+                                Write-Verbose ('{0}|Useful_Calculated_Security: CannotChangePassword: Both permissions not correct, returning $false' -f $Function_Name)
+                                $Result_Object[$Useful_Calculated_Security_Property_Name] = $false
+                            }
+                        }
+                        if ($Properties -contains 'protectedfromaccidentaldeletion') {
+                            $Useful_Calculated_Security_Property_Name = 'protectedfromaccidentaldeletion'
+                            Write-Verbose ('{0}|Useful_Calculated_Security: Returning calculated property: {1}' -f $Function_Name,$Useful_Calculated_Security_Property_Name)
+                            $AccidentalDeletion_Rights = 'DeleteTree, Delete'
+                            $AccidentalDeletion_Identity_Everyone = 'Everyone'
+                            $AccidentalDeletion_Rule = $Current_Searcher_Result_Value.Access | Where-Object { ($_.ActiveDirectoryRights -eq $AccidentalDeletion_Rights) -and ($_.IdentityReference -eq $AccidentalDeletion_Identity_Everyone) }
+                            if (($AccidentalDeletion_Rule.Count -eq 1) -and ($AccidentalDeletion_Rule.AccessControlType -eq 'Deny')) {
+                                Write-Verbose ('{0}|Useful_Calculated_Security: AccidentalDeletion correct: Permission: {1} | Group: {2} | Count: {3}' -f $Function_Name,$AccidentalDeletion_Rule.AccessControlType,$AccidentalDeletion_Identity_Everyone,$AccidentalDeletion_Rule.Count)
+                                $Result_Object[$Useful_Calculated_Security_Property_Name] = $true
+                            } else {
+                                Write-Verbose ('{0}|Useful_Calculated_Security: AccidentalDeletion incorrect: Permission: {1} | Group: {2} | Count: {3}' -f $Function_Name,$AccidentalDeletion_Rule.AccessControlType,$AccidentalDeletion_Identity_Everyone,$AccidentalDeletion_Rule.Count)
+                                $Result_Object[$Useful_Calculated_Security_Property_Name] = $false
                             }
                         }
                     } else {

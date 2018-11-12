@@ -161,6 +161,7 @@ function Find-DSSUser {
             'primarygroup'
             'primarygroupid'
             'profilepath'
+            'protectedfromaccidentaldeletion'
             'pwdlastset'
             'samaccountname'
             'samaccounttype'
