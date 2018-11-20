@@ -124,31 +124,31 @@ function Find-DSSObject {
         )
         $Directory_Searcher = New-Object -TypeName 'System.DirectoryServices.DirectorySearcher' -ArgumentList $Directory_Searcher_Arguments
 
-        $Properties_To_Add = New-Object -TypeName 'System.Collections.ArrayList'
+        $Properties_To_Add = New-Object -TypeName 'System.Collections.Generic.List[String]'
         foreach ($Property in $Properties) {
             [void]$Properties_To_Add.Add($Property)
 
             # The relevant "UserAccountControl_Calculated" property is added to the search properties list if any of the calculated properties are requested.
             foreach ($UAC_Calculated_Property in $UAC_Calculated_Properties.GetEnumerator().Name) {
                 if (($UAC_Calculated_Properties.$UAC_Calculated_Property.GetEnumerator().Name -contains $Property) -and ($Properties_To_Add -notcontains $UAC_Calculated_Property)) {
-                    [void]$Properties_To_Add.Add($UAC_Calculated_Property)
+                    $Properties_To_Add.Add($UAC_Calculated_Property)
                 }
             }
 
             # Add any of the "Useful Calculated Properties" if required.
             foreach ($Useful_Calculated_Time_Property in $Useful_Calculated_Time_Properties) {
                 if (($Useful_Calculated_Time_Property.Value -eq $Property) -and ($Properties_To_Add -notcontains $Useful_Calculated_Time_Property.Name)) {
-                    [void]$Properties_To_Add.Add($Useful_Calculated_Time_Property.Name)
+                    $Properties_To_Add.Add($Useful_Calculated_Time_Property.Name)
                 }
             }
             foreach ($Useful_Calculated_Group_Property in $Useful_Calculated_Group_Properties) {
                 if (($Useful_Calculated_Group_Property.Value -eq $Property) -and ($Properties_To_Add -notcontains $Useful_Calculated_Group_Property.Name)) {
-                    [void]$Properties_To_Add.Add($Useful_Calculated_Group_Property.Name)
+                    $Properties_To_Add.Add($Useful_Calculated_Group_Property.Name)
                 }
             }
             foreach ($Useful_Calculated_Security_Property in $Useful_Calculated_Security_Properties) {
                 if (($Useful_Calculated_Security_Property -eq $Property) -and ($Properties_To_Add -notcontains 'ntsecuritydescriptor')) {
-                    [void]$Properties_To_Add.Add('ntsecuritydescriptor')
+                    $Properties_To_Add.Add('ntsecuritydescriptor')
                 }
             }
         }
@@ -163,7 +163,7 @@ function Find-DSSObject {
         $Directory_Searcher_Results = $Directory_Searcher.FindAll()
         if ($Directory_Searcher_Results) {
             Write-Verbose ('{0}|Found {1} result(s)' -f $Function_Name,$Directory_Searcher_Results.Count)
-            $Directory_Searcher_Results_To_Return = New-Object -TypeName 'System.Collections.ArrayList'
+            $Directory_Searcher_Results_To_Return = New-Object -TypeName 'System.Collections.Generic.List[PSObject]'
             foreach ($Directory_Searcher_Result in $Directory_Searcher_Results) {
                 $Result_Object = @{}
                 $Directory_Searcher_Result.Properties.GetEnumerator() | Sort-Object 'Name' | ForEach-Object {
@@ -297,7 +297,7 @@ function Find-DSSObject {
                     $Result_Object_Sorted[$_.Name] = $_.Value
                 }
                 $Directory_Searcher_Result_Object = New-Object -TypeName 'System.Management.Automation.PSObject' -Property $Result_Object_Sorted
-                [void]$Directory_Searcher_Results_To_Return.Add($Directory_Searcher_Result_Object)
+                $Directory_Searcher_Results_To_Return.Add($Directory_Searcher_Result_Object)
             }
             # Return the search results object
             $Directory_Searcher_Results_To_Return

@@ -1581,13 +1581,13 @@ function Get-AttributeSyntaxHashtable {
     $Searcher.PageSize = 500
     [void]$Searcher.PropertiesToLoad.Add('ldapdisplayname')
     [void]$Searcher.PropertiesToLoad.Add('attributesyntax')
-    $Results = New-Object -TypeName 'System.Collections.ArrayList'
+    $Results = New-Object -TypeName 'System.Collections.Generic.List[PSObject]'
     $Searcher.FindAll() | ForEach-Object {
         $Object = [pscustomobject]@{
             'ldapdisplayname' = $($_.Properties.ldapdisplayname)
             'attributesyntax' = $($_.Properties.attributesyntax)
         }
-        [void]$Results.Add($Object)
+        $Results.Add($Object)
     }
     # Add any custom attributes here
     $Results.Add([pscustomobject]@{'ldapdisplayname' = 'adspath'; 'attributesyntax' = '2.5.5.2'})

@@ -87,7 +87,7 @@ function Find-DSSUser {
         }
 
         # Default properties as per Get-ADUser. Used when no Properties is specified.
-        $Default_Properties = @(
+        [String[]]$Default_Properties = @(
             'distinguishedname'
             'enabled'
             'givenname'
@@ -102,7 +102,7 @@ function Find-DSSUser {
         # Full list of all properties returned with a wildcard.
         # Due to some constructed properties not being returned when search results include a wildcard, simply replace the wildcard with the full array of properties.
         # See http://www.rlmueller.net/UserAttributes.htm
-        $Wildcard_Properties = @(
+        [String[]]$Wildcard_Properties = @(
             'allowreversiblepasswordencryption'
             'accountexpires'
             'accountlockouttime'
@@ -181,24 +181,24 @@ function Find-DSSUser {
             'whencreated'
         )
 
-        $Directory_Search_Properties = New-Object -TypeName 'System.Collections.ArrayList'
+        $Directory_Search_Properties = New-Object -TypeName 'System.Collections.Generic.List[String]'
         if ($PSBoundParameters.ContainsKey('Properties')) {
             if ($Properties -contains '*') {
                 Write-Verbose ('{0}|Replacing wildcard with list of properties' -f $Function_Name)
-                [void]$Directory_Search_Properties.AddRange($Wildcard_Properties)
+                $Directory_Search_Properties.AddRange($Wildcard_Properties)
             } else {
                 Write-Verbose ('{0}|Properties specified, adding default properties first' -f $Function_Name)
-                [void]$Directory_Search_Properties.AddRange($Default_Properties)
+                $Directory_Search_Properties.AddRange($Default_Properties)
             }
             foreach ($Property in $Properties) {
                 if (($Property -ne '*') -and ($Directory_Search_Properties -notcontains $Property)) {
                     Write-Verbose ('{0}|Adding Property: {1}' -f $Function_Name,$Property)
-                    [void]$Directory_Search_Properties.Add($Property)
+                    $Directory_Search_Properties.Add($Property)
                 }
             }
         } else {
             Write-Verbose ('{0}|No properties specified, adding default properties only' -f $Function_Name)
-            [void]$Directory_Search_Properties.AddRange($Default_Properties)
+            $Directory_Search_Properties.AddRange($Default_Properties)
         }
         Write-Verbose ('{0}|Properties: {1}' -f $Function_Name,($Directory_Search_Properties -join ' '))
         $Directory_Search_Parameters.Properties = $Directory_Search_Properties
