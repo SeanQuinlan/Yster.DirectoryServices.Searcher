@@ -15,7 +15,7 @@ function Find-DSSObject {
 
     [CmdletBinding()]
     param(
-        # An LDAP filter to use for the search.
+        # The LDAP filter to use for the search.
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         [String]
@@ -89,13 +89,14 @@ function Find-DSSObject {
         'badpasswordtime'   = 'lastbadpasswordattempt'
         'pwdlastset'        = 'passwordlastset'
     }
+    $Useful_Calculated_Group_Properties = @{
+        'primarygroupid'    = 'primarygroup'
+    }
+    # These are all calculated from the 'ntsecuritydescriptor' property.
     $Useful_Calculated_Security_Properties = @(
         'cannotchangepassword'
         'protectedfromaccidentaldeletion'
     )
-    $Useful_Calculated_Group_Properties = @{
-        'primarygroupid'    = 'primarygroup'
-    }
 
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name,$_.Key,($_.Value -join ' ')) }
@@ -226,7 +227,7 @@ function Find-DSSObject {
                             }
                         }
 
-                    # Check and add additional properties from the "Useful Constructed Properties" list if required.
+                    # Check and add additional properties from the "Useful Calculated Properties" list if required.
                     } elseif ($Useful_Calculated_Time_Properties.GetEnumerator().Name -contains $Current_Searcher_Result_Property) {
                         Write-Verbose ('{0}|Useful_Calculated_Time base property found: {1}' -f $Function_Name,$Current_Searcher_Result_Property)
                         $Useful_Calculated_Time_Property_Name = $Useful_Calculated_Time_Properties.$Current_Searcher_Result_Property
@@ -237,6 +238,18 @@ function Find-DSSObject {
                         if ($Properties -contains $Useful_Calculated_Time_Property_Name) {
                             Write-Verbose ('{0}|Useful_Calculated_Time returning calculated property: {1}' -f $Function_Name,$Useful_Calculated_Time_Property_Name)
                             $Result_Object[$Useful_Calculated_Time_Property_Name] = [DateTime]::FromFileTime($Current_Searcher_Result_Value)
+                        }
+                    } elseif ($Useful_Calculated_Group_Properties.GetEnumerator().Name -contains $Current_Searcher_Result_Property) {
+                        Write-Verbose ('{0}|Useful_Calculated_Security: base property found: {1}' -f $Function_Name,$Current_Searcher_Result_Property)
+
+                        $Useful_Calculated_Group_Property_Name = $Useful_Calculated_Group_Properties.$Current_Searcher_Result_Property
+                        if ($Properties -contains $Current_Searcher_Result_Property) {
+                            Write-Verbose ('{0}|Useful_Calculated_Group property specified directly: {1}' -f $Function_Name,$Current_Searcher_Result_Property)
+                            $Result_Object[$Current_Searcher_Result_Property] = $Current_Searcher_Result_Value
+                        }
+                        if ($Properties -contains $Useful_Calculated_Group_Property_Name) {
+                            Write-Verbose ('{0}|Useful_Calculated_Group returning calculated property: {1}' -f $Function_Name,$Useful_Calculated_Group_Property_Name)
+
                         }
                     } elseif ($Current_Searcher_Result_Property -eq 'ntsecuritydescriptor') {
                         Write-Verbose ('{0}|Useful_Calculated_Security: base property found: {1}' -f $Function_Name,$Current_Searcher_Result_Property)

@@ -22,7 +22,7 @@ function Find-DSSUser {
         [String]
         $Name,
 
-        # An LDAP filter to use for the search.
+        # The LDAP filter to use for the search.
         [Parameter(Mandatory = $true, ParameterSetName = 'LDAPFilter')]
         [ValidateNotNullOrEmpty()]
         [String]
@@ -110,6 +110,7 @@ function Find-DSSUser {
             'badpwdcount'
             'c'
             'cannotchangepassword'
+            'canonicalname'
             'cn'
             'co'
             'codepage'
@@ -118,6 +119,7 @@ function Find-DSSUser {
             'department'
             'description'
             'displayname'
+            'distinguishedname'
             'dscorepropagationdata'
             'enabled'
             'facsimiletelephonenumber'
@@ -203,7 +205,7 @@ function Find-DSSUser {
         Write-Verbose ('{0}|Properties: {1}' -f $Function_Name,($Directory_Search_Properties -join ' '))
         $Directory_Search_Parameters.Properties = $Directory_Search_Properties
 
-        $Default_User_LDAPFilter = '(sAMAccountType=805306368)'     # sAMAccountType is best method to search just user accounts - http://www.selfadsi.org/extended-ad/search-user-accounts.htm
+        $Default_User_LDAPFilter = '(samaccounttype=805306368)'     # sAMAccountType is best method to search just user accounts - http://www.selfadsi.org/extended-ad/search-user-accounts.htm
         if ($Name -eq '*') {
             $Directory_Search_LDAPFilter = $Default_User_LDAPFilter
         } elseif ($LDAPFilter) {
