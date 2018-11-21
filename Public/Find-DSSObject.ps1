@@ -240,7 +240,7 @@ function Find-DSSObject {
                             $Result_Object[$Useful_Calculated_Time_Property_Name] = [DateTime]::FromFileTime($Current_Searcher_Result_Value)
                         }
                     } elseif ($Useful_Calculated_Group_Properties.GetEnumerator().Name -contains $Current_Searcher_Result_Property) {
-                        Write-Verbose ('{0}|Useful_Calculated_Security: base property found: {1}' -f $Function_Name,$Current_Searcher_Result_Property)
+                        Write-Verbose ('{0}|Useful_Calculated_Group: base property found: {1}' -f $Function_Name,$Current_Searcher_Result_Property)
 
                         $Useful_Calculated_Group_Property_Name = $Useful_Calculated_Group_Properties.$Current_Searcher_Result_Property
                         if ($Properties -contains $Current_Searcher_Result_Property) {
@@ -248,7 +248,11 @@ function Find-DSSObject {
                             $Result_Object[$Current_Searcher_Result_Property] = $Current_Searcher_Result_Value
                         }
                         if ($Properties -contains $Useful_Calculated_Group_Property_Name) {
+                            # Convert the PrimaryGroupID to a full ObjectSID property, by using the ObjectSID property of the user and simply replacing the last number with the PrimaryGroupID
+                            $PrimaryGroup_SID = '{0}-{1}' -f $Result_Object['objectsid'].AccountDomainSid.Value,$Current_Searcher_Result_Value
+                            $PrimaryGroup_Name = (Get-DSSGroup -ObjectSID $PrimaryGroup_SID).distinguishedname
                             Write-Verbose ('{0}|Useful_Calculated_Group returning calculated property: {1}' -f $Function_Name,$Useful_Calculated_Group_Property_Name)
+                            $Result_Object[$Useful_Calculated_Group_Property_Name] = $PrimaryGroup_Name
 
                         }
                     } elseif ($Current_Searcher_Result_Property -eq 'ntsecuritydescriptor') {
