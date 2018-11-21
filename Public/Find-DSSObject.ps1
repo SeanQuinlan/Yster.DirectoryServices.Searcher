@@ -248,7 +248,7 @@ function Find-DSSObject {
                             $Result_Object[$Current_Searcher_Result_Property] = $Current_Searcher_Result_Value
                         }
                         if ($Properties -contains $Useful_Calculated_Group_Property_Name) {
-                            # Convert the PrimaryGroupID to a full ObjectSID property, by using the ObjectSID property of the user and simply replacing the last number with the PrimaryGroupID
+                            # Convert the PrimaryGroupID to a full ObjectSID property, by using the AccountDomainSid sub-property of the ObjectSID property of the user and appending the PrimaryGroupID.
                             $PrimaryGroup_SID = '{0}-{1}' -f $Result_Object['objectsid'].AccountDomainSid.Value,$Current_Searcher_Result_Value
                             $PrimaryGroup_Name = (Get-DSSGroup -ObjectSID $PrimaryGroup_SID).distinguishedname
                             Write-Verbose ('{0}|Useful_Calculated_Group returning calculated property: {1}' -f $Function_Name,$Useful_Calculated_Group_Property_Name)
