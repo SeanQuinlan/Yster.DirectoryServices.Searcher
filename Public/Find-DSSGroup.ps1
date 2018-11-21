@@ -115,23 +115,15 @@ function Find-DSSGroup {
             'cn'
             'description'
             'displayname'
-            'distinguishedname'
             'dscorepropagationdata'
-            'groupcategory'
-            'groupscope'
             'grouptype'
             'info'
             'instancetype'
             'mail'
             'managedby'
-            'name'
             'ntsecuritydescriptor'
             'objectcategory'
-            'objectclass'
-            'objectguid'
-            'objectsid'
             'protectedfromaccidentaldeletion'
-            'samaccountname'
             'samaccounttype'
             'sdrightseffective'
             'sidhistory'
@@ -143,12 +135,11 @@ function Find-DSSGroup {
 
         $Directory_Search_Properties = New-Object -TypeName 'System.Collections.Generic.List[String]'
         if ($PSBoundParameters.ContainsKey('Properties')) {
+            Write-Verbose ('{0}|Adding default properties first' -f $Function_Name)
+            $Directory_Search_Properties.AddRange($Default_Properties)
             if ($Properties -contains '*') {
-                Write-Verbose ('{0}|Replacing wildcard with list of properties' -f $Function_Name)
+                Write-Verbose ('{0}|Adding other wildcard properties' -f $Function_Name)
                 $Directory_Search_Properties.AddRange($Wildcard_Properties)
-            } else {
-                Write-Verbose ('{0}|Properties specified, adding default properties first' -f $Function_Name)
-                $Directory_Search_Properties.AddRange($Default_Properties)
             }
             foreach ($Property in $Properties) {
                 if (($Property -ne '*') -and ($Directory_Search_Properties -notcontains $Property)) {
