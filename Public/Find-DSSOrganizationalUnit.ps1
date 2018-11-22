@@ -5,11 +5,13 @@ function Find-DSSOrganizationalUnit {
     .DESCRIPTION
 
     .EXAMPLE
-        Find-DSSOrganizationalUnit "Sales"
+        Find-DSSOrganizationalUnit -Name "Sales"
 
         Finds all the OUs that match "Sales".
     .EXAMPLE
+        Find-DSSOrganizationalUnit -LDAPFilter '(name=UK*)' -Properties *
 
+        Finds all the OUs that have a "name" starting with "UK", and return all properties for each result.
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'Name')]
@@ -92,7 +94,7 @@ function Find-DSSOrganizationalUnit {
             $Directory_Search_Parameters.Credential = $Credential
         }
 
-        # Default properties as per Get-ADUser. Used when no Properties is specified.
+        # Default properties as per Get-ADOrganizationalUnit. Used when no Properties is specified.
         [String[]]$Default_Properties = @(
             'c'
             'country'
@@ -162,7 +164,7 @@ function Find-DSSOrganizationalUnit {
         Write-Verbose ('{0}|LDAPFilter: {1}' -f $Function_Name,$Directory_Search_LDAPFilter)
         $Directory_Search_Parameters.LDAPFilter = $Directory_Search_LDAPFilter
 
-        Write-Verbose ('{0}|Finding users using Find-DSSObject' -f $Function_Name)
+        Write-Verbose ('{0}|Finding OUs using Find-DSSObject' -f $Function_Name)
         Find-DSSObject @Directory_Search_Parameters
     }
     catch {
