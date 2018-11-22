@@ -56,7 +56,15 @@ function Get-DSSRootDSE {
             $RootDSE_Value      = $($Directory_Entry.$_)
             Write-Verbose ('{0}|Property={1} Value={2}' -f $Function_Name,$RootDSE_Property,$RootDSE_Value)
 
-            $Result_Object[$RootDSE_Property] = $RootDSE_Value
+            if ($RootDSE_Property -eq 'domaincontrollerfunctionality') {
+                $Result_Object[$RootDSE_Property] = $DomainControllerMode_Table[$RootDSE_Value]
+            } elseif ($RootDSE_Property -eq 'domainfunctionality') {
+                $Result_Object[$RootDSE_Property] = $DomainMode_Table[$RootDSE_Value]
+            } elseif ($RootDSE_Property -eq 'forestfunctionality') {
+                $Result_Object[$RootDSE_Property] = $ForestMode_Table[$RootDSE_Value]
+            } else {
+                $Result_Object[$RootDSE_Property] = $RootDSE_Value
+            }
         }
 
         # Sort results and then add to a new hashtable, as PSObject requires a hashtable as Property. GetEnumerator() piped into Sort-Object changes the output to an array.
@@ -73,4 +81,39 @@ function Get-DSSRootDSE {
     catch {
         $PSCmdlet.ThrowTerminatingError($_)
     }
+}
+
+# From: https://docs.microsoft.com/en-us/dotnet/api/microsoft.activedirectory.management.addomaincontrollermode?view=activedirectory-management-10.0
+$DomainControllerMode_Table = @{
+    '0' = 'Windows2000'
+    '2' = 'Windows2003'
+    '3' = 'Windows2008'
+    '4' = 'Windows2008R2'
+    '5' = 'Windows2012'
+    '6' = 'Windows2012R2'
+    '7' = 'Windows2016'
+}
+
+# From: https://docs.microsoft.com/en-us/dotnet/api/microsoft.activedirectory.management.addomainmode?view=activedirectory-management-10.0
+$DomainMode_Table = @{
+    '0' = 'Windows2000Domain'
+    '1' = 'Windows2003InterimDomain'
+    '2' = 'Windows2003Domain'
+    '3' = 'Windows2008Domain'
+    '4' = 'Windows2008R2Domain'
+    '5' = 'Windows2012Domain'
+    '6' = 'Windows2012R2Domain'
+    '7' = 'Windows2016Domain'
+}
+
+# From: https://docs.microsoft.com/en-us/dotnet/api/microsoft.activedirectory.management.adforestmode?view=activedirectory-management-10.0
+$ForestMode_Table = @{
+    '0' = 'Windows2000Forest'
+    '1' = 'Windows2003InterimForest'
+    '2' = 'Windows2003Forest'
+    '3' = 'Windows2008Forest'
+    '4' = 'Windows2008R2Forest'
+    '5' = 'Windows2012Forest'
+    '6' = 'Windows2012R2Forest'
+    '7' = 'Windows2016Forest'
 }
