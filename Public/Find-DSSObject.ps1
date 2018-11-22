@@ -39,6 +39,13 @@ function Find-DSSObject {
         [String[]]
         $Properties = @('distinguishedname','objectclass','objectguid'),
 
+        # The number of results per page that is returned from the server. This is primarily to save server memory and bandwidth and does not affect the total number of results returned.
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Alias('ResultPageSize')]
+        [Int]
+        $PageSize = 500,
+
         # The context to search - Domain or Forest.
         [Parameter(Mandatory = $false)]
         [ValidateSet('Domain','Forest')]
@@ -125,6 +132,14 @@ function Find-DSSObject {
         )
         $Directory_Searcher = New-Object -TypeName 'System.DirectoryServices.DirectorySearcher' -ArgumentList $Directory_Searcher_Arguments
 
+        if ($PSBoundParameters.ContainsKey('SearchScope')) {
+            Write-Verbose ('{0}|Adding SearchScope: {1}' -f $Function_Name,$SearchScope)
+            $Directory_Searcher.SearchScope = $SearchScope
+        }
+
+        Write-Verbose ('{0}|Setting PageSize to: {1}' -f $Function_Name,$PageSize)
+        $Directory_Searcher.PageSize = $PageSize
+
         $Properties_To_Add = New-Object -TypeName 'System.Collections.Generic.List[String]'
         foreach ($Property in $Properties) {
             [void]$Properties_To_Add.Add($Property)
@@ -155,10 +170,6 @@ function Find-DSSObject {
         }
         Write-Verbose ('{0}|Adding Properties: {1}' -f $Function_Name,($Properties_To_Add -join ' '))
         $Directory_Searcher.PropertiesToLoad.AddRange($Properties_To_Add)
-        if ($PSBoundParameters.ContainsKey('SearchScope')) {
-            Write-Verbose ('{0}|Adding SearchScope: {1}' -f $Function_Name,$SearchScope)
-            $Directory_Searcher.SearchScope = $SearchScope
-        }
 
         Write-Verbose ('{0}|Performing search...' -f $Function_Name)
         $Directory_Searcher_Results = $Directory_Searcher.FindAll()
