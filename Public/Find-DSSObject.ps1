@@ -178,7 +178,7 @@ function Find-DSSObject {
             $Directory_Searcher_Results_To_Return = New-Object -TypeName 'System.Collections.Generic.List[PSObject]'
             foreach ($Directory_Searcher_Result in $Directory_Searcher_Results) {
                 $Result_Object = @{}
-                $Directory_Searcher_Result.Properties.GetEnumerator() | Sort-Object 'Name' | ForEach-Object {
+                $Directory_Searcher_Result.Properties.GetEnumerator() | ForEach-Object {
                     $Current_Searcher_Result_Property   = $_.Name
                     $Current_Searcher_Result_Value      = $($_.Value)
                     $Current_Searcher_Result_Syntax     = Get-DSSAttributeSyntax -Name $Current_Searcher_Result_Property
