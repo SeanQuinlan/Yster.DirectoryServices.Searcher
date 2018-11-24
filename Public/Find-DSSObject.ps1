@@ -181,28 +181,27 @@ function Find-DSSObject {
                 $Directory_Searcher_Result.Properties.GetEnumerator() | ForEach-Object {
                     $Current_Searcher_Result_Property   = $_.Name
                     $Current_Searcher_Result_Value      = $($_.Value)
-                    $Current_Searcher_Result_Syntax     = Get-DSSAttributeSyntax -Name $Current_Searcher_Result_Property
-                    Write-Verbose ('{0}|Property={1} Syntax={2} Value={3}' -f $Function_Name,$Current_Searcher_Result_Property,$Current_Searcher_Result_Syntax,$Current_Searcher_Result_Value)
+                    Write-Verbose ('{0}|Property={1} Value={2}' -f $Function_Name,$Current_Searcher_Result_Property,$Current_Searcher_Result_Value)
 
-                    # Reformat certain attribute types:
-                    switch ($Current_Searcher_Result_Syntax) {
-                        # GUID
-                        '2.5.5.10' {
+                    # Reformat certain properties:
+                    switch ($Current_Searcher_Result_Property) {
+                        # - NTSecurityDescriptor - replace with the System.DirectoryServices.ActiveDirectorySecurity object instead.
+                        'ntsecuritydescriptor' {
+                            Write-Verbose ('{0}|Reformatting to ActiveDirectorySecurity object: {1}' -f $Current_Searcher_Result_Property)
+                            $Current_Searcher_Result_Value = $Directory_Searcher_Result.GetDirectoryEntry().ObjectSecurity
+                        }
+
+                        # - GUID attributes - replace with System.Guid object
+                        'objectguid' {
                             Write-Verbose ('{0}|Reformatting to GUID object: {1}' -f $Function_Name,$Current_Searcher_Result_Property)
                             $Current_Searcher_Result_Value = New-Object 'System.Guid' -ArgumentList @(,$Current_Searcher_Result_Value)
                         }
 
-                        # SID
-                        '2.5.5.17' {
+                        # - SID attributes - replace with SecurityIdentifier object
+                        'objectsid' {
                             Write-Verbose ('{0}|Reformatting to SID object: {1}' -f $Function_Name,$Current_Searcher_Result_Property)
                             $Current_Searcher_Result_Value = New-Object 'System.Security.Principal.SecurityIdentifier' -ArgumentList @($Current_Searcher_Result_Value,0)
                         }
-                    }
-
-                    # Reformat certain properties:
-                    # - NTSecurityDescriptor - replace with the System.DirectoryServices.ActiveDirectorySecurity object instead.
-                    if ($Current_Searcher_Result_Property -eq 'ntsecuritydescriptor') {
-                        $Current_Searcher_Result_Value = $Directory_Searcher_Result.GetDirectoryEntry().ObjectSecurity
                     }
 
                     # Add additional constructed properties from the "UserAccountControl" properties.
