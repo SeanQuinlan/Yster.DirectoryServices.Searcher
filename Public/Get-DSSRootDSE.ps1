@@ -31,12 +31,12 @@ function Get-DSSRootDSE {
     )
 
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
-    $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name,$_.Key,($_.Value -join ' ')) }
+    $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
 
     try {
         $Directory_Entry_Parameters = @{
-            'Context'       = 'Domain'
-            'SearchBase'    = 'RootDSE'
+            'Context'    = 'Domain'
+            'SearchBase' = 'RootDSE'
         }
         if ($PSBoundParameters.ContainsKey('Server')) {
             $Directory_Entry_Parameters.Server = $Server
@@ -52,9 +52,9 @@ function Get-DSSRootDSE {
 
         $Result_Object = @{}
         $Directory_Entry.Properties.PropertyNames | ForEach-Object {
-            $RootDSE_Property   = $_
-            $RootDSE_Value      = $($Directory_Entry.$_)
-            Write-Verbose ('{0}|Property={1} Value={2}' -f $Function_Name,$RootDSE_Property,$RootDSE_Value)
+            $RootDSE_Property = $_
+            $RootDSE_Value = $($Directory_Entry.$_)
+            Write-Verbose ('{0}|Property={1} Value={2}' -f $Function_Name, $RootDSE_Property, $RootDSE_Value)
 
             if ($RootDSE_Property -eq 'domaincontrollerfunctionality') {
                 $Result_Object[$RootDSE_Property] = $DomainControllerMode_Table[$RootDSE_Value]
@@ -77,8 +77,7 @@ function Get-DSSRootDSE {
 
         # Return the RootDSE object.
         $RootDSE_Result_To_Return
-    }
-    catch {
+    } catch {
         $PSCmdlet.ThrowTerminatingError($_)
     }
 }

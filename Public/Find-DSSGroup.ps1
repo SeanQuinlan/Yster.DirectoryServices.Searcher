@@ -33,19 +33,19 @@ function Find-DSSGroup {
 
         # The scope to search. Must be one of: Base, OneLevel, Subtree.
         [Parameter(Mandatory = $false)]
-        [ValidateSet('Base','OneLevel','Subtree')]
+        [ValidateSet('Base', 'OneLevel', 'Subtree')]
         [String]
         $SearchScope,
 
         # The group scope to search. Must be one of: DomainLocal, Global, Universal.
         [Parameter(Mandatory = $false)]
-        [ValidateSet('DomainLocal','Global','Universal')]
+        [ValidateSet('DomainLocal', 'Global', 'Universal')]
         [String]
         $GroupScope,
 
         # The group type to search. Must be one of: Security, Distribution.
         [Parameter(Mandatory = $false)]
-        [ValidateSet('Security','Distribution')]
+        [ValidateSet('Security', 'Distribution')]
         [String]
         $GroupType,
 
@@ -64,7 +64,7 @@ function Find-DSSGroup {
 
         # The context to search - Domain or Forest.
         [Parameter(Mandatory = $false)]
-        [ValidateSet('Domain','Forest')]
+        [ValidateSet('Domain', 'Forest')]
         [String]
         $Context = 'Domain',
 
@@ -83,12 +83,12 @@ function Find-DSSGroup {
     )
 
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
-    $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name,$_.Key,($_.Value -join ' ')) }
+    $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
 
     try {
         $Directory_Search_Parameters = @{
-            'Context'   = $Context
-            'PageSize'  = $PageSize
+            'Context'  = $Context
+            'PageSize' = $PageSize
         }
         if ($PSBoundParameters.ContainsKey('SearchBase')) {
             $Directory_Search_Parameters.SearchBase = $SearchBase
@@ -151,7 +151,7 @@ function Find-DSSGroup {
             }
             foreach ($Property in $Properties) {
                 if (($Property -ne '*') -and ($Directory_Search_Properties -notcontains $Property)) {
-                    Write-Verbose ('{0}|Adding Property: {1}' -f $Function_Name,$Property)
+                    Write-Verbose ('{0}|Adding Property: {1}' -f $Function_Name, $Property)
                     $Directory_Search_Properties.Add($Property)
                 }
             }
@@ -159,7 +159,7 @@ function Find-DSSGroup {
             Write-Verbose ('{0}|No properties specified, adding default properties only' -f $Function_Name)
             $Directory_Search_Properties.AddRange($Default_Properties)
         }
-        Write-Verbose ('{0}|Properties: {1}' -f $Function_Name,($Directory_Search_Properties -join ' '))
+        Write-Verbose ('{0}|Properties: {1}' -f $Function_Name, ($Directory_Search_Properties -join ' '))
         $Directory_Search_Parameters.Properties = $Directory_Search_Properties
 
         $Default_Group_LDAPFilter = '(objectcategory=Group)'
@@ -167,7 +167,7 @@ function Find-DSSGroup {
         # Add any filtering on GroupScope and/or GroupType
         # See: https://haczela.wordpress.com/2012/03/07/how-to-search-for-groups-of-different-type-and-scope/
         if ($PSBoundParameters.ContainsKey('GroupScope')) {
-            Write-Verbose ('{0}|GroupScope: {1}' -f $Function_Name,$GroupScope)
+            Write-Verbose ('{0}|GroupScope: {1}' -f $Function_Name, $GroupScope)
             if ($GroupScope -eq 'DomainLocal') {
                 $Addtional_LDAPFilter = '(grouptype:1.2.840.113556.1.4.804:=4)'
             } elseif ($GroupScope -eq 'Global') {
@@ -177,7 +177,7 @@ function Find-DSSGroup {
             }
         }
         if ($PSBoundParameters.ContainsKey('GroupType')) {
-            Write-Verbose ('{0}|GroupType: {1}' -f $Function_Name,$GroupType)
+            Write-Verbose ('{0}|GroupType: {1}' -f $Function_Name, $GroupType)
             if ($GroupType -eq 'Security') {
                 $Addtional_LDAPFilter = $Addtional_LDAPFilter + '(|(samaccounttype=268435456)(samaccounttype=536870912))'
             } else {
@@ -185,24 +185,23 @@ function Find-DSSGroup {
             }
         }
         if ($Addtional_LDAPFilter) {
-            $Default_Group_LDAPFilter = '(&{0}{1})' -f $Default_Group_LDAPFilter,$Addtional_LDAPFilter
+            $Default_Group_LDAPFilter = '(&{0}{1})' -f $Default_Group_LDAPFilter, $Addtional_LDAPFilter
         }
 
         if ($Name -eq '*') {
             $Directory_Search_LDAPFilter = $Default_Group_LDAPFilter
         } elseif ($LDAPFilter) {
-            $Directory_Search_LDAPFilter = '(&{0}{1})' -f $Default_Group_LDAPFilter,$LDAPFilter
+            $Directory_Search_LDAPFilter = '(&{0}{1})' -f $Default_Group_LDAPFilter, $LDAPFilter
         } else {
-            $Directory_Search_LDAPFilter = '(&{0}(ANR={1}))' -f $Default_Group_LDAPFilter,$Name
+            $Directory_Search_LDAPFilter = '(&{0}(ANR={1}))' -f $Default_Group_LDAPFilter, $Name
         }
 
-        Write-Verbose ('{0}|LDAPFilter: {1}' -f $Function_Name,$Directory_Search_LDAPFilter)
+        Write-Verbose ('{0}|LDAPFilter: {1}' -f $Function_Name, $Directory_Search_LDAPFilter)
         $Directory_Search_Parameters.LDAPFilter = $Directory_Search_LDAPFilter
 
         Write-Verbose ('{0}|Finding group using Find-DSSObject' -f $Function_Name)
         Find-DSSObject @Directory_Search_Parameters
-    }
-    catch {
+    } catch {
         $PSCmdlet.ThrowTerminatingError($_)
     }
 }

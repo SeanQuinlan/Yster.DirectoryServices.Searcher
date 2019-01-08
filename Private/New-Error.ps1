@@ -14,7 +14,7 @@ function New-Error {
     param(
         # The type of error to create: Terminating or NonTerminating.
         [Parameter(Mandatory = $true, Position = 0)]
-        [ValidateSet('Terminating','NonTerminating')]
+        [ValidateSet('Terminating', 'NonTerminating')]
         [String]
         $Type,
 
@@ -84,17 +84,17 @@ function New-Error {
     )
 
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
-    $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name,$_.Key,($_.Value -join ' ')) }
+    $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
 
     $null = $Exception_Arguments
     if ($Message -and $InnerObject) {
-        $Exception_Arguments = $Message,$InnerException
+        $Exception_Arguments = $Message, $InnerException
     } elseif ($Message) {
         $Exception_Arguments = $Message
     }
     $ErrorException = New-Object -TypeName $Exception -ArgumentList $Exception_Arguments
 
-    $ErrorRecord_Arguments = @($ErrorException,$ID,$Category,$TargetObject)
+    $ErrorRecord_Arguments = @($ErrorException, $ID, $Category, $TargetObject)
     $ErrorRecord = New-Object -TypeName 'System.Management.Automation.ErrorRecord' -ArgumentList $ErrorRecord_Arguments
 
     if ($Type -eq 'Terminating') {

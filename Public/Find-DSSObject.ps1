@@ -29,7 +29,7 @@ function Find-DSSObject {
 
         # The scope to search. Must be one of: Base, OneLevel, Subtree.
         [Parameter(Mandatory = $false)]
-        [ValidateSet('Base','OneLevel','Subtree')]
+        [ValidateSet('Base', 'OneLevel', 'Subtree')]
         [String]
         $SearchScope,
 
@@ -37,7 +37,7 @@ function Find-DSSObject {
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         [String[]]
-        $Properties = @('distinguishedname','objectclass','objectguid'),
+        $Properties = @('distinguishedname', 'objectclass', 'objectguid'),
 
         # The number of results per page that is returned from the server. This is primarily to save server memory and bandwidth and does not affect the total number of results returned.
         [Parameter(Mandatory = $false)]
@@ -48,7 +48,7 @@ function Find-DSSObject {
 
         # The context to search - Domain or Forest.
         [Parameter(Mandatory = $false)]
-        [ValidateSet('Domain','Forest')]
+        [ValidateSet('Domain', 'Forest')]
         [String]
         $Context = 'Domain',
 
@@ -70,34 +70,34 @@ function Find-DSSObject {
     # The list of flags and their corresponding values are taken from here:
     # - https://support.microsoft.com/en-us/help/305144/how-to-use-the-useraccountcontrol-flags-to-manipulate-user-account-pro
     $UAC_Calculated_Properties = @{
-        'useraccountcontrol' = @{
-            'accountnotdelegated'                   = '0x0100000'
-            'allowreversiblepasswordencryption'     = '0x0000080'
-            'doesnotrequirepreauth'                 = '0x0400000'
-            'enabled'                               = '0x0000002'
-            'homedirrequired'                       = '0x0000008'
-            'mnslogonaccount'                       = '0x0020000'
-            'passwordneverexpires'                  = '0x0010000'
-            'passwordnotrequired'                   = '0x0000020'
-            'smartcardlogonrequired'                = '0x0040000'
-            'trustedfordelegation'                  = '0x0080000'
-            'trustedtoauthfordelegation'            = '0x1000000'
-            'usedeskeyonly'                         = '0x0200000'
+        'useraccountcontrol'                 = @{
+            'accountnotdelegated'               = '0x0100000'
+            'allowreversiblepasswordencryption' = '0x0000080'
+            'doesnotrequirepreauth'             = '0x0400000'
+            'enabled'                           = '0x0000002'
+            'homedirrequired'                   = '0x0000008'
+            'mnslogonaccount'                   = '0x0020000'
+            'passwordneverexpires'              = '0x0010000'
+            'passwordnotrequired'               = '0x0000020'
+            'smartcardlogonrequired'            = '0x0040000'
+            'trustedfordelegation'              = '0x0080000'
+            'trustedtoauthfordelegation'        = '0x1000000'
+            'usedeskeyonly'                     = '0x0200000'
         }
         'msds-user-account-control-computed' = @{
-            'lockedout'                             = '0x0000010'
-            'passwordexpired'                       = '0x0800000'
+            'lockedout'       = '0x0000010'
+            'passwordexpired' = '0x0800000'
         }
     }
 
     # Get-ADUser also adds a number of other useful properties based on calculations of other properties. Like creating a datetime object from an integer property.
     $Useful_Calculated_Time_Properties = @{
-        'lockouttime'       = 'accountlockouttime'
-        'badpasswordtime'   = 'lastbadpasswordattempt'
-        'pwdlastset'        = 'passwordlastset'
+        'lockouttime'     = 'accountlockouttime'
+        'badpasswordtime' = 'lastbadpasswordattempt'
+        'pwdlastset'      = 'passwordlastset'
     }
     $Useful_Calculated_Group_Properties = @{
-        'primarygroupid'    = 'primarygroup'
+        'primarygroupid' = 'primarygroup'
     }
     # These are all calculated from the 'ntsecuritydescriptor' property.
     $Useful_Calculated_Security_Properties = @(
@@ -106,18 +106,18 @@ function Find-DSSObject {
     )
 
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
-    $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name,$_.Key,($_.Value -join ' ')) }
+    $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
 
     try {
         $Directory_Entry_Parameters = @{
             'Context' = $Context
         }
         if ($PSBoundParameters.ContainsKey('SearchBase')) {
-            Write-Verbose ('{0}|Using SearchBase: {1}' -f $Function_Name,$SearchBase)
+            Write-Verbose ('{0}|Using SearchBase: {1}' -f $Function_Name, $SearchBase)
             $Directory_Entry_Parameters.SearchBase = $SearchBase
         }
         if ($PSBoundParameters.ContainsKey('Server')) {
-            Write-Verbose ('{0}|Using Server: {1}' -f $Function_Name,$Server)
+            Write-Verbose ('{0}|Using Server: {1}' -f $Function_Name, $Server)
             $Directory_Entry_Parameters.Server = $Server
         }
         if ($PSBoundParameters.ContainsKey('Credential')) {
@@ -133,11 +133,11 @@ function Find-DSSObject {
         $Directory_Searcher = New-Object -TypeName 'System.DirectoryServices.DirectorySearcher' -ArgumentList $Directory_Searcher_Arguments
 
         if ($PSBoundParameters.ContainsKey('SearchScope')) {
-            Write-Verbose ('{0}|Adding SearchScope: {1}' -f $Function_Name,$SearchScope)
+            Write-Verbose ('{0}|Adding SearchScope: {1}' -f $Function_Name, $SearchScope)
             $Directory_Searcher.SearchScope = $SearchScope
         }
 
-        Write-Verbose ('{0}|Setting PageSize to: {1}' -f $Function_Name,$PageSize)
+        Write-Verbose ('{0}|Setting PageSize to: {1}' -f $Function_Name, $PageSize)
         $Directory_Searcher.PageSize = $PageSize
 
         $Properties_To_Add = New-Object -TypeName 'System.Collections.Generic.List[String]'
@@ -168,20 +168,20 @@ function Find-DSSObject {
                 }
             }
         }
-        Write-Verbose ('{0}|Adding Properties: {1}' -f $Function_Name,($Properties_To_Add -join ' '))
+        Write-Verbose ('{0}|Adding Properties: {1}' -f $Function_Name, ($Properties_To_Add -join ' '))
         $Directory_Searcher.PropertiesToLoad.AddRange($Properties_To_Add)
 
         Write-Verbose ('{0}|Performing search...' -f $Function_Name)
         $Directory_Searcher_Results = $Directory_Searcher.FindAll()
         if ($Directory_Searcher_Results) {
-            Write-Verbose ('{0}|Found {1} result(s)' -f $Function_Name,$Directory_Searcher_Results.Count)
+            Write-Verbose ('{0}|Found {1} result(s)' -f $Function_Name, $Directory_Searcher_Results.Count)
             $Directory_Searcher_Results_To_Return = New-Object -TypeName 'System.Collections.Generic.List[PSObject]'
             foreach ($Directory_Searcher_Result in $Directory_Searcher_Results) {
                 $Result_Object = @{}
                 $Directory_Searcher_Result.Properties.GetEnumerator() | ForEach-Object {
-                    $Current_Searcher_Result_Property   = $_.Name
-                    $Current_Searcher_Result_Value      = $($_.Value)
-                    Write-Verbose ('{0}|Property={1} Value={2}' -f $Function_Name,$Current_Searcher_Result_Property,$Current_Searcher_Result_Value)
+                    $Current_Searcher_Result_Property = $_.Name
+                    $Current_Searcher_Result_Value = $($_.Value)
+                    Write-Verbose ('{0}|Property={1} Value={2}' -f $Function_Name, $Current_Searcher_Result_Property, $Current_Searcher_Result_Value)
 
                     # Reformat certain properties:
                     switch ($Current_Searcher_Result_Property) {
@@ -193,23 +193,23 @@ function Find-DSSObject {
 
                         # - GUID attributes - replace with System.Guid object
                         'objectguid' {
-                            Write-Verbose ('{0}|Reformatting to GUID object: {1}' -f $Function_Name,$Current_Searcher_Result_Property)
-                            $Current_Searcher_Result_Value = New-Object 'System.Guid' -ArgumentList @(,$Current_Searcher_Result_Value)
+                            Write-Verbose ('{0}|Reformatting to GUID object: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
+                            $Current_Searcher_Result_Value = New-Object 'System.Guid' -ArgumentList @(, $Current_Searcher_Result_Value)
                         }
 
                         # - SID attributes - replace with SecurityIdentifier object
                         'objectsid' {
-                            Write-Verbose ('{0}|Reformatting to SID object: {1}' -f $Function_Name,$Current_Searcher_Result_Property)
-                            $Current_Searcher_Result_Value = New-Object 'System.Security.Principal.SecurityIdentifier' -ArgumentList @($Current_Searcher_Result_Value,0)
+                            Write-Verbose ('{0}|Reformatting to SID object: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
+                            $Current_Searcher_Result_Value = New-Object 'System.Security.Principal.SecurityIdentifier' -ArgumentList @($Current_Searcher_Result_Value, 0)
                         }
                     }
 
                     # Add additional constructed properties from the "UserAccountControl" properties.
                     if ($UAC_Calculated_Properties.GetEnumerator().Name -contains $Current_Searcher_Result_Property) {
-                        Write-Verbose ('{0}|UAC property found: {1}={2}' -f $Function_Name,$Current_Searcher_Result_Property,$Current_Searcher_Result_Value)
+                        Write-Verbose ('{0}|UAC property found: {1}={2}' -f $Function_Name, $Current_Searcher_Result_Property, $Current_Searcher_Result_Value)
                         # Only output the "UserAccountControl" property if it is explicitly requested.
                         if ($Properties -contains $Current_Searcher_Result_Property) {
-                            Write-Verbose ('{0}|UAC property specified directly: {0}' -f $Function_Name,$Current_Searcher_Result_Property)
+                            Write-Verbose ('{0}|UAC property specified directly: {0}' -f $Function_Name, $Current_Searcher_Result_Property)
                             $Result_Object[$Current_Searcher_Result_Property] = $Current_Searcher_Result_Value
                         }
 
@@ -221,9 +221,9 @@ function Find-DSSObject {
                         $UAC_Calculated_Properties.$Current_Searcher_Result_Property.GetEnumerator() | ForEach-Object {
                             $UAC_Calculated_Property_Name = $_.Name
                             $UAC_Calculated_Property_Flag = $_.Value
-                            Write-Verbose ('{0}|UAC: Checking UAC calculated property: {1}={2}' -f $Function_Name,$UAC_Calculated_Property_Name,$UAC_Calculated_Property_Flag)
+                            Write-Verbose ('{0}|UAC: Checking UAC calculated property: {1}={2}' -f $Function_Name, $UAC_Calculated_Property_Name, $UAC_Calculated_Property_Flag)
                             if ($Properties -contains $UAC_Calculated_Property_Name) {
-                                Write-Verbose ('{0}|UAC: Processing property: {1}' -f $Function_Name,$UAC_Calculated_Property_Name)
+                                Write-Verbose ('{0}|UAC: Processing property: {1}' -f $Function_Name, $UAC_Calculated_Property_Name)
                                 if ($UAC_Calculated_Property_Name -eq 'enabled') {
                                     $UAC_Calculated_Property_Return = $true
                                 } else {
@@ -232,48 +232,48 @@ function Find-DSSObject {
                                 if (($Current_Searcher_Result_Value -band $UAC_Calculated_Property_Flag) -eq $UAC_Calculated_Property_Flag) {
                                     $UAC_Calculated_Property_Return = -not $UAC_Calculated_Property_Return
                                 }
-                                Write-Verbose ('{0}|UAC: Return value for "{1}" is "{2}"' -f $Function_Name,$UAC_Calculated_Property_Name,$UAC_Calculated_Property_Return)
+                                Write-Verbose ('{0}|UAC: Return value for "{1}" is "{2}"' -f $Function_Name, $UAC_Calculated_Property_Name, $UAC_Calculated_Property_Return)
                                 $Result_Object[$UAC_Calculated_Property_Name] = $UAC_Calculated_Property_Return
                             }
                         }
 
-                    # Check and add additional properties from the "Useful Calculated Properties" list if required.
+                        # Check and add additional properties from the "Useful Calculated Properties" list if required.
                     } elseif ($Useful_Calculated_Time_Properties.GetEnumerator().Name -contains $Current_Searcher_Result_Property) {
-                        Write-Verbose ('{0}|Useful_Calculated_Time base property found: {1}' -f $Function_Name,$Current_Searcher_Result_Property)
+                        Write-Verbose ('{0}|Useful_Calculated_Time base property found: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
                         $Useful_Calculated_Time_Property_Name = $Useful_Calculated_Time_Properties.$Current_Searcher_Result_Property
                         if ($Properties -contains $Current_Searcher_Result_Property) {
-                            Write-Verbose ('{0}|Useful_Calculated_Time property specified directly: {1}' -f $Function_Name,$Current_Searcher_Result_Property)
+                            Write-Verbose ('{0}|Useful_Calculated_Time property specified directly: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
                             $Result_Object[$Current_Searcher_Result_Property] = $Current_Searcher_Result_Value
                         }
                         if ($Properties -contains $Useful_Calculated_Time_Property_Name) {
-                            Write-Verbose ('{0}|Useful_Calculated_Time returning calculated property: {1}' -f $Function_Name,$Useful_Calculated_Time_Property_Name)
+                            Write-Verbose ('{0}|Useful_Calculated_Time returning calculated property: {1}' -f $Function_Name, $Useful_Calculated_Time_Property_Name)
                             $Result_Object[$Useful_Calculated_Time_Property_Name] = [DateTime]::FromFileTime($Current_Searcher_Result_Value)
                         }
                     } elseif ($Useful_Calculated_Group_Properties.GetEnumerator().Name -contains $Current_Searcher_Result_Property) {
-                        Write-Verbose ('{0}|Useful_Calculated_Group: base property found: {1}' -f $Function_Name,$Current_Searcher_Result_Property)
+                        Write-Verbose ('{0}|Useful_Calculated_Group: base property found: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
 
                         $Useful_Calculated_Group_Property_Name = $Useful_Calculated_Group_Properties.$Current_Searcher_Result_Property
                         if ($Properties -contains $Current_Searcher_Result_Property) {
-                            Write-Verbose ('{0}|Useful_Calculated_Group property specified directly: {1}' -f $Function_Name,$Current_Searcher_Result_Property)
+                            Write-Verbose ('{0}|Useful_Calculated_Group property specified directly: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
                             $Result_Object[$Current_Searcher_Result_Property] = $Current_Searcher_Result_Value
                         }
                         if ($Properties -contains $Useful_Calculated_Group_Property_Name) {
                             # Convert the PrimaryGroupID to a full ObjectSID property, by using the AccountDomainSid sub-property of the ObjectSID property of the user and appending the PrimaryGroupID.
-                            $PrimaryGroup_SID = '{0}-{1}' -f $Result_Object['objectsid'].AccountDomainSid.Value,$Current_Searcher_Result_Value
+                            $PrimaryGroup_SID = '{0}-{1}' -f $Result_Object['objectsid'].AccountDomainSid.Value, $Current_Searcher_Result_Value
                             $PrimaryGroup_Name = (Get-DSSGroup -ObjectSID $PrimaryGroup_SID).distinguishedname
-                            Write-Verbose ('{0}|Useful_Calculated_Group returning calculated property: {1}' -f $Function_Name,$Useful_Calculated_Group_Property_Name)
+                            Write-Verbose ('{0}|Useful_Calculated_Group returning calculated property: {1}' -f $Function_Name, $Useful_Calculated_Group_Property_Name)
                             $Result_Object[$Useful_Calculated_Group_Property_Name] = $PrimaryGroup_Name
 
                         }
                     } elseif ($Current_Searcher_Result_Property -eq 'ntsecuritydescriptor') {
-                        Write-Verbose ('{0}|Useful_Calculated_Security: base property found: {1}' -f $Function_Name,$Current_Searcher_Result_Property)
+                        Write-Verbose ('{0}|Useful_Calculated_Security: base property found: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
                         if ($Properties -contains $Current_Searcher_Result_Property) {
-                            Write-Verbose ('{0}|Useful_Calculated_Security: Property specified directly: {1}' -f $Function_Name,$Current_Searcher_Result_Property)
+                            Write-Verbose ('{0}|Useful_Calculated_Security: Property specified directly: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
                             $Result_Object[$Current_Searcher_Result_Property] = $Current_Searcher_Result_Value
                         }
                         if ($Properties -contains 'cannotchangepassword') {
                             $Useful_Calculated_Security_Property_Name = 'cannotchangepassword'
-                            Write-Verbose ('{0}|Useful_Calculated_Security: Returning calculated property: {1}' -f $Function_Name,$Useful_Calculated_Security_Property_Name)
+                            Write-Verbose ('{0}|Useful_Calculated_Security: Returning calculated property: {1}' -f $Function_Name, $Useful_Calculated_Security_Property_Name)
                             # This requires 2 Deny permissions to be set: the "Everyone" group and "NT AUTHORITY\SELF" user. Only if both are set to Deny, will "cannotchangepassword" be true.
                             # Adapted from: https://social.technet.microsoft.com/Forums/scriptcenter/en-US/e947d590-d183-46b9-9a7a-4e785638c6fb/how-can-i-get-a-list-of-active-directory-user-accounts-where-the-user-cannot-change-the-password?forum=ITCG
                             $ChangePassword_GUID = 'ab721a53-1e2f-11d0-9819-00aa0040529b'
@@ -283,11 +283,11 @@ function Find-DSSObject {
                             $null = $ChangePassword_Identity_Everyone_Correct = $ChangePassword_Identity_Self_Correct
                             foreach ($ChangePassword_Rule in $ChangePassword_Rules) {
                                 if (($ChangePassword_Rule.IdentityReference -eq $ChangePassword_Identity_Everyone) -and ($ChangePassword_Rule.AccessControlType -eq 'Deny')) {
-                                    Write-Verbose ('{0}|Useful_Calculated_Security: CannotChangePassword: Found correct permission for "Everyone" group: {1}' -f $Function_Name,$ChangePassword_Identity_Everyone)
+                                    Write-Verbose ('{0}|Useful_Calculated_Security: CannotChangePassword: Found correct permission for "Everyone" group: {1}' -f $Function_Name, $ChangePassword_Identity_Everyone)
                                     $ChangePassword_Identity_Everyone_Correct = $true
                                 }
                                 if (($ChangePassword_Rule.IdentityReference -eq $ChangePassword_Identity_Self) -and ($ChangePassword_Rule.AccessControlType -eq 'Deny')) {
-                                    Write-Verbose ('{0}|Useful_Calculated_Security: CannotChangePassword: Found correct permission for "Self" user: {1}' -f $Function_Name,$ChangePassword_Identity_Self)
+                                    Write-Verbose ('{0}|Useful_Calculated_Security: CannotChangePassword: Found correct permission for "Self" user: {1}' -f $Function_Name, $ChangePassword_Identity_Self)
                                     $ChangePassword_Identity_Self_Correct = $true
                                 }
                             }
@@ -301,15 +301,15 @@ function Find-DSSObject {
                         }
                         if ($Properties -contains 'protectedfromaccidentaldeletion') {
                             $Useful_Calculated_Security_Property_Name = 'protectedfromaccidentaldeletion'
-                            Write-Verbose ('{0}|Useful_Calculated_Security: Returning calculated property: {1}' -f $Function_Name,$Useful_Calculated_Security_Property_Name)
+                            Write-Verbose ('{0}|Useful_Calculated_Security: Returning calculated property: {1}' -f $Function_Name, $Useful_Calculated_Security_Property_Name)
                             $AccidentalDeletion_Rights = 'DeleteTree, Delete'
                             $AccidentalDeletion_Identity_Everyone = 'Everyone'
                             $AccidentalDeletion_Rule = $Current_Searcher_Result_Value.Access | Where-Object { ($_.ActiveDirectoryRights -eq $AccidentalDeletion_Rights) -and ($_.IdentityReference -eq $AccidentalDeletion_Identity_Everyone) }
                             if (($AccidentalDeletion_Rule.Count -eq 1) -and ($AccidentalDeletion_Rule.AccessControlType -eq 'Deny')) {
-                                Write-Verbose ('{0}|Useful_Calculated_Security: AccidentalDeletion correct: Permission: {1} | Group: {2} | Count: {3}' -f $Function_Name,$AccidentalDeletion_Rule.AccessControlType,$AccidentalDeletion_Identity_Everyone,$AccidentalDeletion_Rule.Count)
+                                Write-Verbose ('{0}|Useful_Calculated_Security: AccidentalDeletion correct: Permission: {1} | Group: {2} | Count: {3}' -f $Function_Name, $AccidentalDeletion_Rule.AccessControlType, $AccidentalDeletion_Identity_Everyone, $AccidentalDeletion_Rule.Count)
                                 $Result_Object[$Useful_Calculated_Security_Property_Name] = $true
                             } else {
-                                Write-Verbose ('{0}|Useful_Calculated_Security: AccidentalDeletion incorrect: Permission: {1} | Group: {2} | Count: {3}' -f $Function_Name,$AccidentalDeletion_Rule.AccessControlType,$AccidentalDeletion_Identity_Everyone,$AccidentalDeletion_Rule.Count)
+                                Write-Verbose ('{0}|Useful_Calculated_Security: AccidentalDeletion incorrect: Permission: {1} | Group: {2} | Count: {3}' -f $Function_Name, $AccidentalDeletion_Rule.AccessControlType, $AccidentalDeletion_Identity_Everyone, $AccidentalDeletion_Rule.Count)
                                 $Result_Object[$Useful_Calculated_Security_Property_Name] = $false
                             }
                         }
@@ -331,8 +331,7 @@ function Find-DSSObject {
         } else {
             Write-Verbose ('{0}|No results found!' -f $Function_Name)
         }
-    }
-    catch {
+    } catch {
         $PSCmdlet.ThrowTerminatingError($_)
     }
 }

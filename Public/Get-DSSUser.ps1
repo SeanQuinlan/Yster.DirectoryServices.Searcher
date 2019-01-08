@@ -54,7 +54,7 @@ function Get-DSSUser {
 
         # The context to search - Domain or Forest.
         [Parameter(Mandatory = $false)]
-        [ValidateSet('Domain','Forest')]
+        [ValidateSet('Domain', 'Forest')]
         [String]
         $Context = 'Domain',
 
@@ -73,7 +73,7 @@ function Get-DSSUser {
     )
 
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
-    $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name,$_.Key,($_.Value -join ' ')) }
+    $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
 
     try {
         $Directory_Search_Parameters = @{
@@ -99,13 +99,12 @@ function Get-DSSUser {
             $Directory_Search_LDAPFilter = '(samaccountname={0})' -f $SAMAccountName
         }
 
-        Write-Verbose ('{0}|LDAPFilter: {1}' -f $Function_Name,$Directory_Search_LDAPFilter)
+        Write-Verbose ('{0}|LDAPFilter: {1}' -f $Function_Name, $Directory_Search_LDAPFilter)
         $Directory_Search_Parameters.LDAPFilter = $Directory_Search_LDAPFilter
 
         Write-Verbose ('{0}|Calling Find-DSSUser' -f $Function_Name)
         Find-DSSUser @Directory_Search_Parameters
-    }
-    catch {
+    } catch {
         $PSCmdlet.ThrowTerminatingError($_)
     }
 }

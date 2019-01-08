@@ -36,7 +36,7 @@ function Find-DSSUser {
 
         # The scope to search. Must be one of: Base, OneLevel, Subtree.
         [Parameter(Mandatory = $false)]
-        [ValidateSet('Base','OneLevel','Subtree')]
+        [ValidateSet('Base', 'OneLevel', 'Subtree')]
         [String]
         $SearchScope,
 
@@ -55,7 +55,7 @@ function Find-DSSUser {
 
         # The context to search - Domain or Forest.
         [Parameter(Mandatory = $false)]
-        [ValidateSet('Domain','Forest')]
+        [ValidateSet('Domain', 'Forest')]
         [String]
         $Context = 'Domain',
 
@@ -74,12 +74,12 @@ function Find-DSSUser {
     )
 
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
-    $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name,$_.Key,($_.Value -join ' ')) }
+    $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
 
     try {
         $Directory_Search_Parameters = @{
-            'Context'   = $Context
-            'PageSize'  = $PageSize
+            'Context'  = $Context
+            'PageSize' = $PageSize
         }
         if ($PSBoundParameters.ContainsKey('SearchBase')) {
             $Directory_Search_Parameters.SearchBase = $SearchBase
@@ -202,7 +202,7 @@ function Find-DSSUser {
             }
             foreach ($Property in $Properties) {
                 if (($Property -ne '*') -and ($Directory_Search_Properties -notcontains $Property)) {
-                    Write-Verbose ('{0}|Adding Property: {1}' -f $Function_Name,$Property)
+                    Write-Verbose ('{0}|Adding Property: {1}' -f $Function_Name, $Property)
                     $Directory_Search_Properties.Add($Property)
                 }
             }
@@ -210,24 +210,23 @@ function Find-DSSUser {
             Write-Verbose ('{0}|No properties specified, adding default properties only' -f $Function_Name)
             $Directory_Search_Properties.AddRange($Default_Properties)
         }
-        Write-Verbose ('{0}|Properties: {1}' -f $Function_Name,($Directory_Search_Properties -join ' '))
+        Write-Verbose ('{0}|Properties: {1}' -f $Function_Name, ($Directory_Search_Properties -join ' '))
         $Directory_Search_Parameters.Properties = $Directory_Search_Properties
 
         $Default_User_LDAPFilter = '(samaccounttype=805306368)'     # sAMAccountType is best method to search just user accounts - http://www.selfadsi.org/extended-ad/search-user-accounts.htm
         if ($Name -eq '*') {
             $Directory_Search_LDAPFilter = $Default_User_LDAPFilter
         } elseif ($LDAPFilter) {
-            $Directory_Search_LDAPFilter = '(&{0}{1})' -f $Default_User_LDAPFilter,$LDAPFilter
+            $Directory_Search_LDAPFilter = '(&{0}{1})' -f $Default_User_LDAPFilter, $LDAPFilter
         } else {
-            $Directory_Search_LDAPFilter = '(&{0}(ANR={1}))' -f $Default_User_LDAPFilter,$Name
+            $Directory_Search_LDAPFilter = '(&{0}(ANR={1}))' -f $Default_User_LDAPFilter, $Name
         }
-        Write-Verbose ('{0}|LDAPFilter: {1}' -f $Function_Name,$Directory_Search_LDAPFilter)
+        Write-Verbose ('{0}|LDAPFilter: {1}' -f $Function_Name, $Directory_Search_LDAPFilter)
         $Directory_Search_Parameters.LDAPFilter = $Directory_Search_LDAPFilter
 
         Write-Verbose ('{0}|Finding users using Find-DSSObject' -f $Function_Name)
         Find-DSSObject @Directory_Search_Parameters
-    }
-    catch {
+    } catch {
         $PSCmdlet.ThrowTerminatingError($_)
     }
 }
