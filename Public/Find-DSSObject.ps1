@@ -105,6 +105,33 @@ function Find-DSSObject {
         'protectedfromaccidentaldeletion'
     )
 
+    # Get-ADDomain provides a number of "Container" properties which are calculated from the WellknownObjects or OtherWellknownObjects properties.
+    # - Values taken from https://support.microsoft.com/en-gb/help/324949/redirecting-the-users-and-computers-containers-in-active-directory-dom
+    $Containers_Calculated_Properties = @{
+        'wellknownobjects'      = @{
+            'computerscontainer'                 = 'B:32:AA312825768811D1ADED00C04FD8D5CD:'
+            'deletedobjectscontainer'            = 'B:32:18E2EA80684F11D2B9AA00C04F79F805:'
+            'domaincontrollerscontainer'         = 'B:32:A361B2FFFFD211D1AA4B00C04FD7D83A:'
+            'foreignsecurityprincipalscontainer' = 'B:32:22B70C67D56E4EFB91E9300FCA3DC1AA:'
+            'infrastructurecontainer'            = 'B:32:2FBAC1870ADE11D297C400C04FD8D5CD:'
+            'lostandfoundcontainer'              = 'B:32:AB8153B7768811D1ADED00C04FD8D5CD:'
+            'microsoftprogramdatacontainer'      = 'B:32:F4BE92A4C777485E878E9421D53087DB:'
+            'programdatacontainer'               = 'B:32:09460C08AE1E4A4EA0F64AEE7DAA1E5A:'
+            'quotascontainer'                    = 'B:32:6227F0AF1FC2410D8E3BB10615BB5B0F:'
+            'systemscontainer'                   = 'B:32:AB1D30F3768811D1ADED00C04FD8D5CD:'
+            'userscontainer'                     = 'B:32:A9D1CA15768811D1ADED00C04FD8D5CD:'
+        }
+        'otherwellknownobjects' = @{
+            'keyscontainer'                   = 'B:32:683A24E2E8164BD3AF86AC3C2CF3F981:'
+            'managedserviceaccountscontainer' = 'B:32:1EB93889E40C45DF9F0C64D23BBB6237:'
+        }
+    }
+
+    # Get-ADDomain also adds some useful calculated properties.
+    $Useful_Calculated_Domain_Properties = @{
+        'gplink' = 'linkedgrouppolicyobjects'
+    }
+
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
 
@@ -144,7 +171,7 @@ function Find-DSSObject {
         foreach ($Property in $Properties) {
             [void]$Properties_To_Add.Add($Property)
 
-            # The relevant "UserAccountControl_Calculated" property is added to the search properties list if any of the calculated properties are requested.
+            # The relevant UserAccountControl calculated main property is added to the search properties list if any of the calculated sub-properties are requested.
             foreach ($UAC_Calculated_Property in $UAC_Calculated_Properties.GetEnumerator().Name) {
                 if (($UAC_Calculated_Properties.$UAC_Calculated_Property.GetEnumerator().Name -contains $Property) -and ($Properties_To_Add -notcontains $UAC_Calculated_Property)) {
                     $Properties_To_Add.Add($UAC_Calculated_Property)
@@ -152,12 +179,12 @@ function Find-DSSObject {
             }
 
             # Add any of the "Useful Calculated Properties" if required.
-            foreach ($Useful_Calculated_Time_Property in $Useful_Calculated_Time_Properties) {
+            foreach ($Useful_Calculated_Time_Property in $Useful_Calculated_Time_Properties.GetEnumerator()) {
                 if (($Useful_Calculated_Time_Property.Value -eq $Property) -and ($Properties_To_Add -notcontains $Useful_Calculated_Time_Property.Name)) {
                     $Properties_To_Add.Add($Useful_Calculated_Time_Property.Name)
                 }
             }
-            foreach ($Useful_Calculated_Group_Property in $Useful_Calculated_Group_Properties) {
+            foreach ($Useful_Calculated_Group_Property in $Useful_Calculated_Group_Properties.GetEnumerator()) {
                 if (($Useful_Calculated_Group_Property.Value -eq $Property) -and ($Properties_To_Add -notcontains $Useful_Calculated_Group_Property.Name)) {
                     $Properties_To_Add.Add($Useful_Calculated_Group_Property.Name)
                 }
@@ -165,6 +192,18 @@ function Find-DSSObject {
             foreach ($Useful_Calculated_Security_Property in $Useful_Calculated_Security_Properties) {
                 if (($Useful_Calculated_Security_Property -eq $Property) -and ($Properties_To_Add -notcontains 'ntsecuritydescriptor')) {
                     $Properties_To_Add.Add('ntsecuritydescriptor')
+                }
+            }
+
+            # Add the relevant Containers calculated main property if a sub-property is requested
+            foreach ($Containers_Calculated_Property in $Containers_Calculated_Properties.GetEnumerator().Name) {
+                if (($Containers_Calculated_Properties.$Containers_Calculated_Property.GetEnumerator().Name -contains $Property) -and ($Properties_To_Add -notcontains $Containers_Calculated_Property)) {
+                    $Properties_To_Add.Add($Containers_Calculated_Property)
+                }
+            }
+            foreach ($Useful_Calculated_Domain_Property in $Useful_Calculated_Domain_Properties.GetEnumerator()) {
+                if (($Useful_Calculated_Domain_Property.Value -eq $Property) -and ($Properties_To_Add -notcontains $Useful_Calculated_Domain_Property.Name)) {
+                    $Properties_To_Add.Add($Useful_Calculated_Domain_Property.Name)
                 }
             }
         }
@@ -204,12 +243,12 @@ function Find-DSSObject {
                         }
                     }
 
-                    # Add additional constructed properties from the "UserAccountControl" properties.
+                    # Add the calculated property if the property is found on one of the Calculated Property lists. Otherwise default to just outputting the property and value.
                     if ($UAC_Calculated_Properties.GetEnumerator().Name -contains $Current_Searcher_Result_Property) {
-                        Write-Verbose ('{0}|UAC property found: {1}={2}' -f $Function_Name, $Current_Searcher_Result_Property, $Current_Searcher_Result_Value)
+                        Write-Verbose ('{0}|UAC base property found: {1}={2}' -f $Function_Name, $Current_Searcher_Result_Property, $Current_Searcher_Result_Value)
                         # Only output the "UserAccountControl" property if it is explicitly requested.
                         if ($Properties -contains $Current_Searcher_Result_Property) {
-                            Write-Verbose ('{0}|UAC property specified directly: {0}' -f $Function_Name, $Current_Searcher_Result_Property)
+                            Write-Verbose ('{0}|UAC: Base property specified directly: {0}' -f $Function_Name, $Current_Searcher_Result_Property)
                             $Result_Object[$Current_Searcher_Result_Property] = $Current_Searcher_Result_Value
                         }
 
@@ -237,38 +276,38 @@ function Find-DSSObject {
                             }
                         }
 
-                        # Check and add additional properties from the "Useful Calculated Properties" list if required.
                     } elseif ($Useful_Calculated_Time_Properties.GetEnumerator().Name -contains $Current_Searcher_Result_Property) {
                         Write-Verbose ('{0}|Useful_Calculated_Time base property found: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
                         $Useful_Calculated_Time_Property_Name = $Useful_Calculated_Time_Properties.$Current_Searcher_Result_Property
                         if ($Properties -contains $Current_Searcher_Result_Property) {
-                            Write-Verbose ('{0}|Useful_Calculated_Time property specified directly: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
+                            Write-Verbose ('{0}|Useful_Calculated_Time: Base property specified directly: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
                             $Result_Object[$Current_Searcher_Result_Property] = $Current_Searcher_Result_Value
                         }
                         if ($Properties -contains $Useful_Calculated_Time_Property_Name) {
-                            Write-Verbose ('{0}|Useful_Calculated_Time returning calculated property: {1}' -f $Function_Name, $Useful_Calculated_Time_Property_Name)
+                            Write-Verbose ('{0}|Useful_Calculated_Time: Returning calculated property: {1}' -f $Function_Name, $Useful_Calculated_Time_Property_Name)
                             $Result_Object[$Useful_Calculated_Time_Property_Name] = [DateTime]::FromFileTime($Current_Searcher_Result_Value)
                         }
-                    } elseif ($Useful_Calculated_Group_Properties.GetEnumerator().Name -contains $Current_Searcher_Result_Property) {
-                        Write-Verbose ('{0}|Useful_Calculated_Group: base property found: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
 
+                    } elseif ($Useful_Calculated_Group_Properties.GetEnumerator().Name -contains $Current_Searcher_Result_Property) {
+                        Write-Verbose ('{0}|Useful_Calculated_Group: Base property found: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
                         $Useful_Calculated_Group_Property_Name = $Useful_Calculated_Group_Properties.$Current_Searcher_Result_Property
+
                         if ($Properties -contains $Current_Searcher_Result_Property) {
-                            Write-Verbose ('{0}|Useful_Calculated_Group property specified directly: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
+                            Write-Verbose ('{0}|Useful_Calculated_Group: Base property specified directly: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
                             $Result_Object[$Current_Searcher_Result_Property] = $Current_Searcher_Result_Value
                         }
                         if ($Properties -contains $Useful_Calculated_Group_Property_Name) {
                             # Convert the PrimaryGroupID to a full ObjectSID property, by using the AccountDomainSid sub-property of the ObjectSID property of the user and appending the PrimaryGroupID.
                             $PrimaryGroup_SID = '{0}-{1}' -f $Result_Object['objectsid'].AccountDomainSid.Value, $Current_Searcher_Result_Value
                             $PrimaryGroup_Name = (Get-DSSGroup -ObjectSID $PrimaryGroup_SID).distinguishedname
-                            Write-Verbose ('{0}|Useful_Calculated_Group returning calculated property: {1}' -f $Function_Name, $Useful_Calculated_Group_Property_Name)
+                            Write-Verbose ('{0}|Useful_Calculated_Group: Returning calculated property: {1}' -f $Function_Name, $Useful_Calculated_Group_Property_Name)
                             $Result_Object[$Useful_Calculated_Group_Property_Name] = $PrimaryGroup_Name
-
                         }
+
                     } elseif ($Current_Searcher_Result_Property -eq 'ntsecuritydescriptor') {
-                        Write-Verbose ('{0}|Useful_Calculated_Security: base property found: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
+                        Write-Verbose ('{0}|Useful_Calculated_Security base property found: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
                         if ($Properties -contains $Current_Searcher_Result_Property) {
-                            Write-Verbose ('{0}|Useful_Calculated_Security: Property specified directly: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
+                            Write-Verbose ('{0}|Useful_Calculated_Security: Base property specified directly: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
                             $Result_Object[$Current_Searcher_Result_Property] = $Current_Searcher_Result_Value
                         }
                         if ($Properties -contains 'cannotchangepassword') {
@@ -313,6 +352,47 @@ function Find-DSSObject {
                                 $Result_Object[$Useful_Calculated_Security_Property_Name] = $false
                             }
                         }
+
+                    } elseif ($Containers_Calculated_Properties.GetEnumerator().Name -contains $Current_Searcher_Result_Property) {
+                        Write-Verbose ('{0}|Containers base property found: {1}={2}' -f $Function_Name, $Current_Searcher_Result_Property, $Current_Searcher_Result_Value)
+                        # Only output the Containers main property if it is explicitly requested.
+                        if ($Properties -contains $Current_Searcher_Result_Property) {
+                            Write-Verbose ('{0}|Containers: Base property specified directly: {0}' -f $Function_Name, $Current_Searcher_Result_Property)
+                            $Result_Object[$Current_Searcher_Result_Property] = $Current_Searcher_Result_Value
+                        }
+
+                        $Containers_Calculated_Properties.$Current_Searcher_Result_Property.GetEnumerator() | ForEach-Object {
+                            $Containers_Calculated_Property_Name = $_.Name
+                            $Containers_Calculated_Property_GUID = $_.Value
+                            Write-Verbose ('{0}|Containers: Checking Containers calculated property: {1}={2}' -f $Function_Name, $Containers_Calculated_Property_Name, $Containers_Calculated_Property_GUID)
+                            if ($Properties -contains $Containers_Calculated_Property_Name) {
+                                Write-Verbose ('{0}|Containers: Processing property: {1}' -f $Function_Name, $Containers_Calculated_Property_Name)
+                                foreach ($Containers_Calculated_Property_Value in $Current_Searcher_Result_Value) {
+                                    if ($Containers_Calculated_Property_Value -match $Containers_Calculated_Property_GUID) {
+                                        $Containers_Calculated_Property_Return = $Containers_Calculated_Property_Value.Replace($Containers_Calculated_Property_GUID, '')
+                                    }
+                                }
+                                $Result_Object[$Containers_Calculated_Property_Name] = $Containers_Calculated_Property_Return
+                            }
+                        }
+
+                    } elseif ($Useful_Calculated_Domain_Properties.GetEnumerator().Name -contains $Current_Searcher_Result_Property) {
+                        Write-Verbose ('{0}|Useful_Calculated_Domain base property found: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
+                        $Useful_Calculated_Domain_Property_Name = $Useful_Calculated_Domain_Properties.$Current_Searcher_Result_Property
+
+                        if ($Properties -contains $Current_Searcher_Result_Property) {
+                            Write-Verbose ('{0}|Useful_Calculated_Domain: Base property specified directly: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
+                            $Result_Object[$Current_Searcher_Result_Property] = $Current_Searcher_Result_Value
+                        }
+                        if ($Properties -contains $Useful_Calculated_Domain_Property_Name) {
+                            Write-Verbose ('{0}|Useful_Calculated_Domain: Processing property: {1}' -f $Function_Name, $Useful_Calculated_Domain_Property_Name)
+                            if ($Useful_Calculated_Domain_Property_Name -eq 'linkedgrouppolicyobjects') {
+                                # Convert the "gplink" string property into an array of strings, selecting just the Group Policy DistinguishedName
+                                $Regex_GPLink = [System.Text.RegularExpressions.Regex]'\[LDAP://(.*?)\;\d\]'
+                                $Result_Object[$Useful_Calculated_Domain_Property_Name] = $Regex_GPLink.Matches($Current_Searcher_Result_Value) | ForEach-Object { $_.Groups[1].Value }
+                            }
+                        }
+
                     } else {
                         $Result_Object[$Current_Searcher_Result_Property] = $Current_Searcher_Result_Value
                     }
