@@ -226,7 +226,7 @@ function Find-DSSObject {
                     switch ($Current_Searcher_Result_Property) {
                         # - NTSecurityDescriptor - replace with the System.DirectoryServices.ActiveDirectorySecurity object instead.
                         'ntsecuritydescriptor' {
-                            Write-Verbose ('{0}|Reformatting to ActiveDirectorySecurity object: {1}' -f $Current_Searcher_Result_Property)
+                            Write-Verbose ('{0}|Reformatting to ActiveDirectorySecurity object: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
                             $Current_Searcher_Result_Value = $Directory_Searcher_Result.GetDirectoryEntry().ObjectSecurity
                         }
 
