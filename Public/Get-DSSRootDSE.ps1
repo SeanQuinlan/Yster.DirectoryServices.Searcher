@@ -5,11 +5,11 @@ function Get-DSSRootDSE {
     .DESCRIPTION
         Retrieves the RootDSE object which provides information about the directory schema, version, supported capabilities and other LDAP server details
     .EXAMPLE
-        (Get-RootDSE).schemaNamingContext
+        (Get-DSSRootDSE).schemaNamingContext
 
         This returns the naming context (DistinguishedName) of the Schema container.
     .EXAMPLE
-        $DomainDN = (Get-RootDSE).defaultNamingContext
+        $DomainDN = (Get-DSSRootDSE).defaultNamingContext
 
         Returns the DistinguishedName of the Active Directory domain.
     #>
