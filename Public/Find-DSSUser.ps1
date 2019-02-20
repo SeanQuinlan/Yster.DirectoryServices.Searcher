@@ -94,7 +94,7 @@ function Find-DSSUser {
             $Directory_Search_Parameters.Credential = $Credential
         }
 
-        # Default properties as per Get-ADUser. Used when no Properties is specified.
+        # Default properties as per Get-ADUser. These are always returned, in addition to any specified in the Properties parameter.
         [String[]]$Default_Properties = @(
             'distinguishedname'
             'enabled'
