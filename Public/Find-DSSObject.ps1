@@ -217,9 +217,9 @@ function Find-DSSObject {
             $Directory_Searcher_Result_To_Return = New-Object -TypeName 'System.Collections.Generic.List[PSObject]'
             foreach ($Directory_Searcher_Result in $Directory_Searcher_Results) {
                 $Result_Object = @{}
-                $Directory_Searcher_Result.Properties.GetEnumerator() | ForEach-Object {
-                    $Current_Searcher_Result_Property = $_.Name
-                    $Current_Searcher_Result_Value = $($_.Value)
+                foreach ($Current_Searcher_Result in $Directory_Searcher_Result.Properties.GetEnumerator()) {
+                    $Current_Searcher_Result_Property = $Current_Searcher_Result.Name
+                    $Current_Searcher_Result_Value = $($Current_Searcher_Result.Value)
                     Write-Verbose ('{0}|Property={1} Value={2}' -f $Function_Name, $Current_Searcher_Result_Property, $Current_Searcher_Result_Value)
 
                     # Reformat certain properties:
@@ -230,13 +230,13 @@ function Find-DSSObject {
                             $Current_Searcher_Result_Value = $Directory_Searcher_Result.GetDirectoryEntry().ObjectSecurity
                         }
 
-                        # - GUID attributes - replace with System.Guid object
+                        # - GUID attributes - replace with System.Guid object.
                         'objectguid' {
                             Write-Verbose ('{0}|Reformatting to GUID object: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
                             $Current_Searcher_Result_Value = New-Object 'System.Guid' -ArgumentList @(, $Current_Searcher_Result_Value)
                         }
 
-                        # - SID attributes - replace with SecurityIdentifier object
+                        # - SID attributes - replace with SecurityIdentifier object.
                         'objectsid' {
                             Write-Verbose ('{0}|Reformatting to SID object: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
                             $Current_Searcher_Result_Value = New-Object 'System.Security.Principal.SecurityIdentifier' -ArgumentList @($Current_Searcher_Result_Value, 0)
@@ -246,7 +246,6 @@ function Find-DSSObject {
                     # Add the calculated property if the property is found on one of the Calculated Property lists. Otherwise default to just outputting the property and value.
                     if ($UAC_Calculated_Properties.GetEnumerator().Name -contains $Current_Searcher_Result_Property) {
                         Write-Verbose ('{0}|UAC base property found: {1}={2}' -f $Function_Name, $Current_Searcher_Result_Property, $Current_Searcher_Result_Value)
-                        # Only output the "UserAccountControl" property if it is explicitly requested.
                         if ($Properties -contains $Current_Searcher_Result_Property) {
                             Write-Verbose ('{0}|UAC: Base property specified directly: {0}' -f $Function_Name, $Current_Searcher_Result_Property)
                             $Result_Object[$Current_Searcher_Result_Property] = $Current_Searcher_Result_Value
@@ -257,9 +256,9 @@ function Find-DSSObject {
                         # - Loops through all the properties specified to the function and if there is a match, it will do this:
                         #   - 1. Set a default bool value of $true if the property is named "enabled" and $false for everything else.
                         #   - 2. If the flag is set, then it will flip the bool value to the opposite.
-                        $UAC_Calculated_Properties.$Current_Searcher_Result_Property.GetEnumerator() | ForEach-Object {
-                            $UAC_Calculated_Property_Name = $_.Name
-                            $UAC_Calculated_Property_Flag = $_.Value
+                        foreach ($UAC_Calculated_Property in $UAC_Calculated_Properties.$Current_Searcher_Result_Property.GetEnumerator()) {
+                            $UAC_Calculated_Property_Name = $UAC_Calculated_Property.Name
+                            $UAC_Calculated_Property_Flag = $UAC_Calculated_Property.Value
                             Write-Verbose ('{0}|UAC: Checking UAC calculated property: {1}={2}' -f $Function_Name, $UAC_Calculated_Property_Name, $UAC_Calculated_Property_Flag)
                             if ($Properties -contains $UAC_Calculated_Property_Name) {
                                 Write-Verbose ('{0}|UAC: Processing property: {1}' -f $Function_Name, $UAC_Calculated_Property_Name)
@@ -355,15 +354,14 @@ function Find-DSSObject {
 
                     } elseif ($Containers_Calculated_Properties.GetEnumerator().Name -contains $Current_Searcher_Result_Property) {
                         Write-Verbose ('{0}|Containers base property found: {1}={2}' -f $Function_Name, $Current_Searcher_Result_Property, $Current_Searcher_Result_Value)
-                        # Only output the Containers main property if it is explicitly requested.
                         if ($Properties -contains $Current_Searcher_Result_Property) {
                             Write-Verbose ('{0}|Containers: Base property specified directly: {0}' -f $Function_Name, $Current_Searcher_Result_Property)
                             $Result_Object[$Current_Searcher_Result_Property] = $Current_Searcher_Result_Value
                         }
 
-                        $Containers_Calculated_Properties.$Current_Searcher_Result_Property.GetEnumerator() | ForEach-Object {
-                            $Containers_Calculated_Property_Name = $_.Name
-                            $Containers_Calculated_Property_GUID = $_.Value
+                        foreach ($Containers_Calculated_Property in $Containers_Calculated_Properties.$Current_Searcher_Result_Property.GetEnumerator()) {
+                            $Containers_Calculated_Property_Name = $Containers_Calculated_Property.Name
+                            $Containers_Calculated_Property_GUID = $Containers_Calculated_Property.Value
                             Write-Verbose ('{0}|Containers: Checking Containers calculated property: {1}={2}' -f $Function_Name, $Containers_Calculated_Property_Name, $Containers_Calculated_Property_GUID)
                             if ($Properties -contains $Containers_Calculated_Property_Name) {
                                 Write-Verbose ('{0}|Containers: Processing property: {1}' -f $Function_Name, $Containers_Calculated_Property_Name)
@@ -402,6 +400,7 @@ function Find-DSSObject {
                 $Directory_Searcher_Result_Object = ConvertTo-SortedPSObject -InputObject $Result_Object
                 $Directory_Searcher_Result_To_Return.Add($Directory_Searcher_Result_Object)
             }
+
             # Return the search results object.
             $Directory_Searcher_Result_To_Return
         } else {
