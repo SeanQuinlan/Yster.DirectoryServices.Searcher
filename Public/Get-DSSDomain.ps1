@@ -103,6 +103,7 @@ function Get-DSSDomain {
         'linkedgrouppolicyobjects'
         'lostandfoundcontainer'
         'keyscontainer'
+        'managedby'
         'managedserviceaccountscontainer'
         'microsoftprogramdatacontainer'
         'msds-alloweddnssuffixes'
@@ -118,11 +119,11 @@ function Get-DSSDomain {
         'userscontainer'
     )
 
-    [String[]]$Default_Properties1 = @(
+    [String[]]$Default_Properties_Not_Yet_Added = @(
         'lastlogonreplicationinterval'
-        'managedby'
         'publickeyrequiredpasswordrolling'
         'readonlyreplicadirectoryservers'
+        'replicadirectoryservers'
     )
 
     try {
@@ -166,11 +167,10 @@ function Get-DSSDomain {
         } elseif ($PSBoundParameters.ContainsKey('DistinguishedName')) {
             $Directory_Search_LDAPFilter = $Default_Domain_LDAPFilter
             $Directory_Search_Parameters.SearchBase = $DistinguishedName
-
-            #        } elseif ($PSBoundParameters.ContainsKey('ObjectSID')) {
-            #            $Directory_Search_LDAPFilter = '(&({0})(objectsid={1}))' -f $Default_Domain_LDAPFilter, $ObjectSID
-            #        } elseif ($PSBoundParameters.ContainsKey('ObjectGUID')) {
-            #            $Directory_Search_LDAPFilter = '(&({0})(objectguid={1}))' -f $Default_Domain_LDAPFilter, $ObjectGUID
+        } elseif ($PSBoundParameters.ContainsKey('ObjectSID')) {
+            $Directory_Search_LDAPFilter = '(&({0})(objectsid={1}))' -f $Default_Domain_LDAPFilter, $ObjectSID
+        } elseif ($PSBoundParameters.ContainsKey('ObjectGUID')) {
+            $Directory_Search_LDAPFilter = '(&({0})(objectguid={1}))' -f $Default_Domain_LDAPFilter, (Convert-GuidToHex -Guid $ObjectGUID)
             #        } elseif ($PSBoundParameters.ContainsKey('NetBIOSName')) {
             #            $Directory_Search_LDAPFilter = '(x={0})' -f $NetBIOSName
         }
