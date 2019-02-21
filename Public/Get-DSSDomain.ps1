@@ -93,6 +93,7 @@ function Get-DSSDomain {
         'domaincontrollerscontainer'
         'foreignsecurityprincipalscontainer'
         'infrastructurecontainer'
+        'infrastructuremaster'
         'linkedgrouppolicyobjects'
         'lostandfoundcontainer'
         'keyscontainer'
@@ -100,8 +101,10 @@ function Get-DSSDomain {
         'microsoftprogramdatacontainer'
         'netbiosname'
         'objectsid'
+        'pdcemulator'
         'programdatacontainer'
         'quotascontainer'
+        'ridmaster'
         'subrefs'
         'systemscontainer'
         'userscontainer'
@@ -112,14 +115,11 @@ function Get-DSSDomain {
         'childdomains'
         'domainmode'
         'forest'
-        'infrastructuremaster'
         'lastlogonreplicationinterval'
         'managedby'
         'parentdomain'
-        'pdcemulator'
         'publickeyrequiredpasswordrolling'
         'readonlyreplicadirectoryservers'
-        'ridmaster'
     )
 
     try {
@@ -181,7 +181,11 @@ function Get-DSSDomain {
         # Some properties need to be gathered via different methods.
         $Network_Properties = @('netbiosname', 'dnsroot')
         $Network_Properties_To_Process = $Directory_Search_Properties | Where-Object { $Network_Properties -contains $_ }
-        if ($Network_Properties_To_Process) {
+
+        $Domain_Properties = @('infrastructuremaster', 'pdcemulator', 'ridmaster')
+        $Domain_Properties_To_Process = $Directory_Search_Properties | Where-Object { $Domain_Properties -contains $_ }
+
+        if ($Network_Properties_To_Process -or $Domain_Properties_To_Process) {
             Write-Verbose ('{0}|Calculating Network properties' -f $Function_Name)
             $Network_Search_Parameters = @{}
             if ($Directory_Search_Parameters['Server']) {
@@ -198,15 +202,44 @@ function Get-DSSDomain {
             $Network_Search_Parameters.SearchBase = $Configuration_Path
             $Network_Search_Parameters.Context = $Context
             $Network_Search_Parameters.LDAPFilter = '(&(objectclass=crossref)(netbiosname=*))'
-            $Network_Search_Parameters.Properties = @('netbiosname', 'dnsroot')
+            $Network_Search_Parameters.Properties = $Network_Properties
 
             Write-Verbose ('{0}|Network: Calling Find-DSSObject' -f $Function_Name)
             $Network_Return_Object = Find-DSSObject @Network_Search_Parameters
 
             foreach ($Network_Property in $Network_Properties_To_Process) {
-                Write-Verbose ('{0}|Network: Adding: {1}' -f $Function_Name, $Network_Property)
+                Write-Verbose ('{0}|Network: Adding: {1} - {2}' -f $Function_Name, $Network_Property, $Network_Return_Object.$Network_Property)
                 $Network_Property_To_Add = New-Object -TypeName 'System.Management.Automation.PSNoteProperty' -ArgumentList @($Network_Property, $Network_Return_Object.$Network_Property)
                 $Domain_Results_To_Return.PSObject.Properties.Add($Network_Property_To_Add)
+            }
+            if ($Domain_Properties_To_Process) {
+                Write-Verbose ('{0}|Calculating Domain properties for: {1}' -f $Function_Name, $Domain_Results_To_Return.'dnsroot')
+                $Domain_Context_Arguments = @('Domain', $Domain_Results_To_Return.'dnsroot')
+                if ($PSBoundParameters.ContainsKey('Credential')) {
+                    if ($Credential.GetNetworkCredential().Domain) {
+                        $Credential_User = ('{0}\{1}' -f $Credential.GetNetworkCredential().Domain, $Credential.GetNetworkCredential().UserName)
+                    } else {
+                        $Credential_User = $Credential.GetNetworkCredential().UserName
+                    }
+                    Write-Verbose ('{0}|Custom credential user: {1}' -f $Function_Name, $Credential_User)
+                    $Domain_Context_Arguments += $Credential_User
+                    $Domain_Context_Arguments += $Credential.GetNetworkCredential().Password
+                }
+                $Domain_Context = New-Object System.DirectoryServices.ActiveDirectory.DirectoryContext -ArgumentList $Domain_Context_Arguments
+                $Current_Domain_Properties = [System.DirectoryServices.ActiveDirectory.Domain]::GetDomain($Domain_Context)
+
+                foreach ($Domain_Property in $Domain_Properties_To_Process) {
+                    if ($Domain_Property -eq 'infrastructuremaster') {
+                        $Domain_Property_To_Add_Arguments = @($Domain_Property, $Current_Domain_Properties.'InfrastructureRoleOwner')
+                    } elseif ($Domain_Property -eq 'pdcemulator') {
+                        $Domain_Property_To_Add_Arguments = @($Domain_Property, $Current_Domain_Properties.'PdcRoleOwner')
+                    } elseif ($Domain_Property -eq 'ridmaster') {
+                        $Domain_Property_To_Add_Arguments = @($Domain_Property, $Current_Domain_Properties.'RidRoleOwner')
+                    }
+                    Write-Verbose ('{0}|Domain: Adding: {1} - {2}' -f $Function_Name, $Domain_Property, $Domain_Property_To_Add_Arguments[1])
+                    $Domain_Property_To_Add = New-Object -TypeName 'System.Management.Automation.PSNoteProperty' -ArgumentList $Domain_Property_To_Add_Arguments
+                    $Domain_Results_To_Return.PSObject.Properties.Add($Domain_Property_To_Add)
+                }
             }
         }
 
