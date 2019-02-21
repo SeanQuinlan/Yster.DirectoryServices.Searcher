@@ -90,6 +90,7 @@ function Get-DSSDomain {
 
     # All the remaining properties as per Get-ADDomain.
     [String[]]$Wildcard_Properties = @(
+        'childdomains'
         'computerscontainer'
         'deletedobjectscontainer'
         'dnsroot'
@@ -107,6 +108,7 @@ function Get-DSSDomain {
         'msds-alloweddnssuffixes'
         'netbiosname'
         'objectsid'
+        'parentdomain'
         'pdcemulator'
         'programdatacontainer'
         'quotascontainer'
@@ -117,11 +119,8 @@ function Get-DSSDomain {
     )
 
     [String[]]$Default_Properties1 = @(
-        'childdomains'
-
         'lastlogonreplicationinterval'
         'managedby'
-        'parentdomain'
         'publickeyrequiredpasswordrolling'
         'readonlyreplicadirectoryservers'
     )
@@ -186,7 +185,7 @@ function Get-DSSDomain {
         $Network_Properties = @('netbiosname', 'dnsroot', 'domainmode')
         $Network_Properties_To_Process = $Directory_Search_Properties | Where-Object { $Network_Properties -contains $_ }
 
-        $Domain_Properties = @('forest', 'infrastructuremaster', 'pdcemulator', 'ridmaster')
+        $Domain_Properties = @('childdomains', 'forest', 'infrastructuremaster', 'parentdomain', 'pdcemulator', 'ridmaster')
         $Domain_Properties_To_Process = $Directory_Search_Properties | Where-Object { $Domain_Properties -contains $_ }
 
         if ($Network_Properties_To_Process -or $Domain_Properties_To_Process) {
@@ -238,8 +237,12 @@ function Get-DSSDomain {
                 $Current_Domain_Properties = [System.DirectoryServices.ActiveDirectory.Domain]::GetDomain($Domain_Context)
 
                 foreach ($Domain_Property in $Domain_Properties_To_Process) {
-                    if ($Domain_Property -eq 'infrastructuremaster') {
+                    if ($Domain_Property -eq 'childdomains') {
+                        $Domain_Property_To_Add_Arguments = @($Domain_Property, $Current_Domain_Properties.'Children')
+                    } elseif ($Domain_Property -eq 'infrastructuremaster') {
                         $Domain_Property_To_Add_Arguments = @($Domain_Property, $Current_Domain_Properties.'InfrastructureRoleOwner')
+                    } elseif ($Domain_Property -eq 'parentdomain') {
+                        $Domain_Property_To_Add_Arguments = @($Domain_Property, $Current_Domain_Properties.'Parent')
                     } elseif ($Domain_Property -eq 'pdcemulator') {
                         $Domain_Property_To_Add_Arguments = @($Domain_Property, $Current_Domain_Properties.'PdcRoleOwner')
                     } elseif ($Domain_Property -eq 'ridmaster') {
