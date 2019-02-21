@@ -3,7 +3,7 @@ function Get-DSSRootDSE {
     .SYNOPSIS
         Gets the special RootDSE object from the directory server.
     .DESCRIPTION
-        Retrieves the RootDSE object which provides information about the directory schema, version, supported capabilities and other LDAP server details
+        Retrieves the RootDSE object which provides information about the directory schema, version, supported capabilities and other LDAP server details.
     .EXAMPLE
         (Get-DSSRootDSE).schemaNamingContext
 
@@ -45,6 +45,9 @@ function Get-DSSRootDSE {
             $Directory_Entry_Parameters.Credential = $Credential
         }
         $Directory_Entry = Get-DSSDirectoryEntry @Directory_Entry_Parameters
+        if (-not $Directory_Entry.Properties) {
+            Write-Error ('Unable to contact the server: {0}' -f $Server) -ErrorAction 'Stop'
+        }
 
         # Format the DirectoryEntry object to match that returned from Find-DSSObject.
         Write-Verbose ('{0}|Formatting result' -f $Function_Name)
