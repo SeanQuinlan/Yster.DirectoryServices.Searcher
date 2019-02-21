@@ -157,7 +157,9 @@ function Get-DSSDomain {
         $Default_Domain_LDAPFilter = '(objectclass=domain)'
         if ($PSBoundParameters.ContainsKey('DNSName')) {
             $Directory_Search_LDAPFilter = $Default_Domain_LDAPFilter
-            $Directory_Search_Parameters.SearchBase = $DNSName
+            if (-not $PSBoundParameters.ContainsKey('Server')) {
+                $Directory_Search_Parameters.Server = $DNSName
+            }
         } elseif ($PSBoundParameters.ContainsKey('DistinguishedName')) {
             $Directory_Search_LDAPFilter = $Default_Domain_LDAPFilter
             $Directory_Search_Parameters.SearchBase = $DistinguishedName
@@ -179,15 +181,14 @@ function Get-DSSDomain {
         # Some properties need to be gathered via different methods.
         $Network_Properties = @('netbiosname', 'dnsroot')
         $Network_Properties_To_Process = $Directory_Search_Properties | Where-Object { $Network_Properties -contains $_ }
-
         if ($Network_Properties_To_Process) {
             Write-Verbose ('{0}|Calculating Network properties' -f $Function_Name)
             $Network_Search_Parameters = @{}
-            if ($PSBoundParameters.ContainsKey('Server')) {
-                $Network_Search_Parameters.Server = $Server
+            if ($Directory_Search_Parameters['Server']) {
+                $Network_Search_Parameters.Server = $Directory_Search_Parameters['Server']
             }
-            if ($PSBoundParameters.ContainsKey('Credential')) {
-                $Network_Search_Parameters.Credential = $Credential
+            if ($Directory_Search_Parameters['Credential']) {
+                $Network_Search_Parameters.Credential = $Directory_Search_Parameters['Credential']
             }
             Write-Verbose ('{0}|Network: Calling Get-DSSRootDSE' -f $Function_Name)
             $DSE_Return_Object = Get-DSSRootDSE @Network_Search_Parameters
