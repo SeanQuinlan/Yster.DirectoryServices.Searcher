@@ -14,12 +14,14 @@ function Get-DSSDirectoryEntry {
     param(
         # The context to search - Domain or Forest.
         [Parameter(Mandatory = $true)]
+        [ValidateSet('Domain', 'Forest')]
         [String]
         $Context,
 
-        # The server to run the query on.
+        # The server/domain/forest to run the query on.
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
+        [Alias('Forest', 'Domain')]
         [String]
         $Server,
 
@@ -45,22 +47,22 @@ function Get-DSSDirectoryEntry {
         if ($Context -eq 'Forest') {
             Write-Verbose ('{0}|Forest context' -f $Function_Name)
             [void]$Directory_Entry_Path.Append('GC://')
-            $Default_SearchBase = [System.DirectoryServices.ActiveDirectory.Forest]::GetCurrentForest().Name
         } else {
             Write-Verbose ('{0}|Domain context' -f $Function_Name)
             [void]$Directory_Entry_Path.Append('LDAP://')
-            $Default_SearchBase = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain().Name
         }
         if ($PSBoundParameters.ContainsKey('Server')) {
             Write-Verbose ('{0}|Using server: {1}' -f $Function_Name, $Server)
             [void]$Directory_Entry_Path.Append(('{0}/' -f $Server))
+        } else {
+            Write-Verbose ('{0}|No Server specified, attempting to find current domain to use instead...' -f $Function_Name)
+            $Check_For_Domain = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
+            Write-Verbose ('{0}|Found domain: {1}' -f $Function_Name, $Check_For_Domain.Name)
+            [void]$Directory_Entry_Path.Append($Check_For_Domain.Name)
         }
         if ($PSBoundParameters.ContainsKey('SearchBase')) {
             Write-Verbose ('{0}|Using custom SearchBase: {1}' -f $Function_Name, $SearchBase)
             [void]$Directory_Entry_Path.Append($SearchBase)
-        } else {
-            Write-Verbose ('{0}|Using default SearchBase: {1}' -f $Function_Name, $Default_SearchBase)
-            [void]$Directory_Entry_Path.Append($Default_SearchBase)
         }
         Write-Verbose ('{0}|Directory_Entry_Path: {1}' -f $Function_Name, $Directory_Entry_Path)
 
