@@ -9,6 +9,9 @@ function Get-DSSDomain {
     .NOTES
         The ObjectSID and ObjectGUID properties can only reference domains/subdomains from the currently connected domain.
 
+        References:
+        https://docs.microsoft.com/en-us/powershell/module/addsadministration/get-addomain
+        https://docs.microsoft.com/en-us/dotnet/api/system.directoryservices.activedirectory.directorycontext
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'DNSName')]
@@ -243,8 +246,8 @@ function Get-DSSDomain {
             }
         }
 
-        # Return the full domain object
-        $Domain_Results_To_Return
+        # Return the full domain object after sorting.
+        ConvertTo-SortedPSObject -InputObject $Domain_Results_To_Return
     } catch {
         $PSCmdlet.ThrowTerminatingError($_)
     }

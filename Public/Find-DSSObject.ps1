@@ -387,7 +387,7 @@ function Find-DSSObject {
                         if ($Properties -contains $Useful_Calculated_Domain_Property_Name) {
                             Write-Verbose ('{0}|Useful_Calculated_Domain: Processing property: {1}' -f $Function_Name, $Useful_Calculated_Domain_Property_Name)
                             if ($Useful_Calculated_Domain_Property_Name -eq 'linkedgrouppolicyobjects') {
-                                # Convert the "gplink" string property into an array of strings, selecting just the Group Policy DistinguishedName
+                                # Convert the "gplink" string property into an array of strings, selecting just the Group Policy DistinguishedName.
                                 $Regex_GPLink = [System.Text.RegularExpressions.Regex]'\[LDAP://(.*?)\;\d\]'
                                 $Result_Object[$Useful_Calculated_Domain_Property_Name] = $Regex_GPLink.Matches($Current_Searcher_Result_Value) | ForEach-Object { $_.Groups[1].Value }
                             }
@@ -398,15 +398,11 @@ function Find-DSSObject {
                     }
                 }
 
-                # Sort results and then add to a new hashtable, as PSObject requires a hashtable as Property. GetEnumerator() piped into Sort-Object changes the output to an array.
-                $Result_Object_Sorted = [ordered]@{}
-                $Result_Object.GetEnumerator() | Sort-Object -Property 'Name' | ForEach-Object {
-                    $Result_Object_Sorted[$_.Name] = $_.Value
-                }
-                $Directory_Searcher_Result_Object = New-Object -TypeName 'System.Management.Automation.PSObject' -Property $Result_Object_Sorted
+                # Sort the object alphabetically.
+                $Directory_Searcher_Result_Object = ConvertTo-SortedPSObject -InputObject $Result_Object
                 $Directory_Searcher_Result_To_Return.Add($Directory_Searcher_Result_Object)
             }
-            # Return the search results object
+            # Return the search results object.
             $Directory_Searcher_Result_To_Return
         } else {
             Write-Verbose ('{0}|No results found!' -f $Function_Name)

@@ -12,6 +12,9 @@ function Get-DSSRootDSE {
         $DomainDN = (Get-DSSRootDSE).defaultNamingContext
 
         Returns the DistinguishedName of the Active Directory domain.
+    .NOTES
+        References:
+        https://docs.microsoft.com/en-us/powershell/module/addsadministration/get-adrootdse
     #>
 
     [CmdletBinding()]
@@ -51,8 +54,6 @@ function Get-DSSRootDSE {
 
         # Format the DirectoryEntry object to match that returned from Find-DSSObject.
         Write-Verbose ('{0}|Formatting result' -f $Function_Name)
-        $RootDSE_Result_To_Return = New-Object -TypeName 'System.Collections.Generic.List[PSObject]'
-
         $Result_Object = @{}
         $Directory_Entry.Properties.PropertyNames | ForEach-Object {
             $RootDSE_Property = $_
@@ -70,16 +71,8 @@ function Get-DSSRootDSE {
             }
         }
 
-        # Sort results and then add to a new hashtable, as PSObject requires a hashtable as Property. GetEnumerator() piped into Sort-Object changes the output to an array.
-        $Result_Object_Sorted = [ordered]@{}
-        $Result_Object.GetEnumerator() | Sort-Object -Property 'Name' | ForEach-Object {
-            $Result_Object_Sorted[$_.Name] = $_.Value
-        }
-        $RootDSE_Result_Object = New-Object -TypeName 'System.Management.Automation.PSObject' -Property $Result_Object_Sorted
-        $RootDSE_Result_To_Return.Add($RootDSE_Result_Object)
-
-        # Return the RootDSE object.
-        $RootDSE_Result_To_Return
+        # Return the RootDSE object, after sorting.
+        ConvertTo-SortedPSObject -InputObject $Result_Object
     } catch {
         $PSCmdlet.ThrowTerminatingError($_)
     }
