@@ -94,6 +94,7 @@ function Get-DSSDomain {
         'deletedobjectscontainer'
         'dnsroot'
         'domaincontrollerscontainer'
+        'domainmode'
         'foreignsecurityprincipalscontainer'
         'infrastructurecontainer'
         'infrastructuremaster'
@@ -116,7 +117,6 @@ function Get-DSSDomain {
     [String[]]$Default_Properties1 = @(
         'alloweddnssuffixes'
         'childdomains'
-        'domainmode'
         'forest'
         'lastlogonreplicationinterval'
         'managedby'
@@ -182,7 +182,7 @@ function Get-DSSDomain {
         $Domain_Results_To_Return = Find-DSSObject @Directory_Search_Parameters
 
         # Some properties need to be gathered via different methods.
-        $Network_Properties = @('netbiosname', 'dnsroot')
+        $Network_Properties = @('netbiosname', 'dnsroot', 'domainmode')
         $Network_Properties_To_Process = $Directory_Search_Properties | Where-Object { $Network_Properties -contains $_ }
 
         $Domain_Properties = @('infrastructuremaster', 'pdcemulator', 'ridmaster')
@@ -211,8 +211,13 @@ function Get-DSSDomain {
             $Network_Return_Object = Find-DSSObject @Network_Search_Parameters
 
             foreach ($Network_Property in $Network_Properties_To_Process) {
-                Write-Verbose ('{0}|Network: Adding: {1} - {2}' -f $Function_Name, $Network_Property, $Network_Return_Object.$Network_Property)
-                $Network_Property_To_Add = New-Object -TypeName 'System.Management.Automation.PSNoteProperty' -ArgumentList @($Network_Property, $Network_Return_Object.$Network_Property)
+                if ($Network_Property -eq 'domainmode') {
+                    $Network_Property_ArgumentList = @($Network_Property, $DSE_Return_Object.'domainfunctionality')
+                } else {
+                    $Network_Property_ArgumentList = @($Network_Property, $Network_Return_Object.$Network_Property)
+                }
+                Write-Verbose ('{0}|Network: Adding: {1} - {2}' -f $Function_Name, $Network_Property_ArgumentList[0], $Network_Property_ArgumentList[1])
+                $Network_Property_To_Add = New-Object -TypeName 'System.Management.Automation.PSNoteProperty' -ArgumentList $Network_Property_ArgumentList
                 $Domain_Results_To_Return.PSObject.Properties.Add($Network_Property_To_Add)
             }
             if ($Domain_Properties_To_Process) {
