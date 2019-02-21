@@ -96,6 +96,7 @@ function Get-DSSDomain {
         'domaincontrollerscontainer'
         'domainmode'
         'foreignsecurityprincipalscontainer'
+        'forest'
         'infrastructurecontainer'
         'infrastructuremaster'
         'linkedgrouppolicyobjects'
@@ -103,6 +104,7 @@ function Get-DSSDomain {
         'keyscontainer'
         'managedserviceaccountscontainer'
         'microsoftprogramdatacontainer'
+        'msds-alloweddnssuffixes'
         'netbiosname'
         'objectsid'
         'pdcemulator'
@@ -115,9 +117,8 @@ function Get-DSSDomain {
     )
 
     [String[]]$Default_Properties1 = @(
-        'alloweddnssuffixes'
         'childdomains'
-        'forest'
+
         'lastlogonreplicationinterval'
         'managedby'
         'parentdomain'
@@ -185,7 +186,7 @@ function Get-DSSDomain {
         $Network_Properties = @('netbiosname', 'dnsroot', 'domainmode')
         $Network_Properties_To_Process = $Directory_Search_Properties | Where-Object { $Network_Properties -contains $_ }
 
-        $Domain_Properties = @('infrastructuremaster', 'pdcemulator', 'ridmaster')
+        $Domain_Properties = @('forest', 'infrastructuremaster', 'pdcemulator', 'ridmaster')
         $Domain_Properties_To_Process = $Directory_Search_Properties | Where-Object { $Domain_Properties -contains $_ }
 
         if ($Network_Properties_To_Process -or $Domain_Properties_To_Process) {
@@ -243,6 +244,8 @@ function Get-DSSDomain {
                         $Domain_Property_To_Add_Arguments = @($Domain_Property, $Current_Domain_Properties.'PdcRoleOwner')
                     } elseif ($Domain_Property -eq 'ridmaster') {
                         $Domain_Property_To_Add_Arguments = @($Domain_Property, $Current_Domain_Properties.'RidRoleOwner')
+                    } else {
+                        $Domain_Property_To_Add_Arguments = @($Domain_Property, $Current_Domain_Properties.$Domain_Property)
                     }
                     Write-Verbose ('{0}|Domain: Adding: {1} - {2}' -f $Function_Name, $Domain_Property, $Domain_Property_To_Add_Arguments[1])
                     $Domain_Property_To_Add = New-Object -TypeName 'System.Management.Automation.PSNoteProperty' -ArgumentList $Domain_Property_To_Add_Arguments
