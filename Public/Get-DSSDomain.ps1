@@ -89,6 +89,7 @@ function Get-DSSDomain {
     [String[]]$Wildcard_Properties = @(
         'computerscontainer'
         'deletedobjectscontainer'
+        'dnsroot'
         'domaincontrollerscontainer'
         'foreignsecurityprincipalscontainer'
         'infrastructurecontainer'
@@ -97,6 +98,7 @@ function Get-DSSDomain {
         'keyscontainer'
         'managedserviceaccountscontainer'
         'microsoftprogramdatacontainer'
+        'netbiosname'
         'objectsid'
         'programdatacontainer'
         'quotascontainer'
@@ -108,13 +110,11 @@ function Get-DSSDomain {
     [String[]]$Default_Properties1 = @(
         'alloweddnssuffixes'
         'childdomains'
-        'dnsroot'
         'domainmode'
         'forest'
         'infrastructuremaster'
         'lastlogonreplicationinterval'
         'managedby'
-        'netbiosname'
         'parentdomain'
         'pdcemulator'
         'publickeyrequiredpasswordrolling'
@@ -174,7 +174,43 @@ function Get-DSSDomain {
         $Directory_Search_Parameters.LDAPFilter = $Directory_Search_LDAPFilter
 
         Write-Verbose ('{0}|Calling Find-DSSObject' -f $Function_Name)
-        Find-DSSObject @Directory_Search_Parameters
+        $Domain_Results_To_Return = Find-DSSObject @Directory_Search_Parameters
+
+        # Some properties need to be gathered via different methods.
+        $Network_Properties = @('netbiosname', 'dnsroot')
+        $Network_Properties_To_Process = $Directory_Search_Properties | Where-Object { $Network_Properties -contains $_ }
+
+        if ($Network_Properties_To_Process) {
+            Write-Verbose ('{0}|Calculating Network properties' -f $Function_Name)
+            $Network_Search_Parameters = @{}
+            if ($PSBoundParameters.ContainsKey('Server')) {
+                $Network_Search_Parameters.Server = $Server
+            }
+            if ($PSBoundParameters.ContainsKey('Credential')) {
+                $Network_Search_Parameters.Credential = $Credential
+            }
+            Write-Verbose ('{0}|Network: Calling Get-DSSRootDSE' -f $Function_Name)
+            $DSE_Return_Object = Get-DSSRootDSE @Network_Search_Parameters
+            $Configuration_Path = 'CN=Partitions,{0}' -f $DSE_Return_Object.configurationNamingContext
+            Write-Verbose ('{0}|Network: Configuration_Path: {1}' -f $Function_Name, $Configuration_Path)
+
+            $Network_Search_Parameters.SearchBase = $Configuration_Path
+            $Network_Search_Parameters.Context = $Context
+            $Network_Search_Parameters.LDAPFilter = '(&(objectclass=crossref)(netbiosname=*))'
+            $Network_Search_Parameters.Properties = @('netbiosname', 'dnsroot')
+
+            Write-Verbose ('{0}|Network: Calling Find-DSSObject' -f $Function_Name)
+            $Network_Return_Object = Find-DSSObject @Network_Search_Parameters
+
+            foreach ($Network_Property in $Network_Properties_To_Process) {
+                Write-Verbose ('{0}|Network: Adding: {1}' -f $Function_Name, $Network_Property)
+                $Network_Property_To_Add = New-Object -TypeName 'System.Management.Automation.PSNoteProperty' -ArgumentList @($Network_Property, $Network_Return_Object.$Network_Property)
+                $Domain_Results_To_Return.PSObject.Properties.Add($Network_Property_To_Add)
+            }
+        }
+
+        # Return the full domain object
+        $Domain_Results_To_Return
     } catch {
         $PSCmdlet.ThrowTerminatingError($_)
     }

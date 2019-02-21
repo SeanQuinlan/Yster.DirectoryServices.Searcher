@@ -195,7 +195,7 @@ function Find-DSSObject {
                 }
             }
 
-            # Add the relevant Containers calculated main property if a sub-property is requested
+            # Add the relevant Containers calculated main property if a sub-property is requested.
             foreach ($Containers_Calculated_Property in $Containers_Calculated_Properties.GetEnumerator().Name) {
                 if (($Containers_Calculated_Properties.$Containers_Calculated_Property.GetEnumerator().Name -contains $Property) -and ($Properties_To_Add -notcontains $Containers_Calculated_Property)) {
                     $Properties_To_Add.Add($Containers_Calculated_Property)
