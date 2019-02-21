@@ -53,7 +53,7 @@ function Get-DSSDirectoryEntry {
         }
         if ($PSBoundParameters.ContainsKey('Server')) {
             Write-Verbose ('{0}|Using server: {1}' -f $Function_Name, $Server)
-            [void]$Directory_Entry_Path.Append(('{0}/' -f $Server))
+            [void]$Directory_Entry_Path.Append(('{0}' -f $Server))
         } else {
             Write-Verbose ('{0}|No Server specified, attempting to find current domain to use instead...' -f $Function_Name)
             $Check_For_Domain = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
@@ -62,6 +62,9 @@ function Get-DSSDirectoryEntry {
         }
         if ($PSBoundParameters.ContainsKey('SearchBase')) {
             Write-Verbose ('{0}|Using custom SearchBase: {1}' -f $Function_Name, $SearchBase)
+            if (-not $Directory_Entry_Path.ToString().EndsWith('/')) {
+                [void]$Directory_Entry_Path.Append('/')
+            }
             [void]$Directory_Entry_Path.Append($SearchBase)
         }
         Write-Verbose ('{0}|Directory_Entry_Path: {1}' -f $Function_Name, $Directory_Entry_Path)
