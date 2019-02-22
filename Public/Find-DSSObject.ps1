@@ -225,10 +225,13 @@ function Find-DSSObject {
             foreach ($Directory_Searcher_Result in $Directory_Searcher_Results) {
                 # Reformat the order of the returned properties, to process certain properties first.
                 $Reformatted_Directory_Searcher_Result = [Ordered]@{}
-                $Directory_Searcher_Result.Properties.GetEnumerator() | Where-Object { $Returned_Properties_To_Process_First -contains $_.Name } |
-                    ForEach-Object { $Reformatted_Directory_Searcher_Result[$_.Name] = $_.Value }
-                $Directory_Searcher_Result.Properties.GetEnumerator() | Where-Object { $Returned_Properties_To_Process_First -notcontains $_.Name } |
-                    ForEach-Object { $Reformatted_Directory_Searcher_Result[$_.Name] = $_.Value }
+                $Directory_Searcher_Result.Properties.GetEnumerator() | ForEach-Object {
+                    if ($Returned_Properties_To_Process_First -contains $_.Name) {
+                        $Reformatted_Directory_Searcher_Result.Insert(0, $_.Name, $_.Value)
+                    } else {
+                        $Reformatted_Directory_Searcher_Result[$_.Name] = $_.Value
+                    }
+                }
 
                 $Result_Object = @{}
                 foreach ($Current_Searcher_Result in $Reformatted_Directory_Searcher_Result.GetEnumerator()) {
