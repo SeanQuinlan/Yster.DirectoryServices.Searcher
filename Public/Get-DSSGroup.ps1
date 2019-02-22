@@ -94,7 +94,7 @@ function Get-DSSGroup {
         } elseif ($PSBoundParameters.ContainsKey('ObjectSID')) {
             $Directory_Search_LDAPFilter = '(objectsid={0})' -f $ObjectSID
         } elseif ($PSBoundParameters.ContainsKey('ObjectGUID')) {
-            $Directory_Search_LDAPFilter = '(objectguid={0})' -f $ObjectGUID
+            $Directory_Search_LDAPFilter = '(objectguid={0})' -f (Convert-GuidToHex -Guid $ObjectGUID)
         } elseif ($PSBoundParameters.ContainsKey('SAMAccountName')) {
             $Directory_Search_LDAPFilter = '(samaccountname={0})' -f $SAMAccountName
         }
