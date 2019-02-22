@@ -66,6 +66,16 @@ function Find-DSSObject {
         $Credential = [System.Management.Automation.PSCredential]::Empty
     )
 
+    $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
+    $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
+
+    # The order of properties returned from an LDAP search can be random, or at least they are not returned in the same order as they are requested.
+    # Therefore certain properties need to be processed first when returned, as other properties may depend on them being already populated.
+    $Returned_Properties_To_Process_First = @(
+        'objectsid'
+        'distinguishedname'
+    )
+
     # A number of properties returned by the AD Cmdlets are calculated based on flags to one of the UserAccountControl LDAP properties.
     # The list of flags and their corresponding values are taken from here:
     # - https://support.microsoft.com/en-us/help/305144/how-to-use-the-useraccountcontrol-flags-to-manipulate-user-account-pro
@@ -131,9 +141,6 @@ function Find-DSSObject {
     $Useful_Calculated_Domain_Properties = @{
         'gplink' = 'linkedgrouppolicyobjects'
     }
-
-    $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
-    $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
 
     try {
         $Directory_Entry_Parameters = @{
@@ -216,8 +223,15 @@ function Find-DSSObject {
             Write-Verbose ('{0}|Found {1} result(s)' -f $Function_Name, $Directory_Searcher_Results.Count)
             $Directory_Searcher_Result_To_Return = New-Object -TypeName 'System.Collections.Generic.List[PSObject]'
             foreach ($Directory_Searcher_Result in $Directory_Searcher_Results) {
+                # Reformat the order of the returned properties, to process certain properties first.
+                $Reformatted_Directory_Searcher_Result = [Ordered]@{}
+                $Directory_Searcher_Result.Properties.GetEnumerator() | Where-Object { $Returned_Properties_To_Process_First -contains $_.Name } |
+                    ForEach-Object { $Reformatted_Directory_Searcher_Result[$_.Name] = $_.Value }
+                $Directory_Searcher_Result.Properties.GetEnumerator() | Where-Object { $Returned_Properties_To_Process_First -notcontains $_.Name } |
+                    ForEach-Object { $Reformatted_Directory_Searcher_Result[$_.Name] = $_.Value }
+
                 $Result_Object = @{}
-                foreach ($Current_Searcher_Result in $Directory_Searcher_Result.Properties.GetEnumerator()) {
+                foreach ($Current_Searcher_Result in $Reformatted_Directory_Searcher_Result.GetEnumerator()) {
                     $Current_Searcher_Result_Property = $Current_Searcher_Result.Name
                     $Current_Searcher_Result_Value = $($Current_Searcher_Result.Value)
                     Write-Verbose ('{0}|Property={1} Value={2}' -f $Function_Name, $Current_Searcher_Result_Property, $Current_Searcher_Result_Value)
