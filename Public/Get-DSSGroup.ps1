@@ -52,6 +52,13 @@ function Get-DSSGroup {
         [String[]]
         $Properties,
 
+        # The number of results per page that is returned from the server. This is primarily to save server memory and bandwidth and does not affect the total number of results returned.
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Alias('ResultPageSize')]
+        [Int]
+        $PageSize = 500,
+
         # The context to search - Domain or Forest.
         [Parameter(Mandatory = $false)]
         [ValidateSet('Domain', 'Forest')]
@@ -77,7 +84,8 @@ function Get-DSSGroup {
 
     try {
         $Directory_Search_Parameters = @{
-            'Context' = $Context
+            'Context'  = $Context
+            'PageSize' = $PageSize
         }
         if ($PSBoundParameters.ContainsKey('Server')) {
             $Directory_Search_Parameters.Server = $Server
