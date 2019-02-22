@@ -100,11 +100,12 @@ function Find-DSSObject {
         }
     }
 
-    # Get-ADUser also adds a number of other useful properties based on calculations of other properties. Like creating a datetime object from an integer property.
+    # The Get-AD* cmdlets also add a number of other useful properties based on calculations of other properties. Like creating a datetime object from an integer property.
     $Useful_Calculated_Time_Properties = @{
-        'lockouttime'     = 'accountlockouttime'
-        'badpasswordtime' = 'lastbadpasswordattempt'
-        'pwdlastset'      = 'passwordlastset'
+        'badpasswordtime'    = 'lastbadpasswordattempt'
+        'lastlogontimestamp' = 'lastlogondate'
+        'lockouttime'        = 'accountlockouttime'
+        'pwdlastset'         = 'passwordlastset'
     }
     $Useful_Calculated_Group_Properties = @{
         'primarygroupid' = 'primarygroup'
@@ -223,7 +224,7 @@ function Find-DSSObject {
             Write-Verbose ('{0}|Found {1} result(s)' -f $Function_Name, $Directory_Searcher_Results.Count)
             $Directory_Searcher_Result_To_Return = New-Object -TypeName 'System.Collections.Generic.List[PSObject]'
             foreach ($Directory_Searcher_Result in $Directory_Searcher_Results) {
-                # Reformat the order of the returned properties, to process certain properties first.
+                Write-Verbose ('{0}|Reformatting result properties order' -f $Function_Name)
                 $Reformatted_Directory_Searcher_Result = [Ordered]@{}
                 $Directory_Searcher_Result.Properties.GetEnumerator() | ForEach-Object {
                     if ($Returned_Properties_To_Process_First -contains $_.Name) {
