@@ -102,6 +102,7 @@ function Find-DSSObject {
 
     # The Get-AD* cmdlets also add a number of other useful properties based on calculations of other properties. Like creating a datetime object from an integer property.
     $Useful_Calculated_Time_Properties = @{
+        'accountexpires'     = 'accountexpirationdate'
         'badpasswordtime'    = 'lastbadpasswordattempt'
         'lastlogontimestamp' = 'lastlogondate'
         'lockouttime'        = 'accountlockouttime'
@@ -324,8 +325,13 @@ function Find-DSSObject {
                             $Result_Object[$Current_Searcher_Result_Property] = $Current_Searcher_Result_Value
                         }
                         if ($Properties -contains $Useful_Calculated_Time_Property_Name) {
+                            if (($Current_Searcher_Result_Value -eq 0) -or ($Current_Searcher_Result_Value -gt [DateTime]::MaxValue.Ticks)) {
+                                $Useful_Calculated_Time_Property_Value = $null
+                            } else {
+                                $Useful_Calculated_Time_Property_Value = [DateTime]::FromFileTime($Current_Searcher_Result_Value)
+                            }
                             Write-Verbose ('{0}|Useful_Calculated_Time: Returning calculated property: {1}' -f $Function_Name, $Useful_Calculated_Time_Property_Name)
-                            $Result_Object[$Useful_Calculated_Time_Property_Name] = [DateTime]::FromFileTime($Current_Searcher_Result_Value)
+                            $Result_Object[$Useful_Calculated_Time_Property_Name] = $Useful_Calculated_Time_Property_Value
                         }
 
                     } elseif ($Useful_Calculated_Group_Properties.GetEnumerator().Name -contains $Current_Searcher_Result_Property) {
