@@ -143,6 +143,21 @@ function Find-DSSObject {
         'gplink' = 'linkedgrouppolicyobjects'
     }
 
+    # These are calculated from the 'msds-supportedencryptiontypes' property.
+    $Useful_Calculated_Encryption_Properties = @(
+        'compoundidentitysupported'
+        'kerberosencryptiontype'
+    )
+
+    # Some additional flags to the 'msds-supportedencryptiontypes' property which don't form part of the ADKerberosEncryptionTypes Enum.
+    # - Taken from https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-kile/6cfc7b50-11ed-4b4d-846d-6f08f0812919
+    $Additional_Encryption_Types = @{
+        'FAST-Supported'                    = '0x10000'
+        'Compound-Identity-Supported'       = '0x20000'
+        'Claims-Supported'                  = '0x40000'
+        'Resource-SID-Compression-Disabled' = '0x80000'
+    }
+
     try {
         $Directory_Entry_Parameters = @{
             'Context' = $Context
@@ -214,6 +229,14 @@ function Find-DSSObject {
                     $Properties_To_Add.Add($Useful_Calculated_Domain_Property.Name)
                 }
             }
+
+            # Add the 'msds-supportedencryptiontypes' property if any Encryption sub-properties are requested.
+            foreach ($Useful_Calculated_Encryption_Property in $Useful_Calculated_Encryption_Properties) {
+                if (($Useful_Calculated_Encryption_Property -eq $Property) -and ($Properties_To_Add -notcontains 'msds-supportedencryptiontypes')) {
+                    $Properties_To_Add.Add('msds-supportedencryptiontypes')
+                }
+            }
+
         }
         Write-Verbose ('{0}|Adding Properties: {1}' -f $Function_Name, ($Properties_To_Add -join ' '))
         $Directory_Searcher.PropertiesToLoad.AddRange($Properties_To_Add)
@@ -263,7 +286,7 @@ function Find-DSSObject {
 
                     # Add the calculated property if the property is found on one of the Calculated Property lists. Otherwise default to just outputting the property and value.
                     if ($UAC_Calculated_Properties.GetEnumerator().Name -contains $Current_Searcher_Result_Property) {
-                        Write-Verbose ('{0}|UAC base property found: {1}={2}' -f $Function_Name, $Current_Searcher_Result_Property, $Current_Searcher_Result_Value)
+                        Write-Verbose ('{0}|UAC: Base property found: {1}={2}' -f $Function_Name, $Current_Searcher_Result_Property, $Current_Searcher_Result_Value)
                         if ($Properties -contains $Current_Searcher_Result_Property) {
                             Write-Verbose ('{0}|UAC: Base property specified directly: {0}' -f $Function_Name, $Current_Searcher_Result_Property)
                             $Result_Object[$Current_Searcher_Result_Property] = $Current_Searcher_Result_Value
@@ -294,7 +317,7 @@ function Find-DSSObject {
                         }
 
                     } elseif ($Useful_Calculated_Time_Properties.GetEnumerator().Name -contains $Current_Searcher_Result_Property) {
-                        Write-Verbose ('{0}|Useful_Calculated_Time base property found: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
+                        Write-Verbose ('{0}|Useful_Calculated_Time: Base property found: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
                         $Useful_Calculated_Time_Property_Name = $Useful_Calculated_Time_Properties.$Current_Searcher_Result_Property
                         if ($Properties -contains $Current_Searcher_Result_Property) {
                             Write-Verbose ('{0}|Useful_Calculated_Time: Base property specified directly: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
@@ -322,7 +345,7 @@ function Find-DSSObject {
                         }
 
                     } elseif ($Current_Searcher_Result_Property -eq 'ntsecuritydescriptor') {
-                        Write-Verbose ('{0}|Useful_Calculated_Security base property found: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
+                        Write-Verbose ('{0}|Useful_Calculated_Security: Base property found: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
                         if ($Properties -contains $Current_Searcher_Result_Property) {
                             Write-Verbose ('{0}|Useful_Calculated_Security: Base property specified directly: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
                             $Result_Object[$Current_Searcher_Result_Property] = $Current_Searcher_Result_Value
@@ -371,7 +394,7 @@ function Find-DSSObject {
                         }
 
                     } elseif ($Containers_Calculated_Properties.GetEnumerator().Name -contains $Current_Searcher_Result_Property) {
-                        Write-Verbose ('{0}|Containers base property found: {1}={2}' -f $Function_Name, $Current_Searcher_Result_Property, $Current_Searcher_Result_Value)
+                        Write-Verbose ('{0}|Containers: Base property found: {1}={2}' -f $Function_Name, $Current_Searcher_Result_Property, $Current_Searcher_Result_Value)
                         if ($Properties -contains $Current_Searcher_Result_Property) {
                             Write-Verbose ('{0}|Containers: Base property specified directly: {0}' -f $Function_Name, $Current_Searcher_Result_Property)
                             $Result_Object[$Current_Searcher_Result_Property] = $Current_Searcher_Result_Value
@@ -393,7 +416,7 @@ function Find-DSSObject {
                         }
 
                     } elseif ($Useful_Calculated_Domain_Properties.GetEnumerator().Name -contains $Current_Searcher_Result_Property) {
-                        Write-Verbose ('{0}|Useful_Calculated_Domain base property found: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
+                        Write-Verbose ('{0}|Useful_Calculated_Domain: Base property found: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
                         $Useful_Calculated_Domain_Property_Name = $Useful_Calculated_Domain_Properties.$Current_Searcher_Result_Property
 
                         if ($Properties -contains $Current_Searcher_Result_Property) {
@@ -406,6 +429,31 @@ function Find-DSSObject {
                                 # Convert the "gplink" string property into an array of strings, selecting just the Group Policy DistinguishedName.
                                 $Regex_GPLink = [System.Text.RegularExpressions.Regex]'\[LDAP://(.*?)\;\d\]'
                                 $Result_Object[$Useful_Calculated_Domain_Property_Name] = $Regex_GPLink.Matches($Current_Searcher_Result_Value) | ForEach-Object { $_.Groups[1].Value }
+                            }
+                        }
+
+                    } elseif ($Current_Searcher_Result_Property -eq 'msds-supportedencryptiontypes') {
+                        Write-Verbose ('{0}|Useful_Calculated_Encryption: Base property found: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
+                        if ($Properties -contains $Current_Searcher_Result_Property) {
+                            Write-Verbose ('{0}|Useful_Calculated_Encryption: Base property specified directly: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
+                            $Result_Object[$Current_Searcher_Result_Property] = $Current_Searcher_Result_Value
+                        }
+                        if ($Properties -contains 'kerberosencryptiontype') {
+                            $Useful_Calculated_Encryption_Property_Name = 'kerberosencryptiontype'
+                            Write-Verbose ('{0}|Useful_Calculated_Encryption: Processing property: {1}' -f $Function_Name, $Useful_Calculated_Encryption_Property_Name)
+                            $Kerberos_Encryption_Types = [Enum]::Parse('ADKerberosEncryptionType', $Current_Searcher_Result_Value)
+                            $Result_Object[$Useful_Calculated_Encryption_Property_Name] = $Kerberos_Encryption_Types
+                        }
+                        if ($Properties -contains 'compoundidentitysupported') {
+                            $Useful_Calculated_Encryption_Property_Name = 'compoundidentitysupported'
+                            $Useful_Calculated_Encryption_Property_Value = $Additional_Encryption_Types.'Compound-Identity-Supported'
+                            Write-Verbose ('{0}|Useful_Calculated_Encryption: Processing property: {1}={2}' -f $Function_Name, $Useful_Calculated_Encryption_Property_Name, $Useful_Calculated_Encryption_Property_Value)
+                            if (($Current_Searcher_Result_Value -band $Useful_Calculated_Encryption_Property_Value) -eq $Useful_Calculated_Encryption_Property_Value) {
+                                Write-Verbose ('{0}|Useful_Calculated_Encryption: Returning true: {1}' -f $Function_Name, $Useful_Calculated_Encryption_Property_Name)
+                                $Result_Object[$Useful_Calculated_Encryption_Property_Name] = $true
+                            } else {
+                                Write-Verbose ('{0}|Useful_Calculated_Encryption: Returning false: {1}' -f $Function_Name, $Useful_Calculated_Encryption_Property_Name)
+                                $Result_Object[$Useful_Calculated_Encryption_Property_Name] = $false
                             }
                         }
 
@@ -428,3 +476,16 @@ function Find-DSSObject {
         $PSCmdlet.ThrowTerminatingError($_)
     }
 }
+
+# An Enum to determine KerberosEncryptionType
+# Taken from https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-kile/6cfc7b50-11ed-4b4d-846d-6f08f0812919
+Add-Type -TypeDefinition @"
+    [System.Flags]
+    public enum ADKerberosEncryptionType {
+        DES_CRC = 0x01,
+        DES_MD5 = 0x02,
+        RC4     = 0x04,
+        AES128  = 0x08,
+        AES256  = 0x10
+    }
+"@
