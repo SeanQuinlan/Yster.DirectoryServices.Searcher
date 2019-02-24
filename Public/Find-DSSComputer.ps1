@@ -239,31 +239,33 @@ function Find-DSSComputer {
         Write-Verbose ('{0}|Finding computers using Find-DSSObject' -f $Function_Name)
         $Computer_Results_To_Return = Find-DSSObject @Directory_Search_Parameters
 
-        # Useful post here: https://www.myotherpcisacloud.com/post/IPv4Address-Attribute-In-Get-ADComputer
-        $Non_LDAP_Network_Properties = @('ipv4address', 'ipv6address')
-        $Non_LDAP_Network_Properties_To_Process = $Directory_Search_Properties | Where-Object { $Non_LDAP_Network_Properties -contains $_ }
+        if ($Computer_Results_To_Return) {
+            # Useful post here: https://www.myotherpcisacloud.com/post/IPv4Address-Attribute-In-Get-ADComputer
+            $Non_LDAP_Network_Properties = @('ipv4address', 'ipv6address')
+            $Non_LDAP_Network_Properties_To_Process = $Directory_Search_Properties | Where-Object { $Non_LDAP_Network_Properties -contains $_ }
 
-        if ($Non_LDAP_Network_Properties_To_Process) {
-            # Try and get the IP address(es) from DNS or just return null if any error.
-            try {
-                $Host_IP_Addresses = [System.Net.Dns]::GetHostEntry($Computer_Results_To_Return.'dnshostname').AddressList
-            } catch {
-                $Host_IP_Addresses = $null
-            }
-            foreach ($Non_LDAP_Network_Property in $Non_LDAP_Network_Properties_To_Process) {
-                $Non_LDAP_Network_Property_AddressList = $null
-                if ($Non_LDAP_Network_Property -eq 'ipv4address') {
-                    $Non_LDAP_Network_Property_AddressList = ($Host_IP_Addresses | Where-Object { $_.AddressFamily -eq 'InterNetwork' }).IPAddressToString
-                } elseif ($Non_LDAP_Network_Property -eq 'ipv6address') {
-                    $Non_LDAP_Network_Property_AddressList = ($Host_IP_Addresses | Where-Object { $_.AddressFamily -eq 'InterNetworkV6' }).IPAddressToString
+            if ($Non_LDAP_Network_Properties_To_Process) {
+                # Try and get the IP address(es) from DNS or just return null if any error.
+                try {
+                    $Host_IP_Addresses = [System.Net.Dns]::GetHostEntry($Computer_Results_To_Return.'dnshostname').AddressList
+                } catch {
+                    $Host_IP_Addresses = $null
                 }
-                $Non_LDAP_Network_Property_To_Add = New-Object -TypeName 'System.Management.Automation.PSNoteProperty' -ArgumentList @($Non_LDAP_Network_Property, $Non_LDAP_Network_Property_AddressList)
-                $Computer_Results_To_Return.PSObject.Properties.Add($Non_LDAP_Network_Property_To_Add)
+                foreach ($Non_LDAP_Network_Property in $Non_LDAP_Network_Properties_To_Process) {
+                    $Non_LDAP_Network_Property_AddressList = $null
+                    if ($Non_LDAP_Network_Property -eq 'ipv4address') {
+                        $Non_LDAP_Network_Property_AddressList = ($Host_IP_Addresses | Where-Object { $_.AddressFamily -eq 'InterNetwork' }).IPAddressToString
+                    } elseif ($Non_LDAP_Network_Property -eq 'ipv6address') {
+                        $Non_LDAP_Network_Property_AddressList = ($Host_IP_Addresses | Where-Object { $_.AddressFamily -eq 'InterNetworkV6' }).IPAddressToString
+                    }
+                    $Non_LDAP_Network_Property_To_Add = New-Object -TypeName 'System.Management.Automation.PSNoteProperty' -ArgumentList @($Non_LDAP_Network_Property, $Non_LDAP_Network_Property_AddressList)
+                    $Computer_Results_To_Return.PSObject.Properties.Add($Non_LDAP_Network_Property_To_Add)
+                }
             }
-        }
 
-        # Return the full computer object after sorting.
-        ConvertTo-SortedPSObject -InputObject $Computer_Results_To_Return
+            # Return the full computer object after sorting.
+            ConvertTo-SortedPSObject -InputObject $Computer_Results_To_Return
+        }
     } catch {
         $PSCmdlet.ThrowTerminatingError($_)
     }
