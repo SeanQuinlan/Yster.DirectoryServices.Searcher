@@ -11,6 +11,9 @@ function Find-DSSObject {
     .NOTES
         NOTE: Calling this function directly with "*" anywhere in the properties may not return all the correct UAC-related attributes, even if specifying the property in addition to the wildcard.
         Use the relevant Find-DSSUser/Find-DSSComputer/etc function instead.
+
+        References:
+        https://docs.microsoft.com/en-us/powershell/module/addsadministration/get-adobject
     #>
 
     [CmdletBinding()]
@@ -72,8 +75,9 @@ function Find-DSSObject {
     # The order of properties returned from an LDAP search can be random, or at least they are not returned in the same order as they are requested.
     # Therefore certain properties need to be processed first when returned, as other properties may depend on them being already populated.
     $Returned_Properties_To_Process_First = @(
-        'objectsid'
         'distinguishedname'
+        'objectclass'
+        'objectsid'
     )
 
     # A number of properties returned by the AD Cmdlets are calculated based on flags to one of the UserAccountControl LDAP properties.
@@ -387,7 +391,11 @@ function Find-DSSObject {
                         if ($Properties -contains 'protectedfromaccidentaldeletion') {
                             $Useful_Calculated_Security_Property_Name = 'protectedfromaccidentaldeletion'
                             Write-Verbose ('{0}|Useful_Calculated_Security: Returning calculated property: {1}' -f $Function_Name, $Useful_Calculated_Security_Property_Name)
-                            $AccidentalDeletion_Rights = 'DeleteTree, Delete'
+                            if ($Result_Object['objectclass'] -contains 'organizationalunit') {
+                                $AccidentalDeletion_Rights = 'DeleteChild, DeleteTree, Delete'
+                            } else {
+                                $AccidentalDeletion_Rights = 'DeleteTree, Delete'
+                            }
                             $AccidentalDeletion_Identity_Everyone = 'Everyone'
                             $AccidentalDeletion_Rule = $Current_Searcher_Result_Value.Access | Where-Object { ($_.ActiveDirectoryRights -eq $AccidentalDeletion_Rights) -and ($_.IdentityReference -eq $AccidentalDeletion_Identity_Everyone) }
                             if (($AccidentalDeletion_Rule.Count -eq 1) -and ($AccidentalDeletion_Rule.AccessControlType -eq 'Deny')) {
