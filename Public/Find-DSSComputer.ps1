@@ -12,6 +12,10 @@ function Find-DSSComputer {
         Find-DSSComputer -LDAPFilter '(name=appserver*)' -SearchBase 'DC=Mkt_Servers,DC=contoso,DC=com' -SearchScope 'OneLevel'
 
         Finds all computers that have a name starting with "appserver", in the "Mkt_Servers" OU or the immediate children of that OU.
+    .NOTES
+        References:
+        https://docs.microsoft.com/en-us/powershell/module/addsadministration/get-adcomputer
+        https://social.technet.microsoft.com/wiki/contents/articles/12056.active-directory-get-adcomputer-default-and-extended-properties.aspx
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'Name')]

@@ -12,6 +12,10 @@ function Find-DSSUser {
         Find-DSSUser -LDAPFilter '(samaccountname=test*)' -SearchBase 'CN=Users,DC=contoso,DC=com' -SearchScope 'OneLevel'
 
         Finds all users that have the samaccountname starting with "test", in the Users container or the immediate children of Users.
+    .NOTES
+        References:
+        https://docs.microsoft.com/en-us/powershell/module/addsadministration/get-aduser
+        https://social.technet.microsoft.com/wiki/contents/articles/12037.active-directory-get-aduser-default-and-extended-properties.aspx
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'Name')]

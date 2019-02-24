@@ -9,6 +9,10 @@ function Find-DSSGroup {
 
     .EXAMPLE
 
+    .NOTES
+        References:
+        https://docs.microsoft.com/en-us/powershell/module/addsadministration/get-adgroup
+        https://social.technet.microsoft.com/wiki/contents/articles/12079.active-directory-get-adgroup-default-and-extended-properties.aspx
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'Name')]

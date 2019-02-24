@@ -12,6 +12,10 @@ function Find-DSSOrganizationalUnit {
         Find-DSSOrganizationalUnit -LDAPFilter '(name=UK*)' -Properties *
 
         Finds all the OUs that have a "name" starting with "UK", and return all properties for each result.
+    .NOTES
+        References:
+        https://docs.microsoft.com/en-us/powershell/module/addsadministration/get-adorganizationalunit
+        https://social.technet.microsoft.com/wiki/contents/articles/12089.active-directory-get-adorganizationalunit-default-and-extended-properties.aspx
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'Name')]
