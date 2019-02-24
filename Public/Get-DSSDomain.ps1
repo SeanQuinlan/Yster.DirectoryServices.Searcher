@@ -80,7 +80,7 @@ function Get-DSSDomain {
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
 
-    # Default properties as per Get-ADDomain. These are always returned, in addition to any others specified in the Properties parameter.
+    # A couple of default properties. These are always returned, in addition to any others specified in the Properties parameter.
     [String[]]$Default_Properties = @(
         'distinguishedname'
         'name'
@@ -126,15 +126,16 @@ function Get-DSSDomain {
         'replicadirectoryservers'
     )
 
+    $Network_Properties = @('netbiosname', 'dnsroot', 'domainmode')
+    $Domain_Properties = @('childdomains', 'forest', 'infrastructuremaster', 'parentdomain', 'pdcemulator', 'ridmaster')
+
     try {
-        $Directory_Search_Parameters = @{
-            'Context' = $Context
-        }
+        $Common_Search_Parameters = @{}
         if ($PSBoundParameters.ContainsKey('Server')) {
-            $Directory_Search_Parameters.Server = $Server
+            $Common_Search_Parameters['Server'] = $Server
         }
         if ($PSBoundParameters.ContainsKey('Credential')) {
-            $Directory_Search_Parameters.Credential = $Credential
+            $Common_Search_Parameters['Credential'] = $Credential
         }
 
         $Directory_Search_Properties = New-Object -TypeName 'System.Collections.Generic.List[String]'
@@ -156,6 +157,9 @@ function Get-DSSDomain {
             $Directory_Search_Properties.AddRange($Default_Properties)
         }
         Write-Verbose ('{0}|Properties: {1}' -f $Function_Name, ($Directory_Search_Properties -join ' '))
+
+        $Directory_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
+        $Directory_Search_Parameters['Context'] = $Context
         $Directory_Search_Parameters.Properties = $Directory_Search_Properties
 
         $Default_Domain_LDAPFilter = '(objectclass=domain)'
@@ -182,30 +186,23 @@ function Get-DSSDomain {
         $Domain_Results_To_Return = Find-DSSObject @Directory_Search_Parameters
 
         # Some properties need to be gathered via different methods.
-        $Network_Properties = @('netbiosname', 'dnsroot', 'domainmode')
         $Network_Properties_To_Process = $Directory_Search_Properties | Where-Object { $Network_Properties -contains $_ }
-
-        $Domain_Properties = @('childdomains', 'forest', 'infrastructuremaster', 'parentdomain', 'pdcemulator', 'ridmaster')
         $Domain_Properties_To_Process = $Directory_Search_Properties | Where-Object { $Domain_Properties -contains $_ }
 
         if ($Network_Properties_To_Process -or $Domain_Properties_To_Process) {
-            Write-Verbose ('{0}|Calculating Network properties' -f $Function_Name)
-            $Network_Search_Parameters = @{}
-            if ($Directory_Search_Parameters['Server']) {
-                $Network_Search_Parameters.Server = $Directory_Search_Parameters['Server']
-            }
-            if ($Directory_Search_Parameters['Credential']) {
-                $Network_Search_Parameters.Credential = $Directory_Search_Parameters['Credential']
-            }
-            Write-Verbose ('{0}|Network: Calling Get-DSSRootDSE' -f $Function_Name)
-            $DSE_Return_Object = Get-DSSRootDSE @Network_Search_Parameters
-            $Configuration_Path = 'CN=Partitions,{0}' -f $DSE_Return_Object.configurationNamingContext
-            Write-Verbose ('{0}|Network: Configuration_Path: {1}' -f $Function_Name, $Configuration_Path)
+            Write-Verbose ('{0}|Calculating DSE properties' -f $Function_Name)
+            $DSE_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
+            Write-Verbose ('{0}|Calling Get-DSSRootDSE' -f $Function_Name)
+            $DSE_Return_Object = Get-DSSRootDSE @DSE_Search_Parameters
 
-            $Network_Search_Parameters.SearchBase = $Configuration_Path
-            $Network_Search_Parameters.Context = $Context
-            $Network_Search_Parameters.LDAPFilter = '(&(objectclass=crossref)(netbiosname=*))'
-            $Network_Search_Parameters.Properties = $Network_Properties
+            $Configuration_Path = 'CN=Partitions,{0}' -f $DSE_Return_Object.'configurationNamingContext'
+            Write-Verbose ('{0}|DSE: Configuration_Path: {1}' -f $Function_Name, $Configuration_Path)
+
+            $Network_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
+            $Network_Search_Parameters['Context'] = $Context
+            $Network_Search_Parameters['SearchBase'] = $Configuration_Path
+            $Network_Search_Parameters['LDAPFilter'] = '(&(objectclass=crossref)(netbiosname=*))'
+            $Network_Search_Parameters['Properties'] = $Network_Properties
 
             Write-Verbose ('{0}|Network: Calling Find-DSSObject' -f $Function_Name)
             $Network_Return_Object = Find-DSSObject @Network_Search_Parameters
@@ -222,18 +219,10 @@ function Get-DSSDomain {
             }
             if ($Domain_Properties_To_Process) {
                 Write-Verbose ('{0}|Calculating Domain properties for: {1}' -f $Function_Name, $Domain_Results_To_Return.'dnsroot')
-                $Domain_Context_Arguments = @('Domain', $Domain_Results_To_Return.'dnsroot')
-                if ($PSBoundParameters.ContainsKey('Credential')) {
-                    if ($Credential.GetNetworkCredential().Domain) {
-                        $Credential_User = ('{0}\{1}' -f $Credential.GetNetworkCredential().Domain, $Credential.GetNetworkCredential().UserName)
-                    } else {
-                        $Credential_User = $Credential.GetNetworkCredential().UserName
-                    }
-                    Write-Verbose ('{0}|Custom credential user: {1}' -f $Function_Name, $Credential_User)
-                    $Domain_Context_Arguments += $Credential_User
-                    $Domain_Context_Arguments += $Credential.GetNetworkCredential().Password
-                }
-                $Domain_Context = New-Object System.DirectoryServices.ActiveDirectory.DirectoryContext -ArgumentList $Domain_Context_Arguments
+                $Domain_Context_Arguments = $Common_Search_Parameters.PSObject.Copy()
+                $Domain_Context_Arguments['Context'] = 'Domain'
+                Write-Verbose ('{0}|Domain: Getting domain details' -f $Function_Name)
+                $Domain_Context = Get-DSSDirectoryContext @Domain_Context_Arguments
                 $Current_Domain_Properties = [System.DirectoryServices.ActiveDirectory.Domain]::GetDomain($Domain_Context)
 
                 foreach ($Domain_Property in $Domain_Properties_To_Process) {
