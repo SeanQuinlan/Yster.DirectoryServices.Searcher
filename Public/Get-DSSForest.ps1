@@ -81,12 +81,12 @@ function Get-DSSForest {
     $Partitions_Properties = @('spnsuffixes', 'upnsuffixes')
 
     try {
-        $Common_Directory_Search_Parameters = @{}
+        $Common_Search_Parameters = @{}
         if ($PSBoundParameters.ContainsKey('Server')) {
-            $Common_Directory_Search_Parameters['Server'] = $Server
+            $Common_Search_Parameters['Server'] = $Server
         }
         if ($PSBoundParameters.ContainsKey('Credential')) {
-            $Common_Directory_Search_Parameters['Credential'] = $Credential
+            $Common_Search_Parameters['Credential'] = $Credential
         }
 
         $Directory_Search_Properties = New-Object -TypeName 'System.Collections.Generic.List[String]'
@@ -110,11 +110,10 @@ function Get-DSSForest {
 
         $Forest_Results_To_Return = @{}
 
-        $DSE_Search_Parameters = $Common_Directory_Search_Parameters.PSObject.Copy()
-        Write-Verbose ('{0}|Network: Calling Get-DSSRootDSE' -f $Function_Name)
+        $DSE_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
+        Write-Verbose ('{0}|Calling Get-DSSRootDSE' -f $Function_Name)
         $DSE_Return_Object = Get-DSSRootDSE @DSE_Search_Parameters
 
-        Write-Verbose ('{0}|Setting properties from DSE Return' -f $Function_Name)
         foreach ($DSE_Property in $DSE_Properties) {
             if ($DSE_Property -eq 'forestmode') {
                 $DSE_Property_Value = $DSE_Return_Object.'forestfunctionality'
@@ -125,10 +124,8 @@ function Get-DSSForest {
             $Forest_Results_To_Return[$DSE_Property] = $DSE_Property_Value
         }
 
-        $Partitions_Search_Parameters = $Common_Directory_Search_Parameters.PSObject.Copy()
-        $Partitions_Search_Parameters['Context'] = $Context
+        $Partitions_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
         $Partitions_Search_Properties = New-Object -TypeName 'System.Collections.Generic.List[String]'
-
         foreach ($Partitions_Property in $Partitions_Properties) {
             if ($Partitions_Property -eq 'spnsuffixes') {
                 $Partitions_Search_Properties.Add('msds-spnsuffixes')
@@ -136,6 +133,7 @@ function Get-DSSForest {
                 $Partitions_Search_Properties.Add($Partitions_Property)
             }
         }
+        $Partitions_Search_Parameters['Context'] = $Context
         $Partitions_Search_Parameters['Properties'] = $Partitions_Search_Properties
         $Partitions_Search_Parameters['SearchBase'] = $Forest_Results_To_Return['partitionscontainer']
         $Partitions_Search_Parameters['LDAPFilter'] = '(objectclass=crossrefcontainer)'
@@ -155,7 +153,7 @@ function Get-DSSForest {
             }
         }
 
-        $Forest_Context_Arguments = $Common_Directory_Search_Parameters.PSObject.Copy()
+        $Forest_Context_Arguments = $Common_Search_Parameters.PSObject.Copy()
         $Forest_Context_Arguments['Context'] = 'Forest'
         Write-Verbose ('{0}|Forest: Getting forest details' -f $Function_Name)
         $Forest_Context = Get-DSSDirectoryContext @Forest_Context_Arguments
