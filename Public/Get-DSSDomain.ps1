@@ -3,9 +3,15 @@ function Get-DSSDomain {
     .SYNOPSIS
         Returns information on a domain from Active Directory.
     .DESCRIPTION
-
+        Returns some domain-specific properties including FSMO roles, child/parent domains, and key container paths.
     .EXAMPLE
+        Get-DSSDomain -DNSName 'sales.contoso.com'
 
+        Returns basic information for the domain 'sales.contoso.com'
+    .EXAMPLE
+        Get-DSSDomain -NetBIOSName 'CONTOSO' -Properties *
+
+        Returns all properties for the domain 'CONTOSO'
     .NOTES
         The ObjectSID and ObjectGUID properties can only reference domains/subdomains from the currently connected domain.
 
@@ -126,13 +132,32 @@ function Get-DSSDomain {
         'replicadirectoryservers'
     )
 
-    $Network_Properties = @('netbiosname', 'dnsroot', 'domainmode')
-    $Domain_Properties = @('childdomains', 'forest', 'infrastructuremaster', 'parentdomain', 'pdcemulator', 'ridmaster')
+    $Network_Properties = @(
+        'dnsroot'
+        'domainmode'
+        'netbiosname'
+    )
+    $Domain_Properties = @(
+        'childdomains'
+        'forest'
+        'infrastructuremaster'
+        'parentdomain'
+        'pdcemulator'
+        'ridmaster'
+    )
 
     try {
         $Common_Search_Parameters = @{}
         if ($PSBoundParameters.ContainsKey('Server')) {
             $Common_Search_Parameters['Server'] = $Server
+        } else {
+            if ($PSBoundParameters.ContainsKey('DNSName')) {
+                Write-Verbose ('{0}|Adding DNSName as Server Name: {1}' -f $Function_Name, $DNSName)
+                $Common_Search_Parameters['Server'] = $DNSName
+            } elseif ($PSBoundParameters.ContainsKey('NetBIOSName')) {
+                Write-Verbose ('{0}|Adding NetBIOSName as Server Name: {1}' -f $Function_Name, $NetBIOSName)
+                $Common_Search_Parameters['Server'] = $NetBIOSName
+            }
         }
         if ($PSBoundParameters.ContainsKey('Credential')) {
             $Common_Search_Parameters['Credential'] = $Credential
@@ -165,9 +190,6 @@ function Get-DSSDomain {
         $Default_Domain_LDAPFilter = '(objectclass=domain)'
         if ($PSBoundParameters.ContainsKey('DNSName')) {
             $Directory_Search_LDAPFilter = $Default_Domain_LDAPFilter
-            if (-not $PSBoundParameters.ContainsKey('Server')) {
-                $Directory_Search_Parameters.Server = $DNSName
-            }
         } elseif ($PSBoundParameters.ContainsKey('DistinguishedName')) {
             $Directory_Search_LDAPFilter = $Default_Domain_LDAPFilter
             $Directory_Search_Parameters.SearchBase = $DistinguishedName
@@ -220,7 +242,11 @@ function Get-DSSDomain {
             if ($Domain_Properties_To_Process) {
                 Write-Verbose ('{0}|Calculating Domain properties for: {1}' -f $Function_Name, $Domain_Results_To_Return.'dnsroot')
                 $Domain_Context_Arguments = $Common_Search_Parameters.PSObject.Copy()
-                $Domain_Context_Arguments['Context'] = 'Domain'
+                if ($PSBoundParameters.ContainsKey('Server')) {
+                    $Forest_Context_Arguments['Context'] = 'Server'
+                } else {
+                    $Forest_Context_Arguments['Context'] = 'Forest'
+                }
                 Write-Verbose ('{0}|Domain: Getting domain details' -f $Function_Name)
                 $Domain_Context = Get-DSSDirectoryContext @Domain_Context_Arguments
                 $Current_Domain_Properties = [System.DirectoryServices.ActiveDirectory.Domain]::GetDomain($Domain_Context)

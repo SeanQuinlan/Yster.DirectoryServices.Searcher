@@ -16,12 +16,12 @@ function Get-DSSDirectoryContext {
     param(
         # The context to search - Domain or Forest.
         [Parameter(Mandatory = $true)]
-        [ValidateSet('Domain', 'Forest')]
+        [ValidateSet('Domain', 'Forest', 'Server')]
         [String]
         $Context,
 
         # The server/domain/forest to run the query on.
-        [Parameter(Mandatory = $false)]
+        [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         [Alias('Forest', 'Domain')]
         [String]
@@ -39,11 +39,17 @@ function Get-DSSDirectoryContext {
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
 
     try {
-        $Directory_Context_Arguments = @($Context)
-        if ($PSBoundParameters.ContainsKey('Server')) {
-            Write-Verbose ('{0}|Custom server: {1}' -f $Function_Name, $Server)
-            $Directory_Context_Arguments += $Server
+        $Directory_Context_Arguments = New-Object -TypeName 'System.Collections.Generic.List[String]'
+        if ($Context -eq 'Server') {
+            $Directory_Context_Arguments.Add('DirectoryServer')
+        } else {
+            $Directory_Context_Arguments.Add($Context)
         }
+        Write-Verbose ('{0}|Using Context: {1}' -f $Function_Name, $Directory_Context_Arguments[0])
+
+        Write-Verbose ('{0}|Using Server/Domain/Forest: {1}' -f $Function_Name, $Server)
+        $Directory_Context_Arguments.Add($Server)
+
         if ($PSBoundParameters.ContainsKey('Credential')) {
             if ($Credential.GetNetworkCredential().Domain) {
                 $Credential_User = ('{0}\{1}' -f $Credential.GetNetworkCredential().Domain, $Credential.GetNetworkCredential().UserName)
@@ -51,8 +57,8 @@ function Get-DSSDirectoryContext {
                 $Credential_User = $Credential.GetNetworkCredential().UserName
             }
             Write-Verbose ('{0}|Custom credential user: {1}' -f $Function_Name, $Credential_User)
-            $Directory_Context_Arguments += $Credential_User
-            $Directory_Context_Arguments += $Credential.GetNetworkCredential().Password
+            $Directory_Context_Arguments.Add($Credential_User)
+            $Directory_Context_Arguments.Add($Credential.GetNetworkCredential().Password)
         }
 
         # Return the DirectoryContext object

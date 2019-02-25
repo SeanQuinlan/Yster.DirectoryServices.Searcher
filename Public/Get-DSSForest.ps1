@@ -170,7 +170,11 @@ function Get-DSSForest {
         }
 
         $Forest_Context_Arguments = $Common_Search_Parameters.PSObject.Copy()
-        $Forest_Context_Arguments['Context'] = 'Forest'
+        if ($PSBoundParameters.ContainsKey('Server')) {
+            $Forest_Context_Arguments['Context'] = 'Server'
+        } else {
+            $Forest_Context_Arguments['Context'] = 'Forest'
+        }
         Write-Verbose ('{0}|Forest: Getting forest details' -f $Function_Name)
         $Forest_Context = Get-DSSDirectoryContext @Forest_Context_Arguments
         $Current_Forest_Properties = [System.DirectoryServices.ActiveDirectory.Forest]::GetForest($Forest_Context)
