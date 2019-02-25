@@ -3,9 +3,11 @@ function Get-DSSForest {
     .SYNOPSIS
         Returns information on a forest from Active Directory.
     .DESCRIPTION
-
+        Returns some forest-specific properties including FSMO roles and child domains.
     .EXAMPLE
+        Get-DSSForest -DNSName 'contoso.com'
 
+        Returns basic information on the forest 'contoso.com'
     .NOTES
         References:
         https://docs.microsoft.com/en-us/powershell/module/addsadministration/get-adforest
@@ -77,13 +79,27 @@ function Get-DSSForest {
         'crossforestreferences'
     )
 
-    $DSE_Properties = @('forestmode', 'partitionscontainer')
-    $Partitions_Properties = @('spnsuffixes', 'upnsuffixes')
+    $DSE_Properties = @(
+        'forestmode'
+        'partitionscontainer'
+    )
+    $Partitions_Properties = @(
+        'spnsuffixes'
+        'upnsuffixes'
+    )
 
     try {
         $Common_Search_Parameters = @{}
         if ($PSBoundParameters.ContainsKey('Server')) {
             $Common_Search_Parameters['Server'] = $Server
+        } else {
+            if ($PSBoundParameters.ContainsKey('DNSName')) {
+                Write-Verbose ('{0}|Adding DNSName as Server Name: {1}' -f $Function_Name, $DNSName)
+                $Common_Search_Parameters['Server'] = $DNSName
+            } elseif ($PSBoundParameters.ContainsKey('NetBIOSName')) {
+                Write-Verbose ('{0}|Adding NetBIOSName as Server Name: {1}' -f $Function_Name, $NetBIOSName)
+                $Common_Search_Parameters['Server'] = $NetBIOSName
+            }
         }
         if ($PSBoundParameters.ContainsKey('Credential')) {
             $Common_Search_Parameters['Credential'] = $Credential
