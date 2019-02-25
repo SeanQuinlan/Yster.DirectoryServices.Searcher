@@ -23,24 +23,20 @@ function ConvertTo-SortedPSObject {
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
 
-    try {
-        if ($InputObject -is [HashTable]) {
-            Write-Verbose ('{0}|HashTable type' -f $Function_Name)
-            $Input_Object_Properties = $InputObject.GetEnumerator()
-        } elseif ($InputObject -is [PSObject]) {
-            Write-Verbose ('{0}|PSObject type' -f $Function_Name)
-            $Input_Object_Properties = $InputObject.PSObject.Properties
-        } else {
-            Write-Error ('Unknown input object: {0}' -f $InputObject.GetType()) -ErrorAction 'Stop'
-        }
-
-        # Sort results and then add to a new hashtable, as PSObject requires a hashtable as Property. GetEnumerator() piped into Sort-Object changes the output to an array.
-        $Input_Object_Sorted = [Ordered]@{}
-        $Input_Object_Properties | Sort-Object -Property 'Name' | ForEach-Object {
-            $Input_Object_Sorted[$_.Name] = $_.Value
-        }
-        New-Object -TypeName 'System.Management.Automation.PSObject' -Property $Input_Object_Sorted
-    } catch {
-        $PSCmdlet.ThrowTerminatingError($_)
+    if ($InputObject -is [HashTable]) {
+        Write-Verbose ('{0}|HashTable type' -f $Function_Name)
+        $Input_Object_Properties = $InputObject.GetEnumerator()
+    } elseif ($InputObject -is [PSObject]) {
+        Write-Verbose ('{0}|PSObject type' -f $Function_Name)
+        $Input_Object_Properties = $InputObject.PSObject.Properties
+    } else {
+        Write-Error ('Unknown input object: {0}' -f $InputObject.GetType()) -ErrorAction 'Stop'
     }
+
+    # Sort results and then add to a new hashtable, as PSObject requires a hashtable as Property. GetEnumerator() piped into Sort-Object changes the output to an array.
+    $Input_Object_Sorted = [Ordered]@{}
+    $Input_Object_Properties | Sort-Object -Property 'Name' | ForEach-Object {
+        $Input_Object_Sorted[$_.Name] = $_.Value
+    }
+    New-Object -TypeName 'System.Management.Automation.PSObject' -Property $Input_Object_Sorted
 }

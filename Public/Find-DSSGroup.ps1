@@ -127,85 +127,81 @@ function Find-DSSGroup {
         'whencreated'
     )
 
-    try {
-        $Directory_Search_Parameters = @{
-            'Context'  = $Context
-            'PageSize' = $PageSize
-        }
-        if ($PSBoundParameters.ContainsKey('SearchBase')) {
-            $Directory_Search_Parameters['SearchBase'] = $SearchBase
-        }
-        if ($PSBoundParameters.ContainsKey('SearchScope')) {
-            $Directory_Search_Parameters['SearchScope'] = $SearchScope
-        }
-        if ($PSBoundParameters.ContainsKey('Server')) {
-            $Directory_Search_Parameters['Server'] = $Server
-        }
-        if ($PSBoundParameters.ContainsKey('Credential')) {
-            $Directory_Search_Parameters['Credential'] = $Credential
-        }
-
-        $Directory_Search_Properties = New-Object -TypeName 'System.Collections.Generic.List[String]'
-        if ($PSBoundParameters.ContainsKey('Properties')) {
-            Write-Verbose ('{0}|Adding default properties first' -f $Function_Name)
-            $Directory_Search_Properties.AddRange($Default_Properties)
-            if ($Properties -contains '*') {
-                Write-Verbose ('{0}|Adding other wildcard properties' -f $Function_Name)
-                $Directory_Search_Properties.AddRange($Wildcard_Properties)
-            }
-            foreach ($Property in $Properties) {
-                if (($Property -ne '*') -and ($Directory_Search_Properties -notcontains $Property)) {
-                    Write-Verbose ('{0}|Adding Property: {1}' -f $Function_Name, $Property)
-                    $Directory_Search_Properties.Add($Property)
-                }
-            }
-        } else {
-            Write-Verbose ('{0}|No properties specified, adding default properties only' -f $Function_Name)
-            $Directory_Search_Properties.AddRange($Default_Properties)
-        }
-        Write-Verbose ('{0}|Properties: {1}' -f $Function_Name, ($Directory_Search_Properties -join ' '))
-        $Directory_Search_Parameters['Properties'] = $Directory_Search_Properties
-
-        $Default_Group_LDAPFilter = '(objectcategory=Group)'
-
-        # Add any filtering on GroupScope and/or GroupType
-        # See: https://haczela.wordpress.com/2012/03/07/how-to-search-for-groups-of-different-type-and-scope/
-        if ($PSBoundParameters.ContainsKey('GroupScope')) {
-            Write-Verbose ('{0}|GroupScope: {1}' -f $Function_Name, $GroupScope)
-            if ($GroupScope -eq 'DomainLocal') {
-                $Addtional_LDAPFilter = '(grouptype:1.2.840.113556.1.4.804:=4)'
-            } elseif ($GroupScope -eq 'Global') {
-                $Addtional_LDAPFilter = '(grouptype:1.2.840.113556.1.4.804:=2)'
-            } else {
-                $Addtional_LDAPFilter = '(grouptype:1.2.840.113556.1.4.804:=8)'
-            }
-        }
-        if ($PSBoundParameters.ContainsKey('GroupType')) {
-            Write-Verbose ('{0}|GroupType: {1}' -f $Function_Name, $GroupType)
-            if ($GroupType -eq 'Security') {
-                $Addtional_LDAPFilter = $Addtional_LDAPFilter + '(|(samaccounttype=268435456)(samaccounttype=536870912))'
-            } else {
-                $Addtional_LDAPFilter = $Addtional_LDAPFilter + '(|(samaccounttype=268435457)(samaccounttype=536870913))'
-            }
-        }
-        if ($Addtional_LDAPFilter) {
-            $Default_Group_LDAPFilter = '(&{0}{1})' -f $Default_Group_LDAPFilter, $Addtional_LDAPFilter
-        }
-
-        if ($Name -eq '*') {
-            $Directory_Search_LDAPFilter = $Default_Group_LDAPFilter
-        } elseif ($LDAPFilter) {
-            $Directory_Search_LDAPFilter = '(&{0}{1})' -f $Default_Group_LDAPFilter, $LDAPFilter
-        } else {
-            $Directory_Search_LDAPFilter = '(&{0}(ANR={1}))' -f $Default_Group_LDAPFilter, $Name
-        }
-
-        Write-Verbose ('{0}|LDAPFilter: {1}' -f $Function_Name, $Directory_Search_LDAPFilter)
-        $Directory_Search_Parameters['LDAPFilter'] = $Directory_Search_LDAPFilter
-
-        Write-Verbose ('{0}|Finding group using Find-DSSObject' -f $Function_Name)
-        Find-DSSObject @Directory_Search_Parameters
-    } catch {
-        $PSCmdlet.ThrowTerminatingError($_)
+    $Directory_Search_Parameters = @{
+        'Context'  = $Context
+        'PageSize' = $PageSize
     }
+    if ($PSBoundParameters.ContainsKey('SearchBase')) {
+        $Directory_Search_Parameters['SearchBase'] = $SearchBase
+    }
+    if ($PSBoundParameters.ContainsKey('SearchScope')) {
+        $Directory_Search_Parameters['SearchScope'] = $SearchScope
+    }
+    if ($PSBoundParameters.ContainsKey('Server')) {
+        $Directory_Search_Parameters['Server'] = $Server
+    }
+    if ($PSBoundParameters.ContainsKey('Credential')) {
+        $Directory_Search_Parameters['Credential'] = $Credential
+    }
+
+    $Directory_Search_Properties = New-Object -TypeName 'System.Collections.Generic.List[String]'
+    if ($PSBoundParameters.ContainsKey('Properties')) {
+        Write-Verbose ('{0}|Adding default properties first' -f $Function_Name)
+        $Directory_Search_Properties.AddRange($Default_Properties)
+        if ($Properties -contains '*') {
+            Write-Verbose ('{0}|Adding other wildcard properties' -f $Function_Name)
+            $Directory_Search_Properties.AddRange($Wildcard_Properties)
+        }
+        foreach ($Property in $Properties) {
+            if (($Property -ne '*') -and ($Directory_Search_Properties -notcontains $Property)) {
+                Write-Verbose ('{0}|Adding Property: {1}' -f $Function_Name, $Property)
+                $Directory_Search_Properties.Add($Property)
+            }
+        }
+    } else {
+        Write-Verbose ('{0}|No properties specified, adding default properties only' -f $Function_Name)
+        $Directory_Search_Properties.AddRange($Default_Properties)
+    }
+    Write-Verbose ('{0}|Properties: {1}' -f $Function_Name, ($Directory_Search_Properties -join ' '))
+    $Directory_Search_Parameters['Properties'] = $Directory_Search_Properties
+
+    $Default_Group_LDAPFilter = '(objectcategory=Group)'
+
+    # Add any filtering on GroupScope and/or GroupType
+    # See: https://haczela.wordpress.com/2012/03/07/how-to-search-for-groups-of-different-type-and-scope/
+    if ($PSBoundParameters.ContainsKey('GroupScope')) {
+        Write-Verbose ('{0}|GroupScope: {1}' -f $Function_Name, $GroupScope)
+        if ($GroupScope -eq 'DomainLocal') {
+            $Addtional_LDAPFilter = '(grouptype:1.2.840.113556.1.4.804:=4)'
+        } elseif ($GroupScope -eq 'Global') {
+            $Addtional_LDAPFilter = '(grouptype:1.2.840.113556.1.4.804:=2)'
+        } else {
+            $Addtional_LDAPFilter = '(grouptype:1.2.840.113556.1.4.804:=8)'
+        }
+    }
+    if ($PSBoundParameters.ContainsKey('GroupType')) {
+        Write-Verbose ('{0}|GroupType: {1}' -f $Function_Name, $GroupType)
+        if ($GroupType -eq 'Security') {
+            $Addtional_LDAPFilter = $Addtional_LDAPFilter + '(|(samaccounttype=268435456)(samaccounttype=536870912))'
+        } else {
+            $Addtional_LDAPFilter = $Addtional_LDAPFilter + '(|(samaccounttype=268435457)(samaccounttype=536870913))'
+        }
+    }
+    if ($Addtional_LDAPFilter) {
+        $Default_Group_LDAPFilter = '(&{0}{1})' -f $Default_Group_LDAPFilter, $Addtional_LDAPFilter
+    }
+
+    if ($Name -eq '*') {
+        $Directory_Search_LDAPFilter = $Default_Group_LDAPFilter
+    } elseif ($LDAPFilter) {
+        $Directory_Search_LDAPFilter = '(&{0}{1})' -f $Default_Group_LDAPFilter, $LDAPFilter
+    } else {
+        $Directory_Search_LDAPFilter = '(&{0}(ANR={1}))' -f $Default_Group_LDAPFilter, $Name
+    }
+
+    Write-Verbose ('{0}|LDAPFilter: {1}' -f $Function_Name, $Directory_Search_LDAPFilter)
+    $Directory_Search_Parameters['LDAPFilter'] = $Directory_Search_LDAPFilter
+
+    Write-Verbose ('{0}|Finding group using Find-DSSObject' -f $Function_Name)
+    Find-DSSObject @Directory_Search_Parameters
 }
