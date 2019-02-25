@@ -80,133 +80,134 @@ function Find-DSSComputer {
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
 
+    # Default properties as per Get-ADComputer. These are always returned, in addition to any specified in the Properties parameter.
+    [String[]]$Default_Properties = @(
+        'distinguishedname'
+        'dnshostname'
+        'enabled'
+        'name'
+        'objectclass'
+        'objectguid'
+        'objectsid'
+        'samaccountname'
+        'userprincipalname'
+    )
+
+    # Full list of all properties returned with a wildcard.
+    # Due to some constructed properties not being returned when search results include a wildcard, simply replace the wildcard with the full array of properties.
+    # See http://www.rlmueller.net/UserAttributes.htm
+    [String[]]$Wildcard_Properties = @(
+        'accountexpirationdate'
+        'accountexpires'
+        'accountlockouttime'
+        'accountnotdelegated'
+        'allowreversiblepasswordencryption'
+        'badpasswordtime'
+        'badpwdcount'
+        'cannotchangepassword'
+        'canonicalname'
+        'certificates'
+        'codepage'
+        'compoundidentitysupported'
+        'countrycode'
+        'cn'
+        'description'
+        'displayname'
+        'doesnotrequirepreauth'
+        'dscorepropagationdata'
+        'homedirrequired'
+        'instancetype'
+        'ipv4address'
+        'ipv6address'
+        'iscriticalsystemobject'
+        'kerberosencryptiontype'
+        'lastbadpasswordattempt'
+        'lastknownparent'
+        'lastlogoff'
+        'lastlogon'
+        'lastlogondate'
+        'lastlogontimestamp'
+        'localpolicyflags'
+        'location'
+        'lockedout'
+        'lockouttime'
+        'logoncount'
+        'managedby'
+        'memberof'
+        'msdfsr-computerreferencebl'
+        'msds-generationid'
+        'msds-supportedencryptiontypes'
+        'msds-user-account-control-computed'
+        'mnslogonaccount'
+        'ntsecuritydescriptor'
+        'objectcategory'
+        'operatingsystem'
+        'operatingsystemhotfix'
+        'operatingsystemservicepack'
+        'operatingsystemversion'
+        'passwordexpired'
+        'passwordlastset'
+        'passwordneverexpires'
+        'passwordnotrequired'
+        'principalsallowedtodelegatetoaccount'
+        'primarygroup'
+        'primarygroupid'
+        'protectedfromaccidentaldeletion'
+        'pwdlastset'
+        'ridsetreferences'
+        'samaccounttype'
+        'sdrightseffective'
+        'serverreferencebl'
+        'serviceprincipalname'
+        'sidhistory'
+        'trustedfordelegation'
+        'trustedtoauthfordelegation'
+        'usedeskeyonly'
+        'useraccountcontrol'
+        'usnchanged'
+        'usncreated'
+        'whenchanged'
+        'whencreated'
+        'wwwhomepage'
+    )
+
+    [String[]]$Wildcard_Properties_Not_Yet_Added = @(
+        'authenticationpolicy'
+        'authenticationpolicysilo'
+        'deleted'
+        'isdeleted'
+        'serviceaccount'
+    )
+
+    [String[]]$Microsoft_Alias_Properties = @(
+        'badlogoncount'
+        'created'
+        'createtimestamp'
+        'homepage'
+        'modified'
+        'modifytimestamp'
+        'serviceprincipalnames'
+        'sid'
+        'usercertificate'
+    )
+
     try {
         $Directory_Search_Parameters = @{
             'Context'  = $Context
             'PageSize' = $PageSize
         }
         if ($PSBoundParameters.ContainsKey('SearchBase')) {
-            $Directory_Search_Parameters.SearchBase = $SearchBase
+            $Directory_Search_Parameters['SearchBase'] = $SearchBase
         }
         if ($PSBoundParameters.ContainsKey('SearchScope')) {
-            $Directory_Search_Parameters.SearchScope = $SearchScope
+            $Directory_Search_Parameters['SearchScope'] = $SearchScope
         }
         if ($PSBoundParameters.ContainsKey('Server')) {
-            $Directory_Search_Parameters.Server = $Server
+            $Directory_Search_Parameters['Server'] = $Server
         }
         if ($PSBoundParameters.ContainsKey('Credential')) {
-            $Directory_Search_Parameters.Credential = $Credential
+            $Directory_Search_Parameters['Credential'] = $Credential
         }
-
-        # Default properties as per Get-ADComputer. These are always returned, in addition to any specified in the Properties parameter.
-        [String[]]$Default_Properties = @(
-            'distinguishedname'
-            'dnshostname'
-            'enabled'
-            'name'
-            'objectclass'
-            'objectguid'
-            'objectsid'
-            'samaccountname'
-            'userprincipalname'
-        )
-        # Full list of all properties returned with a wildcard.
-        # Due to some constructed properties not being returned when search results include a wildcard, simply replace the wildcard with the full array of properties.
-        # See http://www.rlmueller.net/UserAttributes.htm
-        [String[]]$Wildcard_Properties = @(
-            'accountexpirationdate'
-            'accountexpires'
-            'accountlockouttime'
-            'accountnotdelegated'
-            'allowreversiblepasswordencryption'
-            'badpasswordtime'
-            'badpwdcount'
-            'cannotchangepassword'
-            'canonicalname'
-            'certificates'
-            'codepage'
-            'compoundidentitysupported'
-            'countrycode'
-            'cn'
-            'description'
-            'displayname'
-            'doesnotrequirepreauth'
-            'dscorepropagationdata'
-            'homedirrequired'
-            'instancetype'
-            'ipv4address'
-            'ipv6address'
-            'iscriticalsystemobject'
-            'kerberosencryptiontype'
-            'lastbadpasswordattempt'
-            'lastknownparent'
-            'lastlogoff'
-            'lastlogon'
-            'lastlogondate'
-            'lastlogontimestamp'
-            'localpolicyflags'
-            'location'
-            'lockedout'
-            'lockouttime'
-            'logoncount'
-            'managedby'
-            'memberof'
-            'msdfsr-computerreferencebl'
-            'msds-generationid'
-            'msds-supportedencryptiontypes'
-            'msds-user-account-control-computed'
-            'mnslogonaccount'
-            'ntsecuritydescriptor'
-            'objectcategory'
-            'operatingsystem'
-            'operatingsystemhotfix'
-            'operatingsystemservicepack'
-            'operatingsystemversion'
-            'passwordexpired'
-            'passwordlastset'
-            'passwordneverexpires'
-            'passwordnotrequired'
-            'principalsallowedtodelegatetoaccount'
-            'primarygroup'
-            'primarygroupid'
-            'protectedfromaccidentaldeletion'
-            'pwdlastset'
-            'ridsetreferences'
-            'samaccounttype'
-            'sdrightseffective'
-            'serverreferencebl'
-            'serviceprincipalname'
-            'sidhistory'
-            'trustedfordelegation'
-            'trustedtoauthfordelegation'
-            'usedeskeyonly'
-            'useraccountcontrol'
-            'usnchanged'
-            'usncreated'
-            'whenchanged'
-            'whencreated'
-            'wwwhomepage'
-        )
-
-        [String[]]$Wildcard_Properties_Not_Yet_Added = @(
-            'authenticationpolicy'
-            'authenticationpolicysilo'
-            'deleted'
-            'isdeleted'
-            'serviceaccount'
-        )
-
-        [String[]]$Microsoft_Alias_Properties = @(
-            'badlogoncount'
-            'created'
-            'createtimestamp'
-            'homepage'
-            'modified'
-            'modifytimestamp'
-            'serviceprincipalnames'
-            'sid'
-            'usercertificate'
-        )
 
         $Directory_Search_Properties = New-Object -TypeName 'System.Collections.Generic.List[String]'
         if ($PSBoundParameters.ContainsKey('Properties')) {
@@ -227,7 +228,7 @@ function Find-DSSComputer {
             $Directory_Search_Properties.AddRange($Default_Properties)
         }
         Write-Verbose ('{0}|Properties: {1}' -f $Function_Name, ($Directory_Search_Properties -join ' '))
-        $Directory_Search_Parameters.Properties = $Directory_Search_Properties
+        $Directory_Search_Parameters['Properties'] = $Directory_Search_Properties
 
         $Default_Computer_LDAPFilter = '(objectcategory=computer)'
         if ($Name -eq '*') {
@@ -238,7 +239,7 @@ function Find-DSSComputer {
             $Directory_Search_LDAPFilter = '(&{0}(ANR={1}))' -f $Default_Computer_LDAPFilter, $Name
         }
         Write-Verbose ('{0}|LDAPFilter: {1}' -f $Function_Name, $Directory_Search_LDAPFilter)
-        $Directory_Search_Parameters.LDAPFilter = $Directory_Search_LDAPFilter
+        $Directory_Search_Parameters['LDAPFilter'] = $Directory_Search_LDAPFilter
 
         Write-Verbose ('{0}|Finding computers using Find-DSSObject' -f $Function_Name)
         $Computer_Results_To_Return = Find-DSSObject @Directory_Search_Parameters

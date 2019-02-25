@@ -88,13 +88,13 @@ function Get-DSSUser {
             'PageSize' = $PageSize
         }
         if ($PSBoundParameters.ContainsKey('Server')) {
-            $Directory_Search_Parameters.Server = $Server
+            $Directory_Search_Parameters['Server'] = $Server
         }
         if ($PSBoundParameters.ContainsKey('Credential')) {
-            $Directory_Search_Parameters.Credential = $Credential
+            $Directory_Search_Parameters['Credential'] = $Credential
         }
         if ($PSBoundParameters.ContainsKey('Properties')) {
-            $Directory_Search_Parameters.Properties = $Properties
+            $Directory_Search_Parameters['Properties'] = $Properties
         }
 
         if ($PSBoundParameters.ContainsKey('DistinguishedName')) {
@@ -106,9 +106,8 @@ function Get-DSSUser {
         } elseif ($PSBoundParameters.ContainsKey('SAMAccountName')) {
             $Directory_Search_LDAPFilter = '(samaccountname={0})' -f $SAMAccountName
         }
-
         Write-Verbose ('{0}|LDAPFilter: {1}' -f $Function_Name, $Directory_Search_LDAPFilter)
-        $Directory_Search_Parameters.LDAPFilter = $Directory_Search_LDAPFilter
+        $Directory_Search_Parameters['LDAPFilter'] = $Directory_Search_LDAPFilter
 
         Write-Verbose ('{0}|Calling Find-DSSUser' -f $Function_Name)
         Find-DSSUser @Directory_Search_Parameters

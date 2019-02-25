@@ -89,61 +89,61 @@ function Find-DSSGroup {
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
 
+    # Default properties as per Get-ADGroup. These properties are always returned, in addition to any specified in the Properties parameter.
+    [String[]]$Default_Properties = @(
+        'distinguishedname'
+        'groupcategory'
+        'groupscope'
+        'name'
+        'objectclass'
+        'objectguid'
+        'objectsid'
+        'samaccountname'
+    )
+
+    # Full list of all properties returned with a wildcard.
+    # Due to some constructed properties not being returned when search results include a wildcard, simply replace the wildcard with the full array of properties.
+    # See http://www.rlmueller.net/UserAttributes.htm
+    [String[]]$Wildcard_Properties = @(
+        'canonicalname'
+        'cn'
+        'description'
+        'displayname'
+        'dscorepropagationdata'
+        'grouptype'
+        'info'
+        'instancetype'
+        'mail'
+        'managedby'
+        'ntsecuritydescriptor'
+        'objectcategory'
+        'protectedfromaccidentaldeletion'
+        'samaccounttype'
+        'sdrightseffective'
+        'sidhistory'
+        'usnchanged'
+        'usncreated'
+        'whenchanged'
+        'whencreated'
+    )
+
     try {
         $Directory_Search_Parameters = @{
             'Context'  = $Context
             'PageSize' = $PageSize
         }
         if ($PSBoundParameters.ContainsKey('SearchBase')) {
-            $Directory_Search_Parameters.SearchBase = $SearchBase
+            $Directory_Search_Parameters['SearchBase'] = $SearchBase
         }
         if ($PSBoundParameters.ContainsKey('SearchScope')) {
-            $Directory_Search_Parameters.SearchScope = $SearchScope
+            $Directory_Search_Parameters['SearchScope'] = $SearchScope
         }
         if ($PSBoundParameters.ContainsKey('Server')) {
-            $Directory_Search_Parameters.Server = $Server
+            $Directory_Search_Parameters['Server'] = $Server
         }
         if ($PSBoundParameters.ContainsKey('Credential')) {
-            $Directory_Search_Parameters.Credential = $Credential
+            $Directory_Search_Parameters['Credential'] = $Credential
         }
-
-        # Default properties as per Get-ADGroup. Used when no Properties is specified.
-        [String[]]$Default_Properties = @(
-            'distinguishedname'
-            'groupcategory'
-            'groupscope'
-            'name'
-            'objectclass'
-            'objectguid'
-            'objectsid'
-            'samaccountname'
-        )
-
-        # Full list of all properties returned with a wildcard.
-        # Due to some constructed properties not being returned when search results include a wildcard, simply replace the wildcard with the full array of properties.
-        # See http://www.rlmueller.net/UserAttributes.htm
-        [String[]]$Wildcard_Properties = @(
-            'canonicalname'
-            'cn'
-            'description'
-            'displayname'
-            'dscorepropagationdata'
-            'grouptype'
-            'info'
-            'instancetype'
-            'mail'
-            'managedby'
-            'ntsecuritydescriptor'
-            'objectcategory'
-            'protectedfromaccidentaldeletion'
-            'samaccounttype'
-            'sdrightseffective'
-            'sidhistory'
-            'usnchanged'
-            'usncreated'
-            'whenchanged'
-            'whencreated'
-        )
 
         $Directory_Search_Properties = New-Object -TypeName 'System.Collections.Generic.List[String]'
         if ($PSBoundParameters.ContainsKey('Properties')) {
@@ -164,7 +164,7 @@ function Find-DSSGroup {
             $Directory_Search_Properties.AddRange($Default_Properties)
         }
         Write-Verbose ('{0}|Properties: {1}' -f $Function_Name, ($Directory_Search_Properties -join ' '))
-        $Directory_Search_Parameters.Properties = $Directory_Search_Properties
+        $Directory_Search_Parameters['Properties'] = $Directory_Search_Properties
 
         $Default_Group_LDAPFilter = '(objectcategory=Group)'
 
@@ -201,7 +201,7 @@ function Find-DSSGroup {
         }
 
         Write-Verbose ('{0}|LDAPFilter: {1}' -f $Function_Name, $Directory_Search_LDAPFilter)
-        $Directory_Search_Parameters.LDAPFilter = $Directory_Search_LDAPFilter
+        $Directory_Search_Parameters['LDAPFilter'] = $Directory_Search_LDAPFilter
 
         Write-Verbose ('{0}|Finding group using Find-DSSObject' -f $Function_Name)
         Find-DSSObject @Directory_Search_Parameters

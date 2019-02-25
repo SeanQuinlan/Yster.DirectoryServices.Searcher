@@ -169,15 +169,15 @@ function Find-DSSObject {
         }
         if ($PSBoundParameters.ContainsKey('SearchBase')) {
             Write-Verbose ('{0}|Using SearchBase: {1}' -f $Function_Name, $SearchBase)
-            $Directory_Entry_Parameters.SearchBase = $SearchBase
+            $Directory_Entry_Parameters['SearchBase'] = $SearchBase
         }
         if ($PSBoundParameters.ContainsKey('Server')) {
             Write-Verbose ('{0}|Using Server: {1}' -f $Function_Name, $Server)
-            $Directory_Entry_Parameters.Server = $Server
+            $Directory_Entry_Parameters['Server'] = $Server
         }
         if ($PSBoundParameters.ContainsKey('Credential')) {
             Write-Verbose ('{0}|Using custom Credential' -f $Function_Name)
-            $Directory_Entry_Parameters.Credential = $Credential
+            $Directory_Entry_Parameters['Credential'] = $Credential
         }
         $Directory_Entry = Get-DSSDirectoryEntry @Directory_Entry_Parameters
 
@@ -189,11 +189,11 @@ function Find-DSSObject {
 
         if ($PSBoundParameters.ContainsKey('SearchScope')) {
             Write-Verbose ('{0}|Adding SearchScope: {1}' -f $Function_Name, $SearchScope)
-            $Directory_Searcher.SearchScope = $SearchScope
+            $Directory_Searcher['SearchScope'] = $SearchScope
         }
 
         Write-Verbose ('{0}|Setting PageSize to: {1}' -f $Function_Name, $PageSize)
-        $Directory_Searcher.PageSize = $PageSize
+        $Directory_Searcher['PageSize'] = $PageSize
 
         $Properties_To_Add = New-Object -TypeName 'System.Collections.Generic.List[String]'
         foreach ($Property in $Properties) {

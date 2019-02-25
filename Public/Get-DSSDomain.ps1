@@ -185,14 +185,14 @@ function Get-DSSDomain {
 
         $Directory_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
         $Directory_Search_Parameters['Context'] = $Context
-        $Directory_Search_Parameters.Properties = $Directory_Search_Properties
+        $Directory_Search_Parameters['Properties'] = $Directory_Search_Properties
 
         $Default_Domain_LDAPFilter = '(objectclass=domain)'
         if ($PSBoundParameters.ContainsKey('DNSName')) {
             $Directory_Search_LDAPFilter = $Default_Domain_LDAPFilter
         } elseif ($PSBoundParameters.ContainsKey('DistinguishedName')) {
             $Directory_Search_LDAPFilter = $Default_Domain_LDAPFilter
-            $Directory_Search_Parameters.SearchBase = $DistinguishedName
+            $Directory_Search_Parameters['SearchBase'] = $DistinguishedName
         } elseif ($PSBoundParameters.ContainsKey('ObjectSID')) {
             $Directory_Search_LDAPFilter = '(&({0})(objectsid={1}))' -f $Default_Domain_LDAPFilter, $ObjectSID
         } elseif ($PSBoundParameters.ContainsKey('ObjectGUID')) {
@@ -200,9 +200,8 @@ function Get-DSSDomain {
             #        } elseif ($PSBoundParameters.ContainsKey('NetBIOSName')) {
             #            $Directory_Search_LDAPFilter = '(x={0})' -f $NetBIOSName
         }
-
         Write-Verbose ('{0}|LDAPFilter: {1}' -f $Function_Name, $Directory_Search_LDAPFilter)
-        $Directory_Search_Parameters.LDAPFilter = $Directory_Search_LDAPFilter
+        $Directory_Search_Parameters['LDAPFilter'] = $Directory_Search_LDAPFilter
 
         Write-Verbose ('{0}|Calling Find-DSSObject' -f $Function_Name)
         $Domain_Results_To_Return = Find-DSSObject @Directory_Search_Parameters

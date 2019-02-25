@@ -8,6 +8,9 @@ function Get-DSSDirectoryEntry {
         Example of how to use this script
     .EXAMPLE
         Another example of how to use this script
+    .NOTES
+        References:
+        http://www.selfadsi.org/bind.htm
     #>
 
     [CmdletBinding()]

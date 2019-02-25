@@ -80,121 +80,122 @@ function Find-DSSUser {
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
 
+    # Default properties as per Get-ADUser. These are always returned, in addition to any specified in the Properties parameter.
+    [String[]]$Default_Properties = @(
+        'distinguishedname'
+        'enabled'
+        'givenname'
+        'name'
+        'objectclass'
+        'objectguid'
+        'objectsid'
+        'samaccountname'
+        'sn'
+        'userprincipalname'
+    )
+
+    # Full list of all properties returned with a wildcard.
+    # Due to some constructed properties not being returned when search results include a wildcard, simply replace the wildcard with the full array of properties.
+    # See http://www.rlmueller.net/UserAttributes.htm
+    [String[]]$Wildcard_Properties = @(
+        'allowreversiblepasswordencryption'
+        'accountexpires'
+        'accountlockouttime'
+        'accountnotdelegated'
+        'badpasswordtime'
+        'badpwdcount'
+        'c'
+        'cannotchangepassword'
+        'canonicalname'
+        'cn'
+        'co'
+        'codepage'
+        'company'
+        'countrycode'
+        'department'
+        'description'
+        'displayname'
+        'doesnotrequirepreauth'
+        'dscorepropagationdata'
+        'facsimiletelephonenumber'
+        'homedirectory'
+        'homedirrequired'
+        'homedrive'
+        'homephone'
+        'info'
+        'initials'
+        'instancetype'
+        'ipphone'
+        'l'
+        'lastbadpasswordattempt'
+        'lastlogoff'
+        'lastlogon'
+        'lockouttime'
+        'logonhours'
+        'logoncount'
+        'mail'
+        'manager'
+        'mnslogonaccount'
+        'mobile'
+        'msds-supportedencryptiontypes'
+        'ntsecuritydescriptor'
+        'objectcategory'
+        'otherfacsimiletelephonenumber'
+        'otherhomephone'
+        'otheripphone'
+        'othermobile'
+        'otherpager'
+        'othertelephone'
+        'pager'
+        'passwordlastset'
+        'passwordneverexpires'
+        'passwordnotrequired'
+        'physicaldeliveryofficename'
+        'postofficebox'
+        'postalcode'
+        'primarygroup'
+        'primarygroupid'
+        'profilepath'
+        'protectedfromaccidentaldeletion'
+        'pwdlastset'
+        'samaccounttype'
+        'scriptpath'
+        'sdrightseffective'
+        'smartcardlogonrequired'
+        'st'
+        'streetaddress'
+        'telephonenumber'
+        'title'
+        'trustedfordelegation'
+        'trustedtoauthfordelegation'
+        'url'
+        'usedeskeyonly'
+        'useraccountcontrol'
+        'userworkstations'
+        'usnchanged'
+        'usncreated'
+        'wwwhomepage'
+        'whenchanged'
+        'whencreated'
+    )
+
     try {
         $Directory_Search_Parameters = @{
             'Context'  = $Context
             'PageSize' = $PageSize
         }
         if ($PSBoundParameters.ContainsKey('SearchBase')) {
-            $Directory_Search_Parameters.SearchBase = $SearchBase
+            $Directory_Search_Parameters['SearchBase'] = $SearchBase
         }
         if ($PSBoundParameters.ContainsKey('SearchScope')) {
-            $Directory_Search_Parameters.SearchScope = $SearchScope
+            $Directory_Search_Parameters['SearchScope'] = $SearchScope
         }
         if ($PSBoundParameters.ContainsKey('Server')) {
-            $Directory_Search_Parameters.Server = $Server
+            $Directory_Search_Parameters['Server'] = $Server
         }
         if ($PSBoundParameters.ContainsKey('Credential')) {
-            $Directory_Search_Parameters.Credential = $Credential
+            $Directory_Search_Parameters['Credential'] = $Credential
         }
-
-        # Default properties as per Get-ADUser. These are always returned, in addition to any specified in the Properties parameter.
-        [String[]]$Default_Properties = @(
-            'distinguishedname'
-            'enabled'
-            'givenname'
-            'name'
-            'objectclass'
-            'objectguid'
-            'objectsid'
-            'samaccountname'
-            'sn'
-            'userprincipalname'
-        )
-        # Full list of all properties returned with a wildcard.
-        # Due to some constructed properties not being returned when search results include a wildcard, simply replace the wildcard with the full array of properties.
-        # See http://www.rlmueller.net/UserAttributes.htm
-        [String[]]$Wildcard_Properties = @(
-            'allowreversiblepasswordencryption'
-            'accountexpires'
-            'accountlockouttime'
-            'accountnotdelegated'
-            'badpasswordtime'
-            'badpwdcount'
-            'c'
-            'cannotchangepassword'
-            'canonicalname'
-            'cn'
-            'co'
-            'codepage'
-            'company'
-            'countrycode'
-            'department'
-            'description'
-            'displayname'
-            'doesnotrequirepreauth'
-            'dscorepropagationdata'
-            'facsimiletelephonenumber'
-            'homedirectory'
-            'homedirrequired'
-            'homedrive'
-            'homephone'
-            'info'
-            'initials'
-            'instancetype'
-            'ipphone'
-            'l'
-            'lastbadpasswordattempt'
-            'lastlogoff'
-            'lastlogon'
-            'lockouttime'
-            'logonhours'
-            'logoncount'
-            'mail'
-            'manager'
-            'mnslogonaccount'
-            'mobile'
-            'msds-supportedencryptiontypes'
-            'ntsecuritydescriptor'
-            'objectcategory'
-            'otherfacsimiletelephonenumber'
-            'otherhomephone'
-            'otheripphone'
-            'othermobile'
-            'otherpager'
-            'othertelephone'
-            'pager'
-            'passwordlastset'
-            'passwordneverexpires'
-            'passwordnotrequired'
-            'physicaldeliveryofficename'
-            'postofficebox'
-            'postalcode'
-            'primarygroup'
-            'primarygroupid'
-            'profilepath'
-            'protectedfromaccidentaldeletion'
-            'pwdlastset'
-            'samaccounttype'
-            'scriptpath'
-            'sdrightseffective'
-            'smartcardlogonrequired'
-            'st'
-            'streetaddress'
-            'telephonenumber'
-            'title'
-            'trustedfordelegation'
-            'trustedtoauthfordelegation'
-            'url'
-            'usedeskeyonly'
-            'useraccountcontrol'
-            'userworkstations'
-            'usnchanged'
-            'usncreated'
-            'wwwhomepage'
-            'whenchanged'
-            'whencreated'
-        )
 
         $Directory_Search_Properties = New-Object -TypeName 'System.Collections.Generic.List[String]'
         if ($PSBoundParameters.ContainsKey('Properties')) {
@@ -215,7 +216,7 @@ function Find-DSSUser {
             $Directory_Search_Properties.AddRange($Default_Properties)
         }
         Write-Verbose ('{0}|Properties: {1}' -f $Function_Name, ($Directory_Search_Properties -join ' '))
-        $Directory_Search_Parameters.Properties = $Directory_Search_Properties
+        $Directory_Search_Parameters['Properties'] = $Directory_Search_Properties
 
         $Default_User_LDAPFilter = '(samaccounttype=805306368)'     # sAMAccountType is best method to search just user accounts - http://www.selfadsi.org/extended-ad/search-user-accounts.htm
         if ($Name -eq '*') {
@@ -226,7 +227,7 @@ function Find-DSSUser {
             $Directory_Search_LDAPFilter = '(&{0}(ANR={1}))' -f $Default_User_LDAPFilter, $Name
         }
         Write-Verbose ('{0}|LDAPFilter: {1}' -f $Function_Name, $Directory_Search_LDAPFilter)
-        $Directory_Search_Parameters.LDAPFilter = $Directory_Search_LDAPFilter
+        $Directory_Search_Parameters['LDAPFilter'] = $Directory_Search_LDAPFilter
 
         Write-Verbose ('{0}|Finding users using Find-DSSObject' -f $Function_Name)
         Find-DSSObject @Directory_Search_Parameters

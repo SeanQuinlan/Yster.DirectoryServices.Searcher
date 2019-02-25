@@ -80,60 +80,61 @@ function Find-DSSOrganizationalUnit {
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
 
+    # Default properties as per Get-ADOrganizationalUnit. Used when no Properties is specified.
+    [String[]]$Default_Properties = @(
+        'c'
+        'country'
+        'distinguishedname'
+        'l'
+        'linkedgrouppolicyobjects'
+        'managedby'
+        'name'
+        'objectclass'
+        'objectguid'
+        'postalcode'
+        'st'
+        'street'
+    )
+
+    # Full list of all properties returned with a wildcard.
+    # Due to some constructed properties not being returned when search results include a wildcard, simply replace the wildcard with the full array of properties.
+    [String[]]$Wildcard_Properties = @(
+        'canonicalname'
+        'cn'
+        'co'
+        'countrycode'
+        'description'
+        'displayname'
+        'instancetype'
+        'ntsecuritydescriptor'
+        'objectcategory'
+        'ou'
+        'postalcode'
+        'protectedfromaccidentaldeletion'
+        'sdrightseffective'
+        'usnchanged'
+        'usncreated'
+        'whenchanged'
+        'whencreated'
+    )
+
     try {
         $Directory_Search_Parameters = @{
             'Context'  = $Context
             'PageSize' = $PageSize
         }
         if ($PSBoundParameters.ContainsKey('SearchBase')) {
-            $Directory_Search_Parameters.SearchBase = $SearchBase
+            $Directory_Search_Parameters['SearchBase'] = $SearchBase
         }
         if ($PSBoundParameters.ContainsKey('SearchScope')) {
-            $Directory_Search_Parameters.SearchScope = $SearchScope
+            $Directory_Search_Parameters['SearchScope'] = $SearchScope
         }
         if ($PSBoundParameters.ContainsKey('Server')) {
-            $Directory_Search_Parameters.Server = $Server
+            $Directory_Search_Parameters['Server'] = $Server
         }
         if ($PSBoundParameters.ContainsKey('Credential')) {
-            $Directory_Search_Parameters.Credential = $Credential
+            $Directory_Search_Parameters['Credential'] = $Credential
         }
-
-        # Default properties as per Get-ADOrganizationalUnit. Used when no Properties is specified.
-        [String[]]$Default_Properties = @(
-            'c'
-            'country'
-            'distinguishedname'
-            'l'
-            'linkedgrouppolicyobjects'
-            'managedby'
-            'name'
-            'objectclass'
-            'objectguid'
-            'postalcode'
-            'st'
-            'street'
-        )
-        # Full list of all properties returned with a wildcard.
-        # Due to some constructed properties not being returned when search results include a wildcard, simply replace the wildcard with the full array of properties.
-        [String[]]$Wildcard_Properties = @(
-            'canonicalname'
-            'cn'
-            'co'
-            'countrycode'
-            'description'
-            'displayname'
-            'instancetype'
-            'ntsecuritydescriptor'
-            'objectcategory'
-            'ou'
-            'postalcode'
-            'protectedfromaccidentaldeletion'
-            'sdrightseffective'
-            'usnchanged'
-            'usncreated'
-            'whenchanged'
-            'whencreated'
-        )
 
         $Directory_Search_Properties = New-Object -TypeName 'System.Collections.Generic.List[String]'
         if ($PSBoundParameters.ContainsKey('Properties')) {
@@ -155,7 +156,7 @@ function Find-DSSOrganizationalUnit {
             $Directory_Search_Properties.AddRange($Default_Properties)
         }
         Write-Verbose ('{0}|Properties: {1}' -f $Function_Name, ($Directory_Search_Properties -join ' '))
-        $Directory_Search_Parameters.Properties = $Directory_Search_Properties
+        $Directory_Search_Parameters['Properties'] = $Directory_Search_Properties
 
         $Default_OU_LDAPFilter = '(objectclass=organizationalUnit)'
         if ($Name -eq '*') {
@@ -166,7 +167,7 @@ function Find-DSSOrganizationalUnit {
             $Directory_Search_LDAPFilter = '(&{0}(ANR={1}))' -f $Default_OU_LDAPFilter, $Name
         }
         Write-Verbose ('{0}|LDAPFilter: {1}' -f $Function_Name, $Directory_Search_LDAPFilter)
-        $Directory_Search_Parameters.LDAPFilter = $Directory_Search_LDAPFilter
+        $Directory_Search_Parameters['LDAPFilter'] = $Directory_Search_LDAPFilter
 
         Write-Verbose ('{0}|Finding OUs using Find-DSSObject' -f $Function_Name)
         Find-DSSObject @Directory_Search_Parameters
