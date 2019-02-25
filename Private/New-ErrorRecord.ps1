@@ -1,4 +1,4 @@
-function New-Error {
+function New-ErrorRecord {
     <#
     .SYNOPSIS
         Create a terminating or non-terminating error.
@@ -12,12 +12,6 @@ function New-Error {
 
     [CmdletBinding()]
     param(
-        # The type of error to create: Terminating or NonTerminating.
-        [Parameter(Mandatory = $true, Position = 0)]
-        [ValidateSet('Terminating', 'NonTerminating')]
-        [String]
-        $Type,
-
         # The exception used to describe the error.
         [Parameter(Mandatory = $true, Position = 1)]
         [String]
@@ -87,7 +81,7 @@ function New-Error {
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
 
     $null = $Exception_Arguments
-    if ($Message -and $InnerObject) {
+    if ($Message -and $InnerException) {
         $Exception_Arguments = $Message, $InnerException
     } elseif ($Message) {
         $Exception_Arguments = $Message
@@ -97,11 +91,5 @@ function New-Error {
     $ErrorRecord_Arguments = @($ErrorException, $ID, $Category, $TargetObject)
     $ErrorRecord = New-Object -TypeName 'System.Management.Automation.ErrorRecord' -ArgumentList $ErrorRecord_Arguments
 
-    if ($Type -eq 'Terminating') {
-        Write-Verbose ('{0}|Sending terminating error' -f $Function_Name)
-        $PSCmdlet.ThrowTerminatingError($ErrorRecord)
-    } else {
-        Write-Verbose ('{0}|Sending non-terminating error' -f $Function_Name)
-        $PSCmdlet.WriteError($ErrorRecord)
-    }
+    $ErrorRecord
 }
