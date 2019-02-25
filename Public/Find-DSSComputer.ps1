@@ -191,83 +191,88 @@ function Find-DSSComputer {
         'usercertificate'
     )
 
-    $Directory_Search_Parameters = @{
-        'Context'  = $Context
-        'PageSize' = $PageSize
-    }
-    if ($PSBoundParameters.ContainsKey('SearchBase')) {
-        $Directory_Search_Parameters['SearchBase'] = $SearchBase
-    }
-    if ($PSBoundParameters.ContainsKey('SearchScope')) {
-        $Directory_Search_Parameters['SearchScope'] = $SearchScope
-    }
-    if ($PSBoundParameters.ContainsKey('Server')) {
-        $Directory_Search_Parameters['Server'] = $Server
-    }
-    if ($PSBoundParameters.ContainsKey('Credential')) {
-        $Directory_Search_Parameters['Credential'] = $Credential
-    }
-
-    $Directory_Search_Properties = New-Object -TypeName 'System.Collections.Generic.List[String]'
-    if ($PSBoundParameters.ContainsKey('Properties')) {
-        Write-Verbose ('{0}|Adding default properties first' -f $Function_Name)
-        $Directory_Search_Properties.AddRange($Default_Properties)
-        if ($Properties -contains '*') {
-            Write-Verbose ('{0}|Adding other wildcard properties' -f $Function_Name)
-            $Directory_Search_Properties.AddRange($Wildcard_Properties)
+    try {
+        $Directory_Search_Parameters = @{
+            'Context'  = $Context
+            'PageSize' = $PageSize
         }
-        foreach ($Property in $Properties) {
-            if (($Property -ne '*') -and ($Directory_Search_Properties -notcontains $Property)) {
-                Write-Verbose ('{0}|Adding Property: {1}' -f $Function_Name, $Property)
-                $Directory_Search_Properties.Add($Property)
-            }
+        if ($PSBoundParameters.ContainsKey('SearchBase')) {
+            $Directory_Search_Parameters['SearchBase'] = $SearchBase
         }
-    } else {
-        Write-Verbose ('{0}|No properties specified, adding default properties only' -f $Function_Name)
-        $Directory_Search_Properties.AddRange($Default_Properties)
-    }
-    Write-Verbose ('{0}|Properties: {1}' -f $Function_Name, ($Directory_Search_Properties -join ' '))
-    $Directory_Search_Parameters['Properties'] = $Directory_Search_Properties
+        if ($PSBoundParameters.ContainsKey('SearchScope')) {
+            $Directory_Search_Parameters['SearchScope'] = $SearchScope
+        }
+        if ($PSBoundParameters.ContainsKey('Server')) {
+            $Directory_Search_Parameters['Server'] = $Server
+        }
+        if ($PSBoundParameters.ContainsKey('Credential')) {
+            $Directory_Search_Parameters['Credential'] = $Credential
+        }
 
-    $Default_Computer_LDAPFilter = '(objectcategory=computer)'
-    if ($Name -eq '*') {
-        $Directory_Search_LDAPFilter = $Default_Computer_LDAPFilter
-    } elseif ($LDAPFilter) {
-        $Directory_Search_LDAPFilter = '(&{0}{1})' -f $Default_Computer_LDAPFilter, $LDAPFilter
-    } else {
-        $Directory_Search_LDAPFilter = '(&{0}(ANR={1}))' -f $Default_Computer_LDAPFilter, $Name
-    }
-    Write-Verbose ('{0}|LDAPFilter: {1}' -f $Function_Name, $Directory_Search_LDAPFilter)
-    $Directory_Search_Parameters['LDAPFilter'] = $Directory_Search_LDAPFilter
-
-    Write-Verbose ('{0}|Finding computers using Find-DSSObject' -f $Function_Name)
-    $Computer_Results_To_Return = Find-DSSObject @Directory_Search_Parameters
-
-    if ($Computer_Results_To_Return) {
-        # Useful post here: https://www.myotherpcisacloud.com/post/IPv4Address-Attribute-In-Get-ADComputer
-        $Non_LDAP_Network_Properties = @('ipv4address', 'ipv6address')
-        $Non_LDAP_Network_Properties_To_Process = $Directory_Search_Properties | Where-Object { $Non_LDAP_Network_Properties -contains $_ }
-
-        if ($Non_LDAP_Network_Properties_To_Process) {
-            # Try and get the IP address(es) from DNS or just return null if any error.
-            try {
-                $Host_IP_Addresses = [System.Net.Dns]::GetHostEntry($Computer_Results_To_Return.'dnshostname').AddressList
-            } catch {
-                $Host_IP_Addresses = $null
+        $Directory_Search_Properties = New-Object -TypeName 'System.Collections.Generic.List[String]'
+        if ($PSBoundParameters.ContainsKey('Properties')) {
+            Write-Verbose ('{0}|Adding default properties first' -f $Function_Name)
+            $Directory_Search_Properties.AddRange($Default_Properties)
+            if ($Properties -contains '*') {
+                Write-Verbose ('{0}|Adding other wildcard properties' -f $Function_Name)
+                $Directory_Search_Properties.AddRange($Wildcard_Properties)
             }
-            foreach ($Non_LDAP_Network_Property in $Non_LDAP_Network_Properties_To_Process) {
-                $Non_LDAP_Network_Property_AddressList = $null
-                if ($Non_LDAP_Network_Property -eq 'ipv4address') {
-                    $Non_LDAP_Network_Property_AddressList = ($Host_IP_Addresses | Where-Object { $_.AddressFamily -eq 'InterNetwork' }).IPAddressToString
-                } elseif ($Non_LDAP_Network_Property -eq 'ipv6address') {
-                    $Non_LDAP_Network_Property_AddressList = ($Host_IP_Addresses | Where-Object { $_.AddressFamily -eq 'InterNetworkV6' }).IPAddressToString
+            foreach ($Property in $Properties) {
+                if (($Property -ne '*') -and ($Directory_Search_Properties -notcontains $Property)) {
+                    Write-Verbose ('{0}|Adding Property: {1}' -f $Function_Name, $Property)
+                    $Directory_Search_Properties.Add($Property)
                 }
-                $Non_LDAP_Network_Property_To_Add = New-Object -TypeName 'System.Management.Automation.PSNoteProperty' -ArgumentList @($Non_LDAP_Network_Property, $Non_LDAP_Network_Property_AddressList)
-                $Computer_Results_To_Return.PSObject.Properties.Add($Non_LDAP_Network_Property_To_Add)
             }
+        } else {
+            Write-Verbose ('{0}|No properties specified, adding default properties only' -f $Function_Name)
+            $Directory_Search_Properties.AddRange($Default_Properties)
         }
+        Write-Verbose ('{0}|Properties: {1}' -f $Function_Name, ($Directory_Search_Properties -join ' '))
+        $Directory_Search_Parameters['Properties'] = $Directory_Search_Properties
 
-        # Return the full computer object after sorting.
-        ConvertTo-SortedPSObject -InputObject $Computer_Results_To_Return
+        $Default_Computer_LDAPFilter = '(objectcategory=computer)'
+        if ($Name -eq '*') {
+            $Directory_Search_LDAPFilter = $Default_Computer_LDAPFilter
+        } elseif ($LDAPFilter) {
+            $Directory_Search_LDAPFilter = '(&{0}{1})' -f $Default_Computer_LDAPFilter, $LDAPFilter
+        } else {
+            $Directory_Search_LDAPFilter = '(&{0}(ANR={1}))' -f $Default_Computer_LDAPFilter, $Name
+        }
+        Write-Verbose ('{0}|LDAPFilter: {1}' -f $Function_Name, $Directory_Search_LDAPFilter)
+        $Directory_Search_Parameters['LDAPFilter'] = $Directory_Search_LDAPFilter
+
+        Write-Verbose ('{0}|Finding computers using Find-DSSObject' -f $Function_Name)
+        $Computer_Results_To_Return = Find-DSSObject @Directory_Search_Parameters
+
+        if ($Computer_Results_To_Return) {
+            # Useful post here: https://www.myotherpcisacloud.com/post/IPv4Address-Attribute-In-Get-ADComputer
+            $Non_LDAP_Network_Properties = @('ipv4address', 'ipv6address')
+            $Non_LDAP_Network_Properties_To_Process = $Directory_Search_Properties | Where-Object { $Non_LDAP_Network_Properties -contains $_ }
+
+            if ($Non_LDAP_Network_Properties_To_Process) {
+                # Try and get the IP address(es) from DNS or just return null if any error.
+                try {
+                    $Host_IP_Addresses = [System.Net.Dns]::GetHostEntry($Computer_Results_To_Return.'dnshostname').AddressList
+                } catch {
+                    $Host_IP_Addresses = $null
+                }
+                foreach ($Non_LDAP_Network_Property in $Non_LDAP_Network_Properties_To_Process) {
+                    $Non_LDAP_Network_Property_AddressList = $null
+                    if ($Non_LDAP_Network_Property -eq 'ipv4address') {
+                        $Non_LDAP_Network_Property_AddressList = ($Host_IP_Addresses | Where-Object { $_.AddressFamily -eq 'InterNetwork' }).IPAddressToString
+                    } elseif ($Non_LDAP_Network_Property -eq 'ipv6address') {
+                        $Non_LDAP_Network_Property_AddressList = ($Host_IP_Addresses | Where-Object { $_.AddressFamily -eq 'InterNetworkV6' }).IPAddressToString
+                    }
+                    $Non_LDAP_Network_Property_To_Add = New-Object -TypeName 'System.Management.Automation.PSNoteProperty' -ArgumentList @($Non_LDAP_Network_Property, $Non_LDAP_Network_Property_AddressList)
+                    $Computer_Results_To_Return.PSObject.Properties.Add($Non_LDAP_Network_Property_To_Add)
+                }
+            }
+
+            # Return the full computer object after sorting.
+            ConvertTo-SortedPSObject -InputObject $Computer_Results_To_Return
+        }
+    } catch {
+        $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_
+        $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
     }
 }

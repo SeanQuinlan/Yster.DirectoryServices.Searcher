@@ -88,108 +88,113 @@ function Get-DSSForest {
         'upnsuffixes'
     )
 
-    $Common_Search_Parameters = @{}
-    if ($PSBoundParameters.ContainsKey('Server')) {
-        $Common_Search_Parameters['Server'] = $Server
-    } else {
-        if ($PSBoundParameters.ContainsKey('DNSName')) {
-            Write-Verbose ('{0}|Adding DNSName as Server Name: {1}' -f $Function_Name, $DNSName)
-            $Common_Search_Parameters['Server'] = $DNSName
-        } elseif ($PSBoundParameters.ContainsKey('NetBIOSName')) {
-            Write-Verbose ('{0}|Adding NetBIOSName as Server Name: {1}' -f $Function_Name, $NetBIOSName)
-            $Common_Search_Parameters['Server'] = $NetBIOSName
-        }
-    }
-    if ($PSBoundParameters.ContainsKey('Credential')) {
-        $Common_Search_Parameters['Credential'] = $Credential
-    }
-
-    $Directory_Search_Properties = New-Object -TypeName 'System.Collections.Generic.List[String]'
-    if ($PSBoundParameters.ContainsKey('Properties')) {
-        Write-Verbose ('{0}|Adding default properties first' -f $Function_Name)
-        $Directory_Search_Properties.AddRange($Default_Properties)
-        if ($Properties -contains '*') {
-            Write-Verbose ('{0}|Wildcard specified, but all properties are default, doing nothing' -f $Function_Name)
-        }
-        foreach ($Property in $Properties) {
-            if (($Property -ne '*') -and ($Directory_Search_Properties -notcontains $Property)) {
-                Write-Verbose ('{0}|Adding Property: {1}' -f $Function_Name, $Property)
-                $Directory_Search_Properties.Add($Property)
+    try {
+        $Common_Search_Parameters = @{}
+        if ($PSBoundParameters.ContainsKey('Server')) {
+            $Common_Search_Parameters['Server'] = $Server
+        } else {
+            if ($PSBoundParameters.ContainsKey('DNSName')) {
+                Write-Verbose ('{0}|Adding DNSName as Server Name: {1}' -f $Function_Name, $DNSName)
+                $Common_Search_Parameters['Server'] = $DNSName
+            } elseif ($PSBoundParameters.ContainsKey('NetBIOSName')) {
+                Write-Verbose ('{0}|Adding NetBIOSName as Server Name: {1}' -f $Function_Name, $NetBIOSName)
+                $Common_Search_Parameters['Server'] = $NetBIOSName
             }
         }
-    } else {
-        Write-Verbose ('{0}|No properties specified, adding default properties only' -f $Function_Name)
-        $Directory_Search_Properties.AddRange($Default_Properties)
-    }
-    Write-Verbose ('{0}|Properties: {1}' -f $Function_Name, ($Directory_Search_Properties -join ' '))
-
-    $Forest_Results_To_Return = @{}
-
-    $DSE_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
-    Write-Verbose ('{0}|Calling Get-DSSRootDSE' -f $Function_Name)
-    $DSE_Return_Object = Get-DSSRootDSE @DSE_Search_Parameters
-
-    foreach ($DSE_Property in $DSE_Properties) {
-        if ($DSE_Property -eq 'forestmode') {
-            $DSE_Property_Value = $DSE_Return_Object.'forestfunctionality'
-        } elseif ($DSE_Property -eq 'partitionscontainer') {
-            $DSE_Property_Value = 'CN=Partitions,{0}' -f $DSE_Return_Object.'configurationNamingContext'
+        if ($PSBoundParameters.ContainsKey('Credential')) {
+            $Common_Search_Parameters['Credential'] = $Credential
         }
-        Write-Verbose ('{0}|DSE: Setting property: {1} = {2}' -f $Function_Name, $DSE_Property, $DSE_Property_Value)
-        $Forest_Results_To_Return[$DSE_Property] = $DSE_Property_Value
-    }
 
-    $Partitions_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
-    $Partitions_Search_Properties = New-Object -TypeName 'System.Collections.Generic.List[String]'
-    foreach ($Partitions_Property in $Partitions_Properties) {
-        if ($Partitions_Property -eq 'spnsuffixes') {
-            $Partitions_Search_Properties.Add('msds-spnsuffixes')
+        $Directory_Search_Properties = New-Object -TypeName 'System.Collections.Generic.List[String]'
+        if ($PSBoundParameters.ContainsKey('Properties')) {
+            Write-Verbose ('{0}|Adding default properties first' -f $Function_Name)
+            $Directory_Search_Properties.AddRange($Default_Properties)
+            if ($Properties -contains '*') {
+                Write-Verbose ('{0}|Wildcard specified, but all properties are default, doing nothing' -f $Function_Name)
+            }
+            foreach ($Property in $Properties) {
+                if (($Property -ne '*') -and ($Directory_Search_Properties -notcontains $Property)) {
+                    Write-Verbose ('{0}|Adding Property: {1}' -f $Function_Name, $Property)
+                    $Directory_Search_Properties.Add($Property)
+                }
+            }
         } else {
-            $Partitions_Search_Properties.Add($Partitions_Property)
+            Write-Verbose ('{0}|No properties specified, adding default properties only' -f $Function_Name)
+            $Directory_Search_Properties.AddRange($Default_Properties)
         }
-    }
-    $Partitions_Search_Parameters['Context'] = $Context
-    $Partitions_Search_Parameters['Properties'] = $Partitions_Search_Properties
-    $Partitions_Search_Parameters['SearchBase'] = $Forest_Results_To_Return['partitionscontainer']
-    $Partitions_Search_Parameters['LDAPFilter'] = '(objectclass=crossrefcontainer)'
+        Write-Verbose ('{0}|Properties: {1}' -f $Function_Name, ($Directory_Search_Properties -join ' '))
 
-    Write-Verbose ('{0}|Partitions: Calling Find-DSSObject' -f $Function_Name)
-    $Partitions_Return_Object = Find-DSSObject @Partitions_Search_Parameters
+        $Forest_Results_To_Return = @{}
 
-    if ($Partitions_Return_Object) {
+        $DSE_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
+        Write-Verbose ('{0}|Calling Get-DSSRootDSE' -f $Function_Name)
+        $DSE_Return_Object = Get-DSSRootDSE @DSE_Search_Parameters
+
+        foreach ($DSE_Property in $DSE_Properties) {
+            if ($DSE_Property -eq 'forestmode') {
+                $DSE_Property_Value = $DSE_Return_Object.'forestfunctionality'
+            } elseif ($DSE_Property -eq 'partitionscontainer') {
+                $DSE_Property_Value = 'CN=Partitions,{0}' -f $DSE_Return_Object.'configurationNamingContext'
+            }
+            Write-Verbose ('{0}|DSE: Setting property: {1} = {2}' -f $Function_Name, $DSE_Property, $DSE_Property_Value)
+            $Forest_Results_To_Return[$DSE_Property] = $DSE_Property_Value
+        }
+
+        $Partitions_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
+        $Partitions_Search_Properties = New-Object -TypeName 'System.Collections.Generic.List[String]'
         foreach ($Partitions_Property in $Partitions_Properties) {
             if ($Partitions_Property -eq 'spnsuffixes') {
-                $Partitions_Property_Value = $Partitions_Return_Object.'msds-spnsuffixes'
+                $Partitions_Search_Properties.Add('msds-spnsuffixes')
             } else {
-                $Partitions_Property_Value = $Partitions_Return_Object.$Partitions_Property
+                $Partitions_Search_Properties.Add($Partitions_Property)
             }
-            Write-Verbose ('{0}|Partitions: Adding property: {1} = {2}' -f $Function_Name, $Partitions_Property, $Partitions_Property_Value)
-            $Forest_Results_To_Return[$Partitions_Property] = $Partitions_Property_Value
         }
-    }
+        $Partitions_Search_Parameters['Context'] = $Context
+        $Partitions_Search_Parameters['Properties'] = $Partitions_Search_Properties
+        $Partitions_Search_Parameters['SearchBase'] = $Forest_Results_To_Return['partitionscontainer']
+        $Partitions_Search_Parameters['LDAPFilter'] = '(objectclass=crossrefcontainer)'
 
-    $Forest_Context_Arguments = $Common_Search_Parameters.PSObject.Copy()
-    if ($PSBoundParameters.ContainsKey('Server')) {
-        $Forest_Context_Arguments['Context'] = 'Server'
-    } else {
-        $Forest_Context_Arguments['Context'] = 'Forest'
-    }
-    Write-Verbose ('{0}|Forest: Getting forest details' -f $Function_Name)
-    $Forest_Context = Get-DSSDirectoryContext @Forest_Context_Arguments
-    $Current_Forest_Properties = [System.DirectoryServices.ActiveDirectory.Forest]::GetForest($Forest_Context)
+        Write-Verbose ('{0}|Partitions: Calling Find-DSSObject' -f $Function_Name)
+        $Partitions_Return_Object = Find-DSSObject @Partitions_Search_Parameters
 
-    $Directory_Search_Properties | Where-Object { ($DSE_Properties -notcontains $_) -and ($Partitions_Properties -notcontains $_) } | ForEach-Object {
-        if ($_ -eq 'domainnamingmaster') {
-            $Forest_Result_Value = $Current_Forest_Properties.'NamingRoleOwner'
-        } elseif ($_ -eq 'schemamaster') {
-            $Forest_Result_Value = $Current_Forest_Properties.'SchemaRoleOwner'
+        if ($Partitions_Return_Object) {
+            foreach ($Partitions_Property in $Partitions_Properties) {
+                if ($Partitions_Property -eq 'spnsuffixes') {
+                    $Partitions_Property_Value = $Partitions_Return_Object.'msds-spnsuffixes'
+                } else {
+                    $Partitions_Property_Value = $Partitions_Return_Object.$Partitions_Property
+                }
+                Write-Verbose ('{0}|Partitions: Adding property: {1} = {2}' -f $Function_Name, $Partitions_Property, $Partitions_Property_Value)
+                $Forest_Results_To_Return[$Partitions_Property] = $Partitions_Property_Value
+            }
+        }
+
+        $Forest_Context_Arguments = $Common_Search_Parameters.PSObject.Copy()
+        if ($PSBoundParameters.ContainsKey('Server')) {
+            $Forest_Context_Arguments['Context'] = 'Server'
         } else {
-            $Forest_Result_Value = $Current_Forest_Properties.$_
+            $Forest_Context_Arguments['Context'] = 'Forest'
         }
-        Write-Verbose ('{0}|Forest: Adding property: {1} = {2}' -f $Function_Name, $_, $Forest_Result_Value)
-        $Forest_Results_To_Return[$_] = $Forest_Result_Value
-    }
+        Write-Verbose ('{0}|Forest: Getting forest details' -f $Function_Name)
+        $Forest_Context = Get-DSSDirectoryContext @Forest_Context_Arguments
+        $Current_Forest_Properties = [System.DirectoryServices.ActiveDirectory.Forest]::GetForest($Forest_Context)
 
-    # Return the full domain object after sorting.
-    ConvertTo-SortedPSObject -InputObject $Forest_Results_To_Return
+        $Directory_Search_Properties | Where-Object { ($DSE_Properties -notcontains $_) -and ($Partitions_Properties -notcontains $_) } | ForEach-Object {
+            if ($_ -eq 'domainnamingmaster') {
+                $Forest_Result_Value = $Current_Forest_Properties.'NamingRoleOwner'
+            } elseif ($_ -eq 'schemamaster') {
+                $Forest_Result_Value = $Current_Forest_Properties.'SchemaRoleOwner'
+            } else {
+                $Forest_Result_Value = $Current_Forest_Properties.$_
+            }
+            Write-Verbose ('{0}|Forest: Adding property: {1} = {2}' -f $Function_Name, $_, $Forest_Result_Value)
+            $Forest_Results_To_Return[$_] = $Forest_Result_Value
+        }
+
+        # Return the full domain object after sorting.
+        ConvertTo-SortedPSObject -InputObject $Forest_Results_To_Return
+    } catch {
+        $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_
+        $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+    }
 }

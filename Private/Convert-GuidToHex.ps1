@@ -1,7 +1,7 @@
 function Convert-GuidToHex {
     <#
     .SYNOPSIS
-        Converts a GUID value to a HEX value suitable for using in LDAPFilter
+        Converts a GUID value to a HEX value suitable for using in LDAPFilter.
     .DESCRIPTION
 
     .EXAMPLE

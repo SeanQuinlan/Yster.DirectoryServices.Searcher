@@ -82,32 +82,37 @@ function Get-DSSUser {
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
 
-    $Directory_Search_Parameters = @{
-        'Context'  = $Context
-        'PageSize' = $PageSize
-    }
-    if ($PSBoundParameters.ContainsKey('Server')) {
-        $Directory_Search_Parameters['Server'] = $Server
-    }
-    if ($PSBoundParameters.ContainsKey('Credential')) {
-        $Directory_Search_Parameters['Credential'] = $Credential
-    }
-    if ($PSBoundParameters.ContainsKey('Properties')) {
-        $Directory_Search_Parameters['Properties'] = $Properties
-    }
+    try {
+        $Directory_Search_Parameters = @{
+            'Context'  = $Context
+            'PageSize' = $PageSize
+        }
+        if ($PSBoundParameters.ContainsKey('Server')) {
+            $Directory_Search_Parameters['Server'] = $Server
+        }
+        if ($PSBoundParameters.ContainsKey('Credential')) {
+            $Directory_Search_Parameters['Credential'] = $Credential
+        }
+        if ($PSBoundParameters.ContainsKey('Properties')) {
+            $Directory_Search_Parameters['Properties'] = $Properties
+        }
 
-    if ($PSBoundParameters.ContainsKey('DistinguishedName')) {
-        $Directory_Search_LDAPFilter = '(distinguishedname={0})' -f $DistinguishedName
-    } elseif ($PSBoundParameters.ContainsKey('ObjectSID')) {
-        $Directory_Search_LDAPFilter = '(objectsid={0})' -f $ObjectSID
-    } elseif ($PSBoundParameters.ContainsKey('ObjectGUID')) {
-        $Directory_Search_LDAPFilter = '(objectguid={0})' -f (Convert-GuidToHex -Guid $ObjectGUID)
-    } elseif ($PSBoundParameters.ContainsKey('SAMAccountName')) {
-        $Directory_Search_LDAPFilter = '(samaccountname={0})' -f $SAMAccountName
-    }
-    Write-Verbose ('{0}|LDAPFilter: {1}' -f $Function_Name, $Directory_Search_LDAPFilter)
-    $Directory_Search_Parameters['LDAPFilter'] = $Directory_Search_LDAPFilter
+        if ($PSBoundParameters.ContainsKey('DistinguishedName')) {
+            $Directory_Search_LDAPFilter = '(distinguishedname={0})' -f $DistinguishedName
+        } elseif ($PSBoundParameters.ContainsKey('ObjectSID')) {
+            $Directory_Search_LDAPFilter = '(objectsid={0})' -f $ObjectSID
+        } elseif ($PSBoundParameters.ContainsKey('ObjectGUID')) {
+            $Directory_Search_LDAPFilter = '(objectguid={0})' -f (Convert-GuidToHex -Guid $ObjectGUID)
+        } elseif ($PSBoundParameters.ContainsKey('SAMAccountName')) {
+            $Directory_Search_LDAPFilter = '(samaccountname={0})' -f $SAMAccountName
+        }
+        Write-Verbose ('{0}|LDAPFilter: {1}' -f $Function_Name, $Directory_Search_LDAPFilter)
+        $Directory_Search_Parameters['LDAPFilter'] = $Directory_Search_LDAPFilter
 
-    Write-Verbose ('{0}|Calling Find-DSSUser' -f $Function_Name)
-    Find-DSSUser @Directory_Search_Parameters
+        Write-Verbose ('{0}|Calling Find-DSSUser' -f $Function_Name)
+        Find-DSSUser @Directory_Search_Parameters
+    } catch {
+        $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_
+        $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+    }
 }

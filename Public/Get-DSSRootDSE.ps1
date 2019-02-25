@@ -36,42 +36,47 @@ function Get-DSSRootDSE {
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
 
-    $Directory_Entry_Parameters = @{
-        'Context'    = 'Domain'
-        'SearchBase' = 'RootDSE'
-    }
-    if ($PSBoundParameters.ContainsKey('Server')) {
-        $Directory_Search_Parameters['Server'] = $Server
-    }
-    if ($PSBoundParameters.ContainsKey('Credential')) {
-        $Directory_Search_Parameters['Credential'] = $Credential
-    }
-    $Directory_Entry = Get-DSSDirectoryEntry @Directory_Entry_Parameters
-    if (-not $Directory_Entry.Properties) {
-        Write-Error ('Unable to contact the server: {0}' -f $Server) -ErrorAction 'Stop'
-    }
-
-    # Format the DirectoryEntry object to match that returned from Find-DSSObject.
-    Write-Verbose ('{0}|Formatting result' -f $Function_Name)
-    $Result_Object = @{}
-    $Directory_Entry.Properties.PropertyNames | ForEach-Object {
-        $RootDSE_Property = $_
-        $RootDSE_Value = $($Directory_Entry.$_)
-        Write-Verbose ('{0}|Property={1} Value={2}' -f $Function_Name, $RootDSE_Property, $RootDSE_Value)
-
-        if ($RootDSE_Property -eq 'domaincontrollerfunctionality') {
-            $Result_Object[$RootDSE_Property] = $DomainControllerMode_Table[$RootDSE_Value]
-        } elseif ($RootDSE_Property -eq 'domainfunctionality') {
-            $Result_Object[$RootDSE_Property] = $DomainMode_Table[$RootDSE_Value]
-        } elseif ($RootDSE_Property -eq 'forestfunctionality') {
-            $Result_Object[$RootDSE_Property] = $ForestMode_Table[$RootDSE_Value]
-        } else {
-            $Result_Object[$RootDSE_Property] = $RootDSE_Value
+    try {
+        $Directory_Entry_Parameters = @{
+            'Context'    = 'Domain'
+            'SearchBase' = 'RootDSE'
         }
-    }
+        if ($PSBoundParameters.ContainsKey('Server')) {
+            $Directory_Search_Parameters['Server'] = $Server
+        }
+        if ($PSBoundParameters.ContainsKey('Credential')) {
+            $Directory_Search_Parameters['Credential'] = $Credential
+        }
+        $Directory_Entry = Get-DSSDirectoryEntry @Directory_Entry_Parameters
+        if (-not $Directory_Entry.Properties) {
+            Write-Error ('Unable to contact the server: {0}' -f $Server) -ErrorAction 'Stop'
+        }
 
-    # Return the RootDSE object, after sorting.
-    ConvertTo-SortedPSObject -InputObject $Result_Object
+        # Format the DirectoryEntry object to match that returned from Find-DSSObject.
+        Write-Verbose ('{0}|Formatting result' -f $Function_Name)
+        $Result_Object = @{}
+        $Directory_Entry.Properties.PropertyNames | ForEach-Object {
+            $RootDSE_Property = $_
+            $RootDSE_Value = $($Directory_Entry.$_)
+            Write-Verbose ('{0}|Property={1} Value={2}' -f $Function_Name, $RootDSE_Property, $RootDSE_Value)
+
+            if ($RootDSE_Property -eq 'domaincontrollerfunctionality') {
+                $Result_Object[$RootDSE_Property] = $DomainControllerMode_Table[$RootDSE_Value]
+            } elseif ($RootDSE_Property -eq 'domainfunctionality') {
+                $Result_Object[$RootDSE_Property] = $DomainMode_Table[$RootDSE_Value]
+            } elseif ($RootDSE_Property -eq 'forestfunctionality') {
+                $Result_Object[$RootDSE_Property] = $ForestMode_Table[$RootDSE_Value]
+            } else {
+                $Result_Object[$RootDSE_Property] = $RootDSE_Value
+            }
+        }
+
+        # Return the RootDSE object, after sorting.
+        ConvertTo-SortedPSObject -InputObject $Result_Object
+    } catch {
+        $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_
+        $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+    }
 }
 
 # From: https://docs.microsoft.com/en-us/dotnet/api/microsoft.activedirectory.management.addomaincontrollermode?view=activedirectory-management-10.0

@@ -117,57 +117,61 @@ function Find-DSSOrganizationalUnit {
         'whenchanged'
         'whencreated'
     )
-
-    $Directory_Search_Parameters = @{
-        'Context'  = $Context
-        'PageSize' = $PageSize
-    }
-    if ($PSBoundParameters.ContainsKey('SearchBase')) {
-        $Directory_Search_Parameters['SearchBase'] = $SearchBase
-    }
-    if ($PSBoundParameters.ContainsKey('SearchScope')) {
-        $Directory_Search_Parameters['SearchScope'] = $SearchScope
-    }
-    if ($PSBoundParameters.ContainsKey('Server')) {
-        $Directory_Search_Parameters['Server'] = $Server
-    }
-    if ($PSBoundParameters.ContainsKey('Credential')) {
-        $Directory_Search_Parameters['Credential'] = $Credential
-    }
-
-    $Directory_Search_Properties = New-Object -TypeName 'System.Collections.Generic.List[String]'
-    if ($PSBoundParameters.ContainsKey('Properties')) {
-        Write-Verbose ('{0}|Adding default properties first' -f $Function_Name)
-        $Directory_Search_Properties.AddRange($Default_Properties)
-        if ($Properties -contains '*') {
-            $Directory_Search_Properties.Add('*')
-            Write-Verbose ('{0}|Adding other wildcard properties' -f $Function_Name)
-            $Directory_Search_Properties.AddRange($Wildcard_Properties)
+    try {
+        $Directory_Search_Parameters = @{
+            'Context'  = $Context
+            'PageSize' = $PageSize
         }
-        foreach ($Property in $Properties) {
-            if (($Property -ne '*') -and ($Directory_Search_Properties -notcontains $Property)) {
-                Write-Verbose ('{0}|Adding Property: {1}' -f $Function_Name, $Property)
-                $Directory_Search_Properties.Add($Property)
+        if ($PSBoundParameters.ContainsKey('SearchBase')) {
+            $Directory_Search_Parameters['SearchBase'] = $SearchBase
+        }
+        if ($PSBoundParameters.ContainsKey('SearchScope')) {
+            $Directory_Search_Parameters['SearchScope'] = $SearchScope
+        }
+        if ($PSBoundParameters.ContainsKey('Server')) {
+            $Directory_Search_Parameters['Server'] = $Server
+        }
+        if ($PSBoundParameters.ContainsKey('Credential')) {
+            $Directory_Search_Parameters['Credential'] = $Credential
+        }
+
+        $Directory_Search_Properties = New-Object -TypeName 'System.Collections.Generic.List[String]'
+        if ($PSBoundParameters.ContainsKey('Properties')) {
+            Write-Verbose ('{0}|Adding default properties first' -f $Function_Name)
+            $Directory_Search_Properties.AddRange($Default_Properties)
+            if ($Properties -contains '*') {
+                $Directory_Search_Properties.Add('*')
+                Write-Verbose ('{0}|Adding other wildcard properties' -f $Function_Name)
+                $Directory_Search_Properties.AddRange($Wildcard_Properties)
             }
+            foreach ($Property in $Properties) {
+                if (($Property -ne '*') -and ($Directory_Search_Properties -notcontains $Property)) {
+                    Write-Verbose ('{0}|Adding Property: {1}' -f $Function_Name, $Property)
+                    $Directory_Search_Properties.Add($Property)
+                }
+            }
+        } else {
+            Write-Verbose ('{0}|No properties specified, adding default properties only' -f $Function_Name)
+            $Directory_Search_Properties.AddRange($Default_Properties)
         }
-    } else {
-        Write-Verbose ('{0}|No properties specified, adding default properties only' -f $Function_Name)
-        $Directory_Search_Properties.AddRange($Default_Properties)
-    }
-    Write-Verbose ('{0}|Properties: {1}' -f $Function_Name, ($Directory_Search_Properties -join ' '))
-    $Directory_Search_Parameters['Properties'] = $Directory_Search_Properties
+        Write-Verbose ('{0}|Properties: {1}' -f $Function_Name, ($Directory_Search_Properties -join ' '))
+        $Directory_Search_Parameters['Properties'] = $Directory_Search_Properties
 
-    $Default_OU_LDAPFilter = '(objectclass=organizationalUnit)'
-    if ($Name -eq '*') {
-        $Directory_Search_LDAPFilter = $Default_OU_LDAPFilter
-    } elseif ($LDAPFilter) {
-        $Directory_Search_LDAPFilter = '(&{0}{1})' -f $Default_OU_LDAPFilter, $LDAPFilter
-    } else {
-        $Directory_Search_LDAPFilter = '(&{0}(ANR={1}))' -f $Default_OU_LDAPFilter, $Name
-    }
-    Write-Verbose ('{0}|LDAPFilter: {1}' -f $Function_Name, $Directory_Search_LDAPFilter)
-    $Directory_Search_Parameters['LDAPFilter'] = $Directory_Search_LDAPFilter
+        $Default_OU_LDAPFilter = '(objectclass=organizationalUnit)'
+        if ($Name -eq '*') {
+            $Directory_Search_LDAPFilter = $Default_OU_LDAPFilter
+        } elseif ($LDAPFilter) {
+            $Directory_Search_LDAPFilter = '(&{0}{1})' -f $Default_OU_LDAPFilter, $LDAPFilter
+        } else {
+            $Directory_Search_LDAPFilter = '(&{0}(ANR={1}))' -f $Default_OU_LDAPFilter, $Name
+        }
+        Write-Verbose ('{0}|LDAPFilter: {1}' -f $Function_Name, $Directory_Search_LDAPFilter)
+        $Directory_Search_Parameters['LDAPFilter'] = $Directory_Search_LDAPFilter
 
-    Write-Verbose ('{0}|Finding OUs using Find-DSSObject' -f $Function_Name)
-    Find-DSSObject @Directory_Search_Parameters
+        Write-Verbose ('{0}|Finding OUs using Find-DSSObject' -f $Function_Name)
+        Find-DSSObject @Directory_Search_Parameters
+    } catch {
+        $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_
+        $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+    }
 }
