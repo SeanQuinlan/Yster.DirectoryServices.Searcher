@@ -189,11 +189,11 @@ function Find-DSSObject {
 
         if ($PSBoundParameters.ContainsKey('SearchScope')) {
             Write-Verbose ('{0}|Adding SearchScope: {1}' -f $Function_Name, $SearchScope)
-            $Directory_Searcher['SearchScope'] = $SearchScope
+            $Directory_Searcher.SearchScope = $SearchScope
         }
 
         Write-Verbose ('{0}|Setting PageSize to: {1}' -f $Function_Name, $PageSize)
-        $Directory_Searcher['PageSize'] = $PageSize
+        $Directory_Searcher.PageSize = $PageSize
 
         $Properties_To_Add = New-Object -TypeName 'System.Collections.Generic.List[String]'
         foreach ($Property in $Properties) {
