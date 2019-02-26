@@ -104,7 +104,7 @@ function Get-DSSComputer {
         } elseif ($PSBoundParameters.ContainsKey('ObjectGUID')) {
             $Directory_Search_LDAPFilter = '(objectguid={0})' -f (Convert-GuidToHex -Guid $ObjectGUID)
         } elseif ($PSBoundParameters.ContainsKey('SAMAccountName')) {
-            if (-not $SAMAccountName.EndsWith('$') {
+            if (-not $SAMAccountName.EndsWith('$')) {
                 $SAMAccountName = '{0}$' -f $SAMAccountName
             }
             $Directory_Search_LDAPFilter = '(samaccountname={0})' -f $SAMAccountName
