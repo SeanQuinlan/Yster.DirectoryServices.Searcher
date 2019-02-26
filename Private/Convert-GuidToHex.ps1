@@ -3,14 +3,17 @@ function Convert-GuidToHex {
     .SYNOPSIS
         Converts a GUID value to a HEX value suitable for using in LDAPFilter.
     .DESCRIPTION
-
+        Takes a GUID or string in GUID format, and converts that into a HEX value, with each byte escaped with a backslash.
     .EXAMPLE
-
+        Convert-GuidToHex -Guid 'eaa2e65d-fe54-4fe2-9f4e-acf9f65a2323'
+    .NOTES
+        References:
+        https://unlockpowershell.wordpress.com/2010/07/01/powershell-search-ad-for-a-guid/
     #>
 
     [CmdletBinding()]
     param(
-        # The GUID string.
+        # The GUID or GUID string.
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         $Guid
