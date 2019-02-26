@@ -36,7 +36,7 @@ function ConvertTo-SortedPSObject {
     # Sort results and then add to a new hashtable, as PSObject requires a hashtable as Property. GetEnumerator() piped into Sort-Object changes the output to an array.
     $Input_Object_Sorted = [Ordered]@{}
     $Input_Object_Properties | Sort-Object -Property 'Name' | ForEach-Object {
-        $Input_Object_Sorted[$_.Name] = $_.Value
+        $Input_Object_Sorted[$_.Name.ToLower()] = $_.Value
     }
     New-Object -TypeName 'System.Management.Automation.PSObject' -Property $Input_Object_Sorted
 }
