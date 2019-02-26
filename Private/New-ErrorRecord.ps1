@@ -1,13 +1,11 @@
 function New-ErrorRecord {
     <#
     .SYNOPSIS
-        Create a terminating or non-terminating error.
+        Create an ErrorRecord object that can be used to output a custom error message.
     .DESCRIPTION
         Long description
     .EXAMPLE
         Example of how to use this script
-    .EXAMPLE
-        Another example of how to use this script
     #>
 
     [CmdletBinding()]
@@ -80,16 +78,14 @@ function New-ErrorRecord {
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
 
-    $null = $Exception_Arguments
-    if ($Message -and $InnerException) {
+    if ($PSBoundParameters.ContainsKey('Message') -and $PSBoundParameters.ContainsKey('InnerException')) {
         $Exception_Arguments = $Message, $InnerException
-    } elseif ($Message) {
+    } elseif ($PSBoundParameters.ContainsKey('Message')) {
         $Exception_Arguments = $Message
     }
     $ErrorException = New-Object -TypeName $Exception -ArgumentList $Exception_Arguments
-
     $ErrorRecord_Arguments = @($ErrorException, $ID, $Category, $TargetObject)
-    $ErrorRecord = New-Object -TypeName 'System.Management.Automation.ErrorRecord' -ArgumentList $ErrorRecord_Arguments
 
-    $ErrorRecord
+    # Return the ErrorRecord object
+    New-Object -TypeName 'System.Management.Automation.ErrorRecord' -ArgumentList $ErrorRecord_Arguments
 }
