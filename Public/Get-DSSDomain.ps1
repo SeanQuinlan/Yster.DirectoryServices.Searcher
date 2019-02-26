@@ -197,6 +197,7 @@ function Get-DSSDomain {
             $Directory_Search_LDAPFilter = '(&({0})(objectsid={1}))' -f $Default_Domain_LDAPFilter, $ObjectSID
         } elseif ($PSBoundParameters.ContainsKey('ObjectGUID')) {
             $Directory_Search_LDAPFilter = '(&({0})(objectguid={1}))' -f $Default_Domain_LDAPFilter, (Convert-GuidToHex -Guid $ObjectGUID)
+            #todo
             #        } elseif ($PSBoundParameters.ContainsKey('NetBIOSName')) {
             #            $Directory_Search_LDAPFilter = '(x={0})' -f $NetBIOSName
         }

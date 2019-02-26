@@ -3,7 +3,7 @@ function Find-DSSOrganizationalUnit {
     .SYNOPSIS
         Finds an Organizational Unit (OU) in Active Directory.
     .DESCRIPTION
-
+        Performs an LDAP search for all Organizational Units that match the Name or LDAPFilter supplied properties.
     .EXAMPLE
         Find-DSSOrganizationalUnit -Name "Sales"
 
@@ -117,6 +117,7 @@ function Find-DSSOrganizationalUnit {
         'whenchanged'
         'whencreated'
     )
+
     try {
         $Directory_Search_Parameters = @{
             'Context'  = $Context

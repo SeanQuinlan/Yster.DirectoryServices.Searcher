@@ -1,15 +1,20 @@
 function Get-DSSDirectoryEntry {
     <#
     .SYNOPSIS
-        Short description
+        This creates a DirectoryEntry object, which is used when performing LDAP queries.
     .DESCRIPTION
-        Long description
+        Creates a DirectoryEntry object, using the specified Context, Server, SearchBase and/or Credentials.
+
+        This is mostly used to provide custom credentials and/or LDAP server to connect to. Omitting Server will result in a serverless bind. Omitting the credentials will use the currently logged in user credentials. The Context is used to decide whether to connect to any LDAP server (Domain) or to a Global Catalog server (Forest).
     .EXAMPLE
-        Example of how to use this script
-    .EXAMPLE
-        Another example of how to use this script
+        $Directory_Entry_Parameters = @{
+            'Context' = 'Domain'
+            'Server'  = 'Server01'
+        }
+        Get-DSSDirectoryEntry @Directory_Entry_Parameters
     .NOTES
         References:
+        https://docs.microsoft.com/en-us/dotnet/api/system.directoryservices.directoryentry
         http://www.selfadsi.org/bind.htm
     #>
 
@@ -58,8 +63,8 @@ function Get-DSSDirectoryEntry {
             Write-Verbose ('{0}|Using server: {1}' -f $Function_Name, $Server)
             [void]$Directory_Entry_Path.Append(('{0}' -f $Server))
         } else {
-            Write-Verbose ('{0}|No Server specified, attempting to find current domain to use instead...' -f $Function_Name)
             try {
+                Write-Verbose ('{0}|No Server specified, attempting to find current domain to use instead...' -f $Function_Name)
                 $Check_For_Domain = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
                 Write-Verbose ('{0}|Found domain: {1}' -f $Function_Name, $Check_For_Domain.Name)
                 [void]$Directory_Entry_Path.Append($Check_For_Domain.Name)
