@@ -39,7 +39,7 @@ function Get-DSSComputer {
         [String]
         $ObjectGUID,
 
-        # The SAMAccountName of the computer. Note: Must end in $.
+        # The SAMAccountName of the computer.
         [Parameter(Mandatory = $true, ParameterSetName = 'SAM')]
         [ValidateNotNullOrEmpty()]
         [Alias('SAM')]
@@ -104,6 +104,9 @@ function Get-DSSComputer {
         } elseif ($PSBoundParameters.ContainsKey('ObjectGUID')) {
             $Directory_Search_LDAPFilter = '(objectguid={0})' -f (Convert-GuidToHex -Guid $ObjectGUID)
         } elseif ($PSBoundParameters.ContainsKey('SAMAccountName')) {
+            if (-not $SAMAccountName.EndsWith('$') {
+                $SAMAccountName = '{0}$' -f $SAMAccountName
+            }
             $Directory_Search_LDAPFilter = '(samaccountname={0})' -f $SAMAccountName
         }
         Write-Verbose ('{0}|LDAPFilter: {1}' -f $Function_Name, $Directory_Search_LDAPFilter)
