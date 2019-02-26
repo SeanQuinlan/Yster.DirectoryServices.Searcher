@@ -163,29 +163,29 @@ function Get-DSSDomain {
             $Common_Search_Parameters['Credential'] = $Credential
         }
 
-        $Directory_Search_Properties = New-Object -TypeName 'System.Collections.Generic.List[String]'
+        $Function_Search_Properties = New-Object -TypeName 'System.Collections.Generic.List[String]'
         if ($PSBoundParameters.ContainsKey('Properties')) {
             Write-Verbose ('{0}|Adding default properties first' -f $Function_Name)
-            $Directory_Search_Properties.AddRange($Default_Properties)
+            $Function_Search_Properties.AddRange($Default_Properties)
             if ($Properties -contains '*') {
                 Write-Verbose ('{0}|Adding other wildcard properties' -f $Function_Name)
-                $Directory_Search_Properties.AddRange($Wildcard_Properties)
+                $Function_Search_Properties.AddRange($Wildcard_Properties)
             }
             foreach ($Property in $Properties) {
-                if (($Property -ne '*') -and ($Directory_Search_Properties -notcontains $Property)) {
+                if (($Property -ne '*') -and ($Function_Search_Properties -notcontains $Property)) {
                     Write-Verbose ('{0}|Adding Property: {1}' -f $Function_Name, $Property)
-                    $Directory_Search_Properties.Add($Property)
+                    $Function_Search_Properties.Add($Property)
                 }
             }
         } else {
             Write-Verbose ('{0}|No properties specified, adding default properties only' -f $Function_Name)
-            $Directory_Search_Properties.AddRange($Default_Properties)
+            $Function_Search_Properties.AddRange($Default_Properties)
         }
-        Write-Verbose ('{0}|Properties: {1}' -f $Function_Name, ($Directory_Search_Properties -join ' '))
+        Write-Verbose ('{0}|Properties: {1}' -f $Function_Name, ($Function_Search_Properties -join ' '))
 
         $Directory_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
         $Directory_Search_Parameters['Context'] = $Context
-        $Directory_Search_Parameters['Properties'] = $Directory_Search_Properties
+        $Directory_Search_Parameters['Properties'] = $Function_Search_Properties
 
         $Default_Domain_LDAPFilter = '(objectclass=domain)'
         if ($PSBoundParameters.ContainsKey('DNSName')) {
@@ -208,8 +208,8 @@ function Get-DSSDomain {
         $Domain_Results_To_Return = Find-DSSObject @Directory_Search_Parameters
 
         # Some properties need to be gathered via different methods.
-        $Network_Properties_To_Process = $Directory_Search_Properties | Where-Object { $Network_Properties -contains $_ }
-        $Domain_Properties_To_Process = $Directory_Search_Properties | Where-Object { $Domain_Properties -contains $_ }
+        $Network_Properties_To_Process = $Function_Search_Properties | Where-Object { $Network_Properties -contains $_ }
+        $Domain_Properties_To_Process = $Function_Search_Properties | Where-Object { $Domain_Properties -contains $_ }
 
         if ($Network_Properties_To_Process -or $Domain_Properties_To_Process) {
             Write-Verbose ('{0}|Calculating DSE properties' -f $Function_Name)
@@ -217,12 +217,12 @@ function Get-DSSDomain {
             Write-Verbose ('{0}|Calling Get-DSSRootDSE' -f $Function_Name)
             $DSE_Return_Object = Get-DSSRootDSE @DSE_Search_Parameters
 
-            $Configuration_Path = 'CN=Partitions,{0}' -f $DSE_Return_Object.'configurationNamingContext'
-            Write-Verbose ('{0}|DSE: Configuration_Path: {1}' -f $Function_Name, $Configuration_Path)
+            $Partitions_Path = 'CN=Partitions,{0}' -f $DSE_Return_Object.'configurationnamingcontext'
+            Write-Verbose ('{0}|DSE: Partitions_Path: {1}' -f $Function_Name, $Partitions_Path)
 
             $Network_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
             $Network_Search_Parameters['Context'] = $Context
-            $Network_Search_Parameters['SearchBase'] = $Configuration_Path
+            $Network_Search_Parameters['SearchBase'] = $Partitions_Path
             $Network_Search_Parameters['LDAPFilter'] = '(&(objectclass=crossref)(netbiosname=*))'
             $Network_Search_Parameters['Properties'] = $Network_Properties
 

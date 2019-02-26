@@ -105,24 +105,24 @@ function Get-DSSForest {
             $Common_Search_Parameters['Credential'] = $Credential
         }
 
-        $Directory_Search_Properties = New-Object -TypeName 'System.Collections.Generic.List[String]'
+        $Function_Search_Properties = New-Object -TypeName 'System.Collections.Generic.List[String]'
         if ($PSBoundParameters.ContainsKey('Properties')) {
             Write-Verbose ('{0}|Adding default properties first' -f $Function_Name)
-            $Directory_Search_Properties.AddRange($Default_Properties)
+            $Function_Search_Properties.AddRange($Default_Properties)
             if ($Properties -contains '*') {
                 Write-Verbose ('{0}|Wildcard specified, but all properties are default, doing nothing' -f $Function_Name)
             }
             foreach ($Property in $Properties) {
-                if (($Property -ne '*') -and ($Directory_Search_Properties -notcontains $Property)) {
+                if (($Property -ne '*') -and ($Function_Search_Properties -notcontains $Property)) {
                     Write-Verbose ('{0}|Adding Property: {1}' -f $Function_Name, $Property)
-                    $Directory_Search_Properties.Add($Property)
+                    $Function_Search_Properties.Add($Property)
                 }
             }
         } else {
             Write-Verbose ('{0}|No properties specified, adding default properties only' -f $Function_Name)
-            $Directory_Search_Properties.AddRange($Default_Properties)
+            $Function_Search_Properties.AddRange($Default_Properties)
         }
-        Write-Verbose ('{0}|Properties: {1}' -f $Function_Name, ($Directory_Search_Properties -join ' '))
+        Write-Verbose ('{0}|Properties: {1}' -f $Function_Name, ($Function_Search_Properties -join ' '))
 
         $Forest_Results_To_Return = @{}
 
@@ -179,7 +179,7 @@ function Get-DSSForest {
         $Forest_Context = Get-DSSDirectoryContext @Forest_Context_Arguments
         $Current_Forest_Properties = [System.DirectoryServices.ActiveDirectory.Forest]::GetForest($Forest_Context)
 
-        $Directory_Search_Properties | Where-Object { ($DSE_Properties -notcontains $_) -and ($Partitions_Properties -notcontains $_) } | ForEach-Object {
+        $Function_Search_Properties | Where-Object { ($DSE_Properties -notcontains $_) -and ($Partitions_Properties -notcontains $_) } | ForEach-Object {
             if ($_ -eq 'domainnamingmaster') {
                 $Forest_Result_Value = $Current_Forest_Properties.'NamingRoleOwner'
             } elseif ($_ -eq 'schemamaster') {
