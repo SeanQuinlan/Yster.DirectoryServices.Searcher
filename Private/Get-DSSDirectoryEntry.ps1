@@ -59,9 +59,22 @@ function Get-DSSDirectoryEntry {
             [void]$Directory_Entry_Path.Append(('{0}' -f $Server))
         } else {
             Write-Verbose ('{0}|No Server specified, attempting to find current domain to use instead...' -f $Function_Name)
-            $Check_For_Domain = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
-            Write-Verbose ('{0}|Found domain: {1}' -f $Function_Name, $Check_For_Domain.Name)
-            [void]$Directory_Entry_Path.Append($Check_For_Domain.Name)
+            try {
+                $Check_For_Domain = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
+                Write-Verbose ('{0}|Found domain: {1}' -f $Function_Name, $Check_For_Domain.Name)
+                [void]$Directory_Entry_Path.Append($Check_For_Domain.Name)
+            } catch {
+                $Terminating_ErrorRecord_Parameters = @{
+                    'Exception'      = 'System.DirectoryServices.ActiveDirectory.ActiveDirectoryOperationException'
+                    'ID'             = 'DSS-Active Directory'
+                    'Category'       = 'InvalidOperation'
+                    'TargetObject'   = $Check_For_Domain
+                    'Message'        = $_.Exception.InnerException.Message
+                    'InnerException' = $_.Exception
+                }
+                $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+                $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+            }
         }
         if ($PSBoundParameters.ContainsKey('SearchBase')) {
             Write-Verbose ('{0}|Using custom SearchBase: {1}' -f $Function_Name, $SearchBase)
@@ -87,7 +100,11 @@ function Get-DSSDirectoryEntry {
         # Return the DirectoryEntry object
         New-Object -TypeName 'System.DirectoryServices.DirectoryEntry' -ArgumentList $Directory_Entry_Arguments
     } catch {
-        $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_
-        $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+        if ($_.FullyQualifiedErrorId -match '^DSS-') {
+            $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_
+            $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+        } else {
+            throw
+        }
     }
 }
