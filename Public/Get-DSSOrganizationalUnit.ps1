@@ -92,7 +92,11 @@ function Get-DSSOrganizationalUnit {
         Write-Verbose ('{0}|Calling Find-DSSOrganizationalUnit' -f $Function_Name)
         Find-DSSOrganizationalUnit @Directory_Search_Parameters
     } catch {
-        $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_
-        $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+        if ($_.FullyQualifiedErrorId -match '^DSS-') {
+            $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_
+            $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+        } else {
+            throw
+        }
     }
 }

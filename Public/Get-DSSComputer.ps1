@@ -112,7 +112,11 @@ function Get-DSSComputer {
         Write-Verbose ('{0}|Calling Find-DSSComputer' -f $Function_Name)
         Find-DSSComputer @Directory_Search_Parameters
     } catch {
-        $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_
-        $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+        if ($_.FullyQualifiedErrorId -match '^DSS-') {
+            $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_
+            $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+        } else {
+            throw
+        }
     }
 }

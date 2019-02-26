@@ -274,7 +274,11 @@ function Get-DSSDomain {
         # Return the full domain object after sorting.
         ConvertTo-SortedPSObject -InputObject $Domain_Results_To_Return
     } catch {
-        $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_
-        $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+        if ($_.FullyQualifiedErrorId -match '^DSS-') {
+            $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_
+            $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+        } else {
+            throw
+        }
     }
 }

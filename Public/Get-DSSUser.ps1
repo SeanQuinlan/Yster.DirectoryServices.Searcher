@@ -112,7 +112,11 @@ function Get-DSSUser {
         Write-Verbose ('{0}|Calling Find-DSSUser' -f $Function_Name)
         Find-DSSUser @Directory_Search_Parameters
     } catch {
-        $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_
-        $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+        if ($_.FullyQualifiedErrorId -match '^DSS-') {
+            $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_
+            $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+        } else {
+            throw
+        }
     }
 }

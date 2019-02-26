@@ -171,7 +171,11 @@ function Find-DSSOrganizationalUnit {
         Write-Verbose ('{0}|Finding OUs using Find-DSSObject' -f $Function_Name)
         Find-DSSObject @Directory_Search_Parameters
     } catch {
-        $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_
-        $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+        if ($_.FullyQualifiedErrorId -match '^DSS-') {
+            $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_
+            $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+        } else {
+            throw
+        }
     }
 }

@@ -251,7 +251,7 @@ function Find-DSSObject {
         } catch {
             $Terminating_ErrorRecord_Parameters = @{
                 'Exception'      = 'System.Security.Authentication.AuthenticationException'
-                'ID'             = 'Active Directory'
+                'ID'             = 'DSS-Active Directory'
                 'Category'       = 'SecurityError'
                 'TargetObject'   = $Directory_Searcher
                 'Message'        = 'The server has rejected the client credentials.'
@@ -499,8 +499,12 @@ function Find-DSSObject {
             Write-Verbose ('{0}|No results found!' -f $Function_Name)
         }
     } catch {
-        $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_
-        $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+        if ($_.FullyQualifiedErrorId -match '^DSS-') {
+            $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_
+            $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+        } else {
+            throw
+        }
     }
 }
 

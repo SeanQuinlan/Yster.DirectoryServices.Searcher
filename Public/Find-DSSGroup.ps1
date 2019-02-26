@@ -206,7 +206,11 @@ function Find-DSSGroup {
         Write-Verbose ('{0}|Finding group using Find-DSSObject' -f $Function_Name)
         Find-DSSObject @Directory_Search_Parameters
     } catch {
-        $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_
-        $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+        if ($_.FullyQualifiedErrorId -match '^DSS-') {
+            $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_
+            $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+        } else {
+            throw
+        }
     }
 }
