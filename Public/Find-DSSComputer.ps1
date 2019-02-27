@@ -261,7 +261,7 @@ function Find-DSSComputer {
                     if ($Non_LDAP_Network_Property -eq 'ipv4address') {
                         $Non_LDAP_Network_Property_AddressList = ($Host_IP_Addresses | Where-Object { $_.AddressFamily -eq 'InterNetwork' }).IPAddressToString
                     } elseif ($Non_LDAP_Network_Property -eq 'ipv6address') {
-                        $Non_LDAP_Network_Property_AddressList = ($Host_IP_Addresses | Where-Object { $_.AddressFamily -eq 'InterNetworkV6' }).IPAddressToString
+                        $Non_LDAP_Network_Property_AddressList = ($Host_IP_Addresses | Where-Object { ($_.AddressFamily -eq 'InterNetworkV6') -and (-not $_.IsIPv6LinkLocal) -and (-not $_.IsIPv6SiteLocal) }).IPAddressToString
                     }
                     $Non_LDAP_Network_Property_To_Add = New-Object -TypeName 'System.Management.Automation.PSNoteProperty' -ArgumentList @($Non_LDAP_Network_Property, $Non_LDAP_Network_Property_AddressList)
                     $Computer_Results_To_Return.PSObject.Properties.Add($Non_LDAP_Network_Property_To_Add)
