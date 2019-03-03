@@ -42,10 +42,10 @@ function Get-DSSRootDSE {
             'SearchBase' = 'RootDSE'
         }
         if ($PSBoundParameters.ContainsKey('Server')) {
-            $Directory_Search_Parameters['Server'] = $Server
+            $Directory_Entry_Parameters['Server'] = $Server
         }
         if ($PSBoundParameters.ContainsKey('Credential')) {
-            $Directory_Search_Parameters['Credential'] = $Credential
+            $Directory_Entry_Parameters['Credential'] = $Credential
         }
         $Directory_Entry = Get-DSSDirectoryEntry @Directory_Entry_Parameters
         if (-not $Directory_Entry.Properties) {
