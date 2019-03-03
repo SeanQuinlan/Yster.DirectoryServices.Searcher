@@ -205,7 +205,7 @@ function Find-DSSDomainController {
                 Write-Verbose ('{0}|Calling Get-DSSRootDSE' -f $Function_Name)
                 $DSE_Return_Object = Get-DSSRootDSE @DSE_Search_Parameters
                 $Sites_Path = 'CN=Sites,{0}' -f $DSE_Return_Object.'configurationnamingcontext'
-                Write-Verbose ('{0}|DSE: Sites_Path: {1}' -f $Function_Name, $Partitions_Path)
+                Write-Verbose ('{0}|DSE: Sites_Path: {1}' -f $Function_Name, $Sites_Path)
 
                 $Site_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
                 $Site_Search_Parameters['Context'] = $Context
