@@ -89,6 +89,16 @@ function Get-DSSGroupMember {
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
 
+    # Default properties when none are specified. Otherwise the specified properties override these.
+    [String[]]$Default_Properties = @(
+        'distinguishedname'
+        'name'
+        'objectclass'
+        'objectguid'
+        'objectsid'
+        'samaccountname'
+    )
+
     try {
         $Common_Search_Parameters = @{
             'Context'  = $Context
@@ -137,6 +147,8 @@ function Get-DSSGroupMember {
         $Directory_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
         if ($PSBoundParameters.ContainsKey('Properties')) {
             $Directory_Search_Parameters['Properties'] = $Properties
+        } else {
+            $Directory_Search_Parameters['Properties'] = $Default_Properties
         }
         if ($PSBoundParameters.ContainsKey('Recursive')) {
             $Directory_Search_LDAPFilter = '(memberof:1.2.840.113556.1.4.1941:={0})' -f $DistinguishedName
