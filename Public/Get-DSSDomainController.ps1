@@ -112,8 +112,8 @@ function Get-DSSDomainController {
         Write-Verbose ('{0}|LDAPFilter: {1}' -f $Function_Name, $Directory_Search_LDAPFilter)
         $Directory_Search_Parameters['LDAPFilter'] = $Directory_Search_LDAPFilter
 
-        Write-Verbose ('{0}|Calling Find-DSSComputer' -f $Function_Name)
-        Find-DSSComputer @Directory_Search_Parameters
+        Write-Verbose ('{0}|Calling Find-DSSDomainController' -f $Function_Name)
+        Find-DSSDomainController @Directory_Search_Parameters
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
             $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_
