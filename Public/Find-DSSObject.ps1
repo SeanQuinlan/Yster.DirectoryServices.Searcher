@@ -143,9 +143,12 @@ function Find-DSSObject {
         }
     }
 
-    # Get-ADDomain also adds some useful calculated properties.
+    # Get-ADDomain and Get-ADOptionalFeature also adds some useful calculated properties.
     $Useful_Calculated_Domain_Properties = @{
-        'gplink' = 'linkedgrouppolicyobjects'
+        'gplink'                             = 'linkedgrouppolicyobjects'
+        'msds-optionalfeatureflags'          = 'featurescope'
+        'msds-requireddomainbehaviorversion' = 'requireddomainmode'
+        'msds-requiredforestbehaviorversion' = 'requiredforestmode'
     }
 
     # These are calculated from the 'msds-supportedencryptiontypes' property.
@@ -281,7 +284,7 @@ function Find-DSSObject {
                     Write-Verbose ('{0}|Property={1} Value={2}' -f $Function_Name, $Current_Searcher_Result_Property, $Current_Searcher_Result_Value)
 
                     # Reformat certain properties:
-                    switch ($Current_Searcher_Result_Property) {
+                    switch -Regex ($Current_Searcher_Result_Property) {
                         # - NTSecurityDescriptor - replace with the System.DirectoryServices.ActiveDirectorySecurity object instead.
                         'ntsecuritydescriptor' {
                             Write-Verbose ('{0}|Reformatting to ActiveDirectorySecurity object: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
@@ -289,7 +292,7 @@ function Find-DSSObject {
                         }
 
                         # - GUID attributes - replace with System.Guid object.
-                        'objectguid' {
+                        'guid$' {
                             Write-Verbose ('{0}|Reformatting to GUID object: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
                             $Current_Searcher_Result_Value = New-Object 'System.Guid' -ArgumentList @(, $Current_Searcher_Result_Value)
                         }
@@ -455,6 +458,12 @@ function Find-DSSObject {
                                 # Convert the "gplink" string property into an array of strings, selecting just the Group Policy DistinguishedName.
                                 $Regex_GPLink = [System.Text.RegularExpressions.Regex]'\[LDAP://(.*?)\;\d\]'
                                 $Result_Object[$Useful_Calculated_Domain_Property_Name] = $Regex_GPLink.Matches($Current_Searcher_Result_Value) | ForEach-Object { $_.Groups[1].Value }
+                            } elseif ($Useful_Calculated_Domain_Property_Name -eq 'requireddomainmode') {
+                                $Result_Object[$Useful_Calculated_Domain_Property_Name] = $DomainMode_Table[$Current_Searcher_Result_Value.ToString()]
+                            } elseif ($Useful_Calculated_Domain_Property_Name -eq 'requiredforestmode') {
+                                $Result_Object[$Useful_Calculated_Domain_Property_Name] = $ForestMode_Table[$Current_Searcher_Result_Value.ToString()]
+                            } elseif ($Useful_Calculated_Domain_Property_Name -eq 'featurescope') {
+                                $Result_Object[$Useful_Calculated_Domain_Property_Name] = $OptionalFeature_Scope_Table[$Current_Searcher_Result_Value.ToString()]
                             }
                         }
 
@@ -508,7 +517,7 @@ function Find-DSSObject {
     }
 }
 
-# An Enum to determine KerberosEncryptionType
+# An Enum to determine KerberosEncryptionType.
 # Taken from https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-kile/6cfc7b50-11ed-4b4d-846d-6f08f0812919
 Add-Type -TypeDefinition @"
     [System.Flags]
@@ -520,3 +529,11 @@ Add-Type -TypeDefinition @"
         AES256  = 0x10
     }
 "@
+
+# As of February 2019 there are only 2 OptionalFeatures available (Recycle Bin and Privileged Access Management) and both are Forest-wide in scope.
+# Therefore the below table is a guess based on values taken from Enable-ADOptionalFeature - https://docs.microsoft.com/en-us/powershell/module/addsadministration/enable-adoptionalfeature
+# Optional Features detailed here: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-adts/9ae2a9ad-970c-4938-a6bf-9c1fdc0b8b3e
+$OptionalFeature_Scope_Table = @{
+    '0' = 'Domain'
+    '1' = 'ForestOrConfigurationSet'
+}
