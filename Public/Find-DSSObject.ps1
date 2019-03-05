@@ -147,6 +147,7 @@ function Find-DSSObject {
     $Useful_Calculated_Domain_Properties = @{
         'gplink'                             = 'linkedgrouppolicyobjects'
         'msds-optionalfeatureflags'          = 'featurescope'
+        'msds-optionalfeatureguid'           = 'featureguid'
         'msds-requireddomainbehaviorversion' = 'requireddomainmode'
         'msds-requiredforestbehaviorversion' = 'requiredforestmode'
     }
@@ -254,7 +255,7 @@ function Find-DSSObject {
         } catch {
             $Terminating_ErrorRecord_Parameters = @{
                 'Exception'      = 'System.Security.Authentication.AuthenticationException'
-                'ID'             = 'DSS-Active Directory'
+                'ID'             = 'DSS-{0}' -f $Function_Name
                 'Category'       = 'SecurityError'
                 'TargetObject'   = $Directory_Searcher
                 'Message'        = 'The server has rejected the client credentials.'
@@ -292,7 +293,7 @@ function Find-DSSObject {
                         }
 
                         # - GUID attributes - replace with System.Guid object.
-                        'guid$' {
+                        'objectguid' {
                             Write-Verbose ('{0}|Reformatting to GUID object: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
                             $Current_Searcher_Result_Value = New-Object 'System.Guid' -ArgumentList @(, $Current_Searcher_Result_Value)
                         }
@@ -464,6 +465,8 @@ function Find-DSSObject {
                                 $Result_Object[$Useful_Calculated_Domain_Property_Name] = $ForestMode_Table[$Current_Searcher_Result_Value.ToString()]
                             } elseif ($Useful_Calculated_Domain_Property_Name -eq 'featurescope') {
                                 $Result_Object[$Useful_Calculated_Domain_Property_Name] = $OptionalFeature_Scope_Table[$Current_Searcher_Result_Value.ToString()]
+                            } elseif ($Useful_Calculated_Domain_Property_Name -eq 'featureguid') {
+                                $Result_Object[$Useful_Calculated_Domain_Property_Name] = New-Object 'System.Guid' -ArgumentList @(, $Current_Searcher_Result_Value)
                             }
                         }
 
