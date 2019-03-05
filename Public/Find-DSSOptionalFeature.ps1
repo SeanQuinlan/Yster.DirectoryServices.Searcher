@@ -173,7 +173,7 @@ function Find-DSSOptionalFeature {
         Write-Verbose ('{0}|Properties: {1}' -f $Function_Name, ($Function_Search_Properties -join ' '))
         $Directory_Search_Parameters['Properties'] = $Function_Search_Properties
 
-        $Default_LDAPFilter = '(objectclass=msDS-OptionalFeature)'
+        $Default_LDAPFilter = '(objectclass=msds-optionalfeature)'
         if ($LDAPFilter) {
             $Directory_Search_LDAPFilter = '(&{0}{1})' -f $Default_LDAPFilter, $LDAPFilter
         } else {
