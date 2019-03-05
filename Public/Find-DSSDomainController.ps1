@@ -81,6 +81,7 @@ function Find-DSSDomainController {
     # A small number of default properties. These are always returned, in addition to any specified in the Properties parameter.
     [String[]]$Default_Properties = @(
         'distinguishedname'
+        'dnshostname'
         'enabled'
         'name'
         'site'
@@ -122,6 +123,7 @@ function Find-DSSDomainController {
     # These are the properties that will be returned from a call to Get-DSSComputer.
     $Computer_Properties = @(
         'distinguishedname'
+        'dnshostname'
         'enabled'
         'ipv4address'
         'ipv6address'
@@ -171,17 +173,17 @@ function Find-DSSDomainController {
         }
         Write-Verbose ('{0}|Properties: {1}' -f $Function_Name, ($Function_Search_Properties -join ' '))
 
-        $Computer_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
-        $Computer_Search_Parameters['Context'] = $Context
-        $Computer_Search_Parameters['PageSize'] = $PageSize
+        $Directory_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
+        $Directory_Search_Parameters['Context'] = $Context
+        $Directory_Search_Parameters['PageSize'] = $PageSize
         if ($PSBoundParameters.ContainsKey('SearchBase')) {
-            $Computer_Search_Parameters['SearchBase'] = $SearchBase
+            $Directory_Search_Parameters['SearchBase'] = $SearchBase
         }
         if ($PSBoundParameters.ContainsKey('SearchScope')) {
-            $Computer_Search_Parameters['SearchScope'] = $SearchScope
+            $Directory_Search_Parameters['SearchScope'] = $SearchScope
         }
         $Directory_Search_Properties = $Function_Search_Properties | Where-Object { $Computer_Properties -contains $_ }
-        $Computer_Search_Parameters['Properties'] = $Directory_Search_Properties
+        $Directory_Search_Parameters['Properties'] = $Directory_Search_Properties
 
         $Default_Computer_LDAPFilter = '(&(userAccountControl:1.2.840.113556.1.4.803:=8192))'
         if ($Name -eq '*') {
@@ -192,13 +194,14 @@ function Find-DSSDomainController {
             $Directory_Search_LDAPFilter = '(&{0}(ANR={1}))' -f $Default_Computer_LDAPFilter, $Name
         }
         Write-Verbose ('{0}|LDAPFilter: {1}' -f $Function_Name, $Directory_Search_LDAPFilter)
-        $Computer_Search_Parameters['LDAPFilter'] = $Directory_Search_LDAPFilter
+        $Directory_Search_Parameters['LDAPFilter'] = $Directory_Search_LDAPFilter
 
-        Write-Verbose ('{0}|Finding domain controllers using Find-DSSComputer' -f $Function_Name)
-        $DomainController_Results = Find-DSSComputer @Computer_Search_Parameters
+        Write-Verbose ('{0}|Finding domain controllers using Find-DSSObject' -f $Function_Name)
+        $Results_To_Return = Find-DSSObject @Directory_Search_Parameters
 
-        if ($DomainController_Results) {
+        if ($Results_To_Return) {
             $Partition_Properties_To_Process = $Function_Search_Properties | Where-Object { $Partition_Properties -contains $_ }
+            $Other_Properties_To_Process = $Function_Search_Properties | Where-Object { ($Computer_Properties -notcontains $_) -and ($Partition_Properties -notcontains $_) }
             if ($Partition_Properties_To_Process) {
                 Write-Verbose ('{0}|Calculating DSE properties' -f $Function_Name)
                 $DSE_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
@@ -218,77 +221,73 @@ function Find-DSSDomainController {
                 $Site_Results = Find-DSSObject @Site_Search_Parameters
             }
 
-            foreach ($DomainController_Result in $DomainController_Results) {
+            foreach ($Result_To_Return in $Results_To_Return) {
                 if ($Partition_Properties_To_Process) {
-                    $Server_Object = $Site_Results | Where-Object { $_.'ServerReference' -eq $DomainController_Result.'distinguishedname' }
-                    $NTDS_Settings = $Site_Results | Where-Object { ($_.'objectclass' -contains 'ntdsdsa') -and ($_.'distinguishedname' -match $Server_Object.'distinguishedname') }
+                    $Server_Object = $Site_Results | Where-Object { $_['ServerReference'] -eq $Result_To_Return['distinguishedname'] }
+                    $NTDS_Settings = $Site_Results | Where-Object { ($_['objectclass'] -contains 'ntdsdsa') -and ($_['distinguishedname'] -match $Server_Object['distinguishedname']) }
 
                     # Add any properties gathered from the Partitions object.
                     foreach ($Partition_Property in $Partition_Properties_To_Process) {
                         switch ($Partition_Property) {
                             'invocationid' {
-                                $Partition_Property_To_Add_Arguments = @($Partition_Property, $NTDS_Settings.'objectguid')
+                                $Partition_Property_Value = $NTDS_Settings['objectguid']
                             }
                             'isglobalcatalog' {
-                                $NTDS_Options_Flags = [Enum]::Parse('NTDSDSAOption', $NTDS_Settings.'options')
+                                $NTDS_Options_Flags = [Enum]::Parse('NTDSDSAOption', $NTDS_Settings['options'])
                                 if ($NTDS_Options_Flags -match 'IS_GC') {
-                                    $Partition_Property_To_Add_Arguments = @($Partition_Property, $true)
+                                    $Partition_Property_Value = $true
                                 } else {
-                                    $Partition_Property_To_Add_Arguments = @($Partition_Property, $false)
+                                    $Partition_Property_Value = $false
                                 }
                             }
                             'ntdssettingsobjectdn' {
-                                $Partition_Property_To_Add_Arguments = @($Partition_Property, $NTDS_Settings.'distinguishedname')
+                                $Partition_Property_Value = $NTDS_Settings['distinguishedname']
                             }
                             'serverobjectdn' {
-                                $Partition_Property_To_Add_Arguments = @($Partition_Property, $Server_Object.'distinguishedname')
+                                $Partition_Property_Value = $Server_Object['distinguishedname']
                             }
                             'serverobjectguid' {
-                                $Partition_Property_To_Add_Arguments = @($Partition_Property, $Server_Object.'objectguid')
+                                $Partition_Property_Value = $Server_Object['objectguid']
                             }
                             'site' {
-                                $Current_Site = $Site_Results | Where-Object { ($_.'objectclass' -contains 'site') -and ($Server_Object -match $_.'distinguishedname') }
-                                $Partition_Property_To_Add_Arguments = @($Partition_Property, $Current_Site.cn)
+                                $Current_Site = $Site_Results | Where-Object { ($_['objectclass'] -contains 'site') -and ($Server_Object['distinguishedname'] -match $_['distinguishedname']) }
+                                $Partition_Property_Value = $Current_Site['cn']
                             }
                         }
 
-                        $Partition_Property_To_Add = New-Object -TypeName 'System.Management.Automation.PSNoteProperty' -ArgumentList $Partition_Property_To_Add_Arguments
-                        Write-Verbose ('{0}|Partition: Adding Property: {1} = {2}' -f $Function_Name, $Partition_Property_To_Add_Arguments[0], $Partition_Property_To_Add_Arguments[1])
-                        $DomainController_Result.PSObject.Properties.Add($Partition_Property_To_Add)
+                        Write-Verbose ('{0}|Partition: Adding Property: {1} = {2}' -f $Function_Name, $Partition_Property, $Partition_Property_Value)
+                        $Result_To_Return[$Partition_Property] = $Partition_Property_Value
                     }
                 }
 
-                $Other_Properties = $Function_Search_Properties | Where-Object { ($Computer_Properties -notcontains $_) -and ($Partition_Properties -notcontains $_) }
-                foreach ($Other_Property in $Other_Properties) {
+                foreach ($Other_Property in $Other_Properties_To_Process) {
                     switch -Regex ($Other_Property) {
                         'isreadonly' {
-                            if ($DomainController_Result.'primarygroupid' -eq 521) {
-                                $Other_Property_To_Add_Arguments = @($Other_Property, $true)
+                            if ($Result_To_Return['primarygroupid'] -eq 521) {
+                                $Other_Property_Value = $true
                             } else {
-                                $Other_Property_To_Add_Arguments = @($Other_Property, $false)
+                                $Other_Property_Value = $false
                             }
                         }
                         'defaultpartition|partitions' {
                             $DSE_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
-                            $DSE_Search_Parameters['Server'] = $DomainController_Result.'dnshostname'
+                            $DSE_Search_Parameters['Server'] = $Result_To_Return['dnshostname']
                             Write-Verbose ('{0}|Calling Get-DSSRootDSE on server: {1}' -f $Function_Name, $DSE_Search_Parameters['Server'])
                             $DSE_Return_Object = Get-DSSRootDSE @DSE_Search_Parameters
                             if ($Other_Property -eq 'defaultpartition') {
-                                $Other_Property_To_Add_Arguments = @($Other_Property, $DSE_Return_Object.'defaultnamingcontext')
+                                $Other_Property_Value = $DSE_Return_Object.'defaultnamingcontext'
                             } elseif ($Other_Property -eq 'partitions') {
-                                $Other_Property_To_Add_Arguments = @($Other_Property, $DSE_Return_Object.'namingcontexts')
+                                $Other_Property_Value = $DSE_Return_Object.'namingcontexts'
                             }
                         }
                     }
 
-                    $Other_Property_To_Add = New-Object -TypeName 'System.Management.Automation.PSNoteProperty' -ArgumentList $Other_Property_To_Add_Arguments
-                    Write-Verbose ('{0}|Other: Adding Property: {1} = {2}' -f $Function_Name, $Other_Property_To_Add_Arguments[0], $Other_Property_To_Add_Arguments[1])
-                    $DomainController_Result.PSObject.Properties.Add($Other_Property_To_Add)
+                    Write-Verbose ('{0}|Other: Adding Property: {1} = {2}' -f $Function_Name, $Other_Property, $Other_Property_Value)
+                    $Result_To_Return[$Other_Property] = $Other_Property_Value
                 }
             }
 
-            # Return the full computer object after sorting.
-            ConvertTo-SortedPSObject -InputObject $DomainController_Results
+            $Results_To_Return | ConvertTo-SortedPSObject
         }
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {

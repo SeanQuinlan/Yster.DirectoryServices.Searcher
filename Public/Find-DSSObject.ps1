@@ -497,12 +497,10 @@ function Find-DSSObject {
                     }
                 }
 
-                # Sort the object alphabetically.
-                $Directory_Searcher_Result_Object = ConvertTo-SortedPSObject -InputObject $Result_Object
-                $Directory_Searcher_Result_To_Return.Add($Directory_Searcher_Result_Object)
+                # Add the formatted object to the return array.
+                $Directory_Searcher_Result_To_Return.Add($Result_Object)
             }
 
-            # Return the search results object.
             $Directory_Searcher_Result_To_Return
         } else {
             Write-Verbose ('{0}|No results found!' -f $Function_Name)

@@ -197,26 +197,26 @@ function Find-DSSUser {
             $Directory_Search_Parameters['Credential'] = $Credential
         }
 
-        $Directory_Search_Properties = New-Object -TypeName 'System.Collections.Generic.List[String]'
+        $Function_Search_Properties = New-Object -TypeName 'System.Collections.Generic.List[String]'
         if ($PSBoundParameters.ContainsKey('Properties')) {
             Write-Verbose ('{0}|Adding default properties first' -f $Function_Name)
-            $Directory_Search_Properties.AddRange($Default_Properties)
+            $Function_Search_Properties.AddRange($Default_Properties)
             if ($Properties -contains '*') {
                 Write-Verbose ('{0}|Adding other wildcard properties' -f $Function_Name)
-                $Directory_Search_Properties.AddRange($Wildcard_Properties)
+                $Function_Search_Properties.AddRange($Wildcard_Properties)
             }
             foreach ($Property in $Properties) {
-                if (($Property -ne '*') -and ($Directory_Search_Properties -notcontains $Property)) {
+                if (($Property -ne '*') -and ($Function_Search_Properties -notcontains $Property)) {
                     Write-Verbose ('{0}|Adding Property: {1}' -f $Function_Name, $Property)
-                    $Directory_Search_Properties.Add($Property)
+                    $Function_Search_Properties.Add($Property)
                 }
             }
         } else {
             Write-Verbose ('{0}|No properties specified, adding default properties only' -f $Function_Name)
-            $Directory_Search_Properties.AddRange($Default_Properties)
+            $Function_Search_Properties.AddRange($Default_Properties)
         }
-        Write-Verbose ('{0}|Properties: {1}' -f $Function_Name, ($Directory_Search_Properties -join ' '))
-        $Directory_Search_Parameters['Properties'] = $Directory_Search_Properties
+        Write-Verbose ('{0}|Properties: {1}' -f $Function_Name, ($Function_Search_Properties -join ' '))
+        $Directory_Search_Parameters['Properties'] = $Function_Search_Properties
 
         $Default_User_LDAPFilter = '(samaccounttype=805306368)'     # sAMAccountType is best method to search just user accounts - http://www.selfadsi.org/extended-ad/search-user-accounts.htm
         if ($Name -eq '*') {
@@ -230,7 +230,7 @@ function Find-DSSUser {
         $Directory_Search_Parameters['LDAPFilter'] = $Directory_Search_LDAPFilter
 
         Write-Verbose ('{0}|Finding users using Find-DSSObject' -f $Function_Name)
-        Find-DSSObject @Directory_Search_Parameters
+        Find-DSSObject @Directory_Search_Parameters | ConvertTo-SortedPSObject
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
             $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_

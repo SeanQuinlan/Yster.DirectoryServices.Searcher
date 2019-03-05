@@ -205,75 +205,77 @@ function Get-DSSDomain {
         $Directory_Search_Parameters['LDAPFilter'] = $Directory_Search_LDAPFilter
 
         Write-Verbose ('{0}|Calling Find-DSSObject' -f $Function_Name)
-        $Domain_Results_To_Return = Find-DSSObject @Directory_Search_Parameters
+        $Result_To_Return = Find-DSSObject @Directory_Search_Parameters
 
-        # Some properties need to be gathered via different methods.
-        $Network_Properties_To_Process = $Function_Search_Properties | Where-Object { $Network_Properties -contains $_ }
-        $Domain_Properties_To_Process = $Function_Search_Properties | Where-Object { $Domain_Properties -contains $_ }
+        if ($Result_To_Return) {
+            # Some properties need to be gathered via different methods.
+            $Network_Properties_To_Process = $Function_Search_Properties | Where-Object { $Network_Properties -contains $_ }
+            $Domain_Properties_To_Process = $Function_Search_Properties | Where-Object { $Domain_Properties -contains $_ }
 
-        if ($Network_Properties_To_Process -or $Domain_Properties_To_Process) {
-            Write-Verbose ('{0}|Calculating DSE properties' -f $Function_Name)
-            $DSE_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
-            Write-Verbose ('{0}|Calling Get-DSSRootDSE' -f $Function_Name)
-            $DSE_Return_Object = Get-DSSRootDSE @DSE_Search_Parameters
+            if ($Network_Properties_To_Process -or $Domain_Properties_To_Process) {
+                Write-Verbose ('{0}|Calculating DSE properties' -f $Function_Name)
+                $DSE_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
+                Write-Verbose ('{0}|Calling Get-DSSRootDSE' -f $Function_Name)
+                $DSE_Return_Object = Get-DSSRootDSE @DSE_Search_Parameters
 
-            $Partitions_Path = 'CN=Partitions,{0}' -f $DSE_Return_Object.'configurationnamingcontext'
-            Write-Verbose ('{0}|DSE: Partitions_Path: {1}' -f $Function_Name, $Partitions_Path)
+                $Partitions_Path = 'CN=Partitions,{0}' -f $DSE_Return_Object.'configurationnamingcontext'
+                Write-Verbose ('{0}|DSE: Partitions_Path: {1}' -f $Function_Name, $Partitions_Path)
 
-            $Network_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
-            $Network_Search_Parameters['Context'] = $Context
-            $Network_Search_Parameters['SearchBase'] = $Partitions_Path
-            $Network_Search_Parameters['LDAPFilter'] = '(&(objectclass=crossref)(netbiosname=*))'
-            $Network_Search_Parameters['Properties'] = $Network_Properties
+                $Network_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
+                $Network_Search_Parameters['Context'] = $Context
+                $Network_Search_Parameters['SearchBase'] = $Partitions_Path
+                $Network_Search_Parameters['LDAPFilter'] = '(&(objectclass=crossref)(netbiosname=*))'
+                $Network_Search_Parameters['Properties'] = $Network_Properties
 
-            Write-Verbose ('{0}|Network: Calling Find-DSSObject' -f $Function_Name)
-            $Network_Return_Object = Find-DSSObject @Network_Search_Parameters
+                Write-Verbose ('{0}|Network: Calling Find-DSSObject' -f $Function_Name)
+                $Network_Result_To_Return = Find-DSSObject @Network_Search_Parameters
 
-            foreach ($Network_Property in $Network_Properties_To_Process) {
-                if ($Network_Property -eq 'domainmode') {
-                    $Network_Property_ArgumentList = @($Network_Property, $DSE_Return_Object.'domainfunctionality')
-                } else {
-                    $Network_Property_ArgumentList = @($Network_Property, $Network_Return_Object.$Network_Property)
-                }
-                Write-Verbose ('{0}|Network: Adding: {1} - {2}' -f $Function_Name, $Network_Property_ArgumentList[0], $Network_Property_ArgumentList[1])
-                $Network_Property_To_Add = New-Object -TypeName 'System.Management.Automation.PSNoteProperty' -ArgumentList $Network_Property_ArgumentList
-                $Domain_Results_To_Return.PSObject.Properties.Add($Network_Property_To_Add)
-            }
-            if ($Domain_Properties_To_Process) {
-                Write-Verbose ('{0}|Calculating Domain properties for: {1}' -f $Function_Name, $Domain_Results_To_Return.'dnsroot')
-                $Domain_Context_Arguments = $Common_Search_Parameters.PSObject.Copy()
-                if ($PSBoundParameters.ContainsKey('Server')) {
-                    $Forest_Context_Arguments['Context'] = 'Server'
-                } else {
-                    $Forest_Context_Arguments['Context'] = 'Forest'
-                }
-                Write-Verbose ('{0}|Domain: Getting domain details' -f $Function_Name)
-                $Domain_Context = Get-DSSDirectoryContext @Domain_Context_Arguments
-                $Current_Domain_Properties = [System.DirectoryServices.ActiveDirectory.Domain]::GetDomain($Domain_Context)
-
-                foreach ($Domain_Property in $Domain_Properties_To_Process) {
-                    if ($Domain_Property -eq 'childdomains') {
-                        $Domain_Property_To_Add_Arguments = @($Domain_Property, $Current_Domain_Properties.'Children')
-                    } elseif ($Domain_Property -eq 'infrastructuremaster') {
-                        $Domain_Property_To_Add_Arguments = @($Domain_Property, $Current_Domain_Properties.'InfrastructureRoleOwner')
-                    } elseif ($Domain_Property -eq 'parentdomain') {
-                        $Domain_Property_To_Add_Arguments = @($Domain_Property, $Current_Domain_Properties.'Parent')
-                    } elseif ($Domain_Property -eq 'pdcemulator') {
-                        $Domain_Property_To_Add_Arguments = @($Domain_Property, $Current_Domain_Properties.'PdcRoleOwner')
-                    } elseif ($Domain_Property -eq 'ridmaster') {
-                        $Domain_Property_To_Add_Arguments = @($Domain_Property, $Current_Domain_Properties.'RidRoleOwner')
-                    } else {
-                        $Domain_Property_To_Add_Arguments = @($Domain_Property, $Current_Domain_Properties.$Domain_Property)
+                if ($Network_Result_To_Return) {
+                    foreach ($Network_Property in $Network_Properties_To_Process) {
+                        if ($Network_Property -eq 'domainmode') {
+                            $Network_Property_Value = $DSE_Return_Object.'domainfunctionality'
+                        } else {
+                            $Network_Property_Value = $Network_Result_To_Return[$Network_Property]
+                        }
+                        Write-Verbose ('{0}|Network: Adding: {1} - {2}' -f $Function_Name, $Network_Property, $Network_Property_Value)
+                        $Result_To_Return[$Network_Property] = $Network_Property_Value
                     }
-                    Write-Verbose ('{0}|Domain: Adding: {1} - {2}' -f $Function_Name, $Domain_Property, $Domain_Property_To_Add_Arguments[1])
-                    $Domain_Property_To_Add = New-Object -TypeName 'System.Management.Automation.PSNoteProperty' -ArgumentList $Domain_Property_To_Add_Arguments
-                    $Domain_Results_To_Return.PSObject.Properties.Add($Domain_Property_To_Add)
+                }
+
+                if ($Domain_Properties_To_Process) {
+                    Write-Verbose ('{0}|Calculating Domain properties for: {1}' -f $Function_Name, $Result_To_Return['dnsroot'])
+                    $Domain_Context_Arguments = $Common_Search_Parameters.PSObject.Copy()
+                    if ($PSBoundParameters.ContainsKey('Server')) {
+                        $Forest_Context_Arguments['Context'] = 'Server'
+                    } else {
+                        $Forest_Context_Arguments['Context'] = 'Forest'
+                    }
+                    Write-Verbose ('{0}|Domain: Getting domain details' -f $Function_Name)
+                    $Domain_Context = Get-DSSDirectoryContext @Domain_Context_Arguments
+                    $Current_Domain_Properties = [System.DirectoryServices.ActiveDirectory.Domain]::GetDomain($Domain_Context)
+
+                    foreach ($Domain_Property in $Domain_Properties_To_Process) {
+                        if ($Domain_Property -eq 'childdomains') {
+                            $Domain_Property_Value = $Current_Domain_Properties.'Children'
+                        } elseif ($Domain_Property -eq 'infrastructuremaster') {
+                            $Domain_Property_Value = $Current_Domain_Properties.'InfrastructureRoleOwner'
+                        } elseif ($Domain_Property -eq 'parentdomain') {
+                            $Domain_Property_Value = $Current_Domain_Properties.'Parent'
+                        } elseif ($Domain_Property -eq 'pdcemulator') {
+                            $Domain_Property_Value = $Current_Domain_Properties.'PdcRoleOwner'
+                        } elseif ($Domain_Property -eq 'ridmaster') {
+                            $Domain_Property_Value = $Current_Domain_Properties.'RidRoleOwner'
+                        } else {
+                            $Domain_Property_Value = $Current_Domain_Properties.$Domain_Property
+                        }
+                        Write-Verbose ('{0}|Domain: Adding: {1} - {2}' -f $Function_Name, $Domain_Property, $Domain_Property_Value)
+                        $Result_To_Return[$Domain_Property] = $Domain_Property_Value
+                    }
                 }
             }
-        }
 
-        # Return the full domain object after sorting.
-        ConvertTo-SortedPSObject -InputObject $Domain_Results_To_Return
+            $Result_To_Return | ConvertTo-SortedPSObject
+        }
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
             $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_
