@@ -171,6 +171,7 @@ function Find-DSSComputer {
         'samaccounttype'
         'sdrightseffective'
         'serverreferencebl'
+        'serviceaccount'
         'serviceprincipalname'
         'serviceprincipalnames'
         'sidhistory'
@@ -184,9 +185,6 @@ function Find-DSSComputer {
         'whenchanged'
         'whencreated'
         'wwwhomepage'
-
-        #todo not yet added
-        #'serviceaccount'
     )
 
     try {
