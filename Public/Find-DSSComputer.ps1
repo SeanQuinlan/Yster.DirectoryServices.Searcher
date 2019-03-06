@@ -102,6 +102,8 @@ function Find-DSSComputer {
         'accountlockouttime'
         'accountnotdelegated'
         'allowreversiblepasswordencryption'
+        'authenticationpolicy'
+        'authenticationpolicysilo'
         'badlogoncount'
         'badpasswordtime'
         'badpwdcount'
@@ -143,6 +145,8 @@ function Find-DSSComputer {
         'modified'
         'modifytimestamp'
         'msdfsr-computerreferencebl'
+        'msds-assignedauthnpolicy'
+        'msds-assignedauthnpolicysilo'
         'msds-generationid'
         'msds-supportedencryptiontypes'
         'msds-user-account-control-computed'
@@ -182,8 +186,6 @@ function Find-DSSComputer {
         'wwwhomepage'
 
         #todo not yet added
-        #'authenticationpolicy'
-        #'authenticationpolicysilo'
         #'serviceaccount'
     )
 

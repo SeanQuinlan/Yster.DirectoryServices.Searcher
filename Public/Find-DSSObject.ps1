@@ -83,28 +83,30 @@ function Find-DSSObject {
     # The AD Cmdlets add a number of "user-friendly" property names which are simply aliases of the existing LDAP properties.
     # - LDAP properties first, AD alias(es) second.
     $Microsoft_Alias_Properties = @{
-        'badpwdcount'              = 'badlogoncount'
-        'distinguishedname'        = 'computerobjectdn'
-        'c'                        = 'country'
-        'certificate'              = 'usercertificate'
-        'facsimiletelephonenumber' = 'fax'
-        'hostname'                 = 'dnshostname'
-        'isdeleted'                = 'deleted'
-        'l'                        = 'city'
-        'mail'                     = 'emailaddress'
-        'mobile'                   = 'mobilephone'
-        'o'                        = 'organization'
-        'objectsid'                = 'sid'
-        'office'                   = 'physicaldeliveryofficename'
-        'postofficebox'            = 'pobox'
-        'serviceprincipalname'     = 'serviceprincipalnames'
-        'sn'                       = 'surname'
-        'st'                       = 'state'
-        'street'                   = 'streetaddress'
-        'telephonenumber'          = 'officephone'
-        'whenchanged'              = @('modified', 'modifytimestamp')
-        'whencreated'              = @('created', 'createtimestamp')
-        'wwwhomepage'              = 'homepage'
+        'badpwdcount'                  = 'badlogoncount'
+        'distinguishedname'            = 'computerobjectdn'
+        'c'                            = 'country'
+        'certificate'                  = 'usercertificate'
+        'facsimiletelephonenumber'     = 'fax'
+        'hostname'                     = 'dnshostname'
+        'isdeleted'                    = 'deleted'
+        'l'                            = 'city'
+        'mail'                         = 'emailaddress'
+        'mobile'                       = 'mobilephone'
+        'msds-assignedauthnpolicy'     = 'authenticationpolicy'
+        'msds-assignedauthnpolicysilo' = 'authenticationpolicysilo'
+        'o'                            = 'organization'
+        'objectsid'                    = 'sid'
+        'office'                       = 'physicaldeliveryofficename'
+        'postofficebox'                = 'pobox'
+        'serviceprincipalname'         = 'serviceprincipalnames'
+        'sn'                           = 'surname'
+        'st'                           = 'state'
+        'street'                       = 'streetaddress'
+        'telephonenumber'              = 'officephone'
+        'whenchanged'                  = @('modified', 'modifytimestamp')
+        'whencreated'                  = @('created', 'createtimestamp')
+        'wwwhomepage'                  = 'homepage'
     }
 
     # A number of properties returned by the AD Cmdlets are calculated based on flags to one of the UserAccountControl LDAP properties.

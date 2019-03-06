@@ -102,6 +102,8 @@ function Find-DSSUser {
         'accountlockouttime'
         'accountnotdelegated'
         'allowreversiblepasswordencryption'
+        'authenticationpolicy'
+        'authenticationpolicysilo'
         'badlogoncount'
         'badpasswordtime'
         'badpwdcount'
@@ -154,6 +156,8 @@ function Find-DSSUser {
         'mobilephone'
         'modified'
         'modifytimestamp'
+        'msds-assignedauthnpolicy'
+        'msds-assignedauthnpolicysilo'
         'msds-supportedencryptiontypes'
         'msds-user-account-control-computed'
         'ntsecuritydescriptor'
@@ -206,8 +210,6 @@ function Find-DSSUser {
 
         #todo not yet added
         #'accountexpirationdate'
-        #'authenticationpolicy'
-        #'authenticationpolicysilo'
         #'certificates'
         #'lastknownparent'
         #'lockedout'
