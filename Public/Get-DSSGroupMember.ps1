@@ -137,7 +137,7 @@ function Get-DSSGroupMember {
             if (-not $DN_Search_Return) {
                 $Terminating_ErrorRecord_Parameters = @{
                     'Exception'    = 'Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException'
-                    'ID'           = 'DSS-Active Directory'
+                    'ID'           = 'DSS-{0}' -f $Function_Name
                     'Category'     = 'ObjectNotFound'
                     'TargetObject' = $DN_Search_Return
                     'Message'      = ('Cannot find group with identity: {0}' -f $DN_Search_Object)

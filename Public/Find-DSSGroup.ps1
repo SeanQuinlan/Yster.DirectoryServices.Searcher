@@ -97,8 +97,8 @@ function Find-DSSGroup {
         'name'
         'objectclass'
         'objectguid'
-        'objectsid'
         'samaccountname'
+        'sid'
     )
 
     # Full list of all properties returned with a wildcard.
@@ -107,16 +107,23 @@ function Find-DSSGroup {
     [String[]]$Wildcard_Properties = @(
         'canonicalname'
         'cn'
+        'created'
+        'createtimestamp'
+        'deleted'
         'description'
         'displayname'
         'dscorepropagationdata'
         'grouptype'
         'info'
         'instancetype'
+        'isdeleted'
         'mail'
         'managedby'
+        'modified'
+        'modifytimestamp'
         'ntsecuritydescriptor'
         'objectcategory'
+        'objectsid'
         'protectedfromaccidentaldeletion'
         'samaccounttype'
         'sdrightseffective'
@@ -125,6 +132,12 @@ function Find-DSSGroup {
         'usncreated'
         'whenchanged'
         'whencreated'
+
+        #todo not yet added
+        #'lastknownparent'
+        #'member'
+        #'members' # looks like alias of members
+        #'memberof'
     )
 
     try {

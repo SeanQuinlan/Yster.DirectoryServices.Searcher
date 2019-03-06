@@ -73,10 +73,9 @@ function Get-DSSForest {
         'sites'
         'spnsuffixes'
         'upnsuffixes'
-    )
 
-    [String[]]$Default_Properties_Not_Yet_Added = @(
-        'crossforestreferences'
+        #todo not yet added
+        #'crossforestreferences'
     )
 
     $DSE_Properties = @(

@@ -98,12 +98,17 @@ function Find-DSSOptionalFeature {
     [String[]]$Wildcard_Properties = @(
         'canonicalname'
         'cn'
+        'created'
+        'createtimestamp'
+        'deleted'
         'description'
         'displayname'
         'dscorepropagationdata'
         'instancetype'
         'isdeleted'
         'lastknownparent'
+        'modified'
+        'modifytimestamp'
         'msds-optionalfeatureflags'
         'msds-optionalfeatureguid'
         'msds-requireddomainbehaviorversion'
@@ -118,14 +123,6 @@ function Find-DSSOptionalFeature {
         'usncreated'
         'whenchanged'
         'whencreated'
-    )
-
-    [String[]]$Microsoft_Alias_Properties = @(
-        'created' # whencreated
-        'createtimestamp' # whencreated
-        'deleted' # isdeleted
-        'modified' # whenchanged
-        'modifytimestamp' # whenchanged
     )
 
     try {

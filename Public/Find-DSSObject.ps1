@@ -80,6 +80,33 @@ function Find-DSSObject {
         'objectsid'
     )
 
+    # The AD Cmdlets add a number of "user-friendly" property names which are simply aliases of the existing LDAP properties.
+    # - LDAP properties first, AD alias(es) second.
+    $Microsoft_Alias_Properties = @{
+        'badpwdcount'              = 'badlogoncount'
+        'distinguishedname'        = 'computerobjectdn'
+        'c'                        = 'country'
+        'certificate'              = 'usercertificate'
+        'facsimiletelephonenumber' = 'fax'
+        'hostname'                 = 'dnshostname'
+        'isdeleted'                = 'deleted'
+        'l'                        = 'city'
+        'mail'                     = 'emailaddress'
+        'mobile'                   = 'mobilephone'
+        'o'                        = 'organization'
+        'objectsid'                = 'sid'
+        'office'                   = 'physicaldeliveryofficename'
+        'postofficebox'            = 'pobox'
+        'serviceprincipalname'     = 'serviceprincipalnames'
+        'sn'                       = 'surname'
+        'st'                       = 'state'
+        'street'                   = 'streetaddress'
+        'telephonenumber'          = 'officephone'
+        'whenchanged'              = @('modified', 'modifytimestamp')
+        'whencreated'              = @('created', 'createtimestamp')
+        'wwwhomepage'              = 'homepage'
+    }
+
     # A number of properties returned by the AD Cmdlets are calculated based on flags to one of the UserAccountControl LDAP properties.
     # The list of flags and their corresponding values are taken from here:
     # - https://support.microsoft.com/en-us/help/305144/how-to-use-the-useraccountcontrol-flags-to-manipulate-user-account-pro
@@ -202,6 +229,13 @@ function Find-DSSObject {
         $Properties_To_Add = New-Object -TypeName 'System.Collections.Generic.List[String]'
         foreach ($Property in $Properties) {
             [void]$Properties_To_Add.Add($Property)
+
+            # Add the relevant LDAP property to the list if a Microsoft Alias Property is requested.
+            foreach ($Microsoft_Alias_Property in $Microsoft_Alias_Properties.GetEnumerator()) {
+                if (($Microsoft_Alias_Property.Value -contains $Property) -and ($Properties_To_Add -notcontains $Microsoft_Alias_Property.Name)) {
+                    $Properties_To_Add.Add($Microsoft_Alias_Property.Name)
+                }
+            }
 
             # The relevant UserAccountControl calculated main property is added to the search properties list if any of the calculated sub-properties are requested.
             foreach ($UAC_Calculated_Property in $UAC_Calculated_Properties.GetEnumerator().Name) {
@@ -492,6 +526,21 @@ function Find-DSSObject {
                             } else {
                                 Write-Verbose ('{0}|Useful_Calculated_Encryption: Returning false: {1}' -f $Function_Name, $Useful_Calculated_Encryption_Property_Name)
                                 $Result_Object[$Useful_Calculated_Encryption_Property_Name] = $false
+                            }
+                        }
+
+                    } elseif ($Microsoft_Alias_Properties.GetEnumerator().Name -contains $Current_Searcher_Result_Property) {
+                        Write-Verbose ('{0}|Microsoft_Alias: Base property found: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
+                        $Microsoft_Alias_Property_Name = $Microsoft_Alias_Properties.$Current_Searcher_Result_Property
+
+                        if ($Properties -contains $Current_Searcher_Result_Property) {
+                            Write-Verbose ('{0}|Microsoft_Alias: Base property specified directly: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
+                            $Result_Object[$Current_Searcher_Result_Property] = $Current_Searcher_Result_Value
+                        }
+                        $Microsoft_Alias_Property_Name | ForEach-Object {
+                            if ($Properties -contains $_) {
+                                Write-Verbose ('{0}|Microsoft_Alias: Adding alias property: {1}' -f $Function_Name, $_)
+                                $Result_Object[$_] = $Current_Searcher_Result_Value
                             }
                         }
 

@@ -82,40 +82,52 @@ function Find-DSSOrganizationalUnit {
 
     # Default properties as per Get-ADOrganizationalUnit. Used when no Properties is specified.
     [String[]]$Default_Properties = @(
-        'c'
+        'city'
         'country'
         'distinguishedname'
-        'l'
         'linkedgrouppolicyobjects'
         'managedby'
         'name'
         'objectclass'
         'objectguid'
         'postalcode'
-        'st'
-        'street'
+        'state'
+        'streetaddress'
     )
 
     # Full list of all properties returned with a wildcard.
     # Due to some constructed properties not being returned when search results include a wildcard, simply replace the wildcard with the full array of properties.
     [String[]]$Wildcard_Properties = @(
+        'c'
         'canonicalname'
         'cn'
         'co'
         'countrycode'
+        'created'
+        'createtimestamp'
+        'deleted'
         'description'
         'displayname'
+        'dscorepropagationdata'
         'instancetype'
+        'isdeleted'
+        'l'
+        'modified'
+        'modifytimestamp'
         'ntsecuritydescriptor'
         'objectcategory'
         'ou'
-        'postalcode'
         'protectedfromaccidentaldeletion'
         'sdrightseffective'
+        'st'
+        'street'
         'usnchanged'
         'usncreated'
         'whenchanged'
         'whencreated'
+
+        #todo not added yet
+        #'lastknownparent'
     )
 
     try {

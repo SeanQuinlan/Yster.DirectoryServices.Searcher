@@ -123,13 +123,12 @@ function Get-DSSDomain {
         'subrefs'
         'systemscontainer'
         'userscontainer'
-    )
 
-    [String[]]$Default_Properties_Not_Yet_Added = @(
-        'lastlogonreplicationinterval'
-        'publickeyrequiredpasswordrolling'
-        'readonlyreplicadirectoryservers'
-        'replicadirectoryservers'
+        #todo not yet added
+        #'lastlogonreplicationinterval'
+        #'publickeyrequiredpasswordrolling'
+        #'readonlyreplicadirectoryservers'
+        #'replicadirectoryservers'
     )
 
     $Network_Properties = @(

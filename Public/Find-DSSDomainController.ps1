@@ -90,7 +90,9 @@ function Find-DSSDomainController {
     # Full list of all properties returned with a wildcard. Taken from Get-ADDomainController output.
     # Due to some constructed properties not being returned when search results include a wildcard, simply replace the wildcard with the full array of properties.
     [String[]]$Wildcard_Properties = @(
+        'computerobjectdn'
         'defaultpartition'
+        'hostname'
         'invocationid'
         'ipv4address'
         'ipv6address'
@@ -105,19 +107,13 @@ function Find-DSSDomainController {
         'primarygroupid'
         'serverobjectdn'
         'serverobjectguid'
-    )
 
-    [String[]]$Wildcard_Properties_Not_Yet_Added = @(
-        'domain'
-        'forest'
-        'ldapport'
-        'operationmasterroles'
-        'sslport'
-    )
-
-    [String[]]$Microsoft_Alias_Properties = @(
-        'computerobjectdn' # distinguishedname
-        'hostname' # dnshostname
+        #todo not yet added
+        #'domain'
+        #'forest'
+        #'ldapport'
+        #'operationmasterroles'
+        #'sslport'
     )
 
     # These are the properties that will be returned from a call to Get-DSSComputer.
