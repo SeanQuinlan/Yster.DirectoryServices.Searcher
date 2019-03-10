@@ -330,15 +330,15 @@ function Find-DSSObject {
                         }
 
                         # - GUID attributes - replace with System.Guid object.
-                        'objectguid' {
+                        'objectguid|featureguid' {
                             Write-Verbose ('{0}|Reformatting to GUID object: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
-                            $Current_Searcher_Result_Value = New-Object 'System.Guid' -ArgumentList @(, $Current_Searcher_Result_Value)
+                            $Current_Searcher_Result_Value = New-Object -TypeName 'System.Guid' -ArgumentList @(, $Current_Searcher_Result_Value)
                         }
 
                         # - SID attributes - replace with SecurityIdentifier object.
                         'objectsid' {
                             Write-Verbose ('{0}|Reformatting to SID object: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
-                            $Current_Searcher_Result_Value = New-Object 'System.Security.Principal.SecurityIdentifier' -ArgumentList @($Current_Searcher_Result_Value, 0)
+                            $Current_Searcher_Result_Value = New-Object -TypeName 'System.Security.Principal.SecurityIdentifier' -ArgumentList @($Current_Searcher_Result_Value, 0)
                         }
                     }
 
@@ -419,8 +419,10 @@ function Find-DSSObject {
                             # This requires 2 Deny permissions to be set: the "Everyone" group and "NT AUTHORITY\SELF" user. Only if both are set to Deny, will "cannotchangepassword" be true.
                             # Adapted from: https://social.technet.microsoft.com/Forums/scriptcenter/en-US/e947d590-d183-46b9-9a7a-4e785638c6fb/how-can-i-get-a-list-of-active-directory-user-accounts-where-the-user-cannot-change-the-password?forum=ITCG
                             $ChangePassword_GUID = 'ab721a53-1e2f-11d0-9819-00aa0040529b'
-                            $ChangePassword_Identity_Everyone = 'Everyone'
-                            $ChangePassword_Identity_Self = 'NT AUTHORITY\SELF'
+                            $ChangePassword_Identity_Everyone_SID = New-Object -TypeName 'System.Security.Principal.SecurityIdentifier' -ArgumentList ([System.Security.Principal.WellKnownSidType]::WorldSid, $null) # Everyone
+                            $ChangePassword_Identity_Everyone = $ChangePassword_Identity_Everyone_SID.Translate([System.Security.Principal.NTAccount]).Value
+                            $ChangePassword_Identity_Self_SID = New-Object -TypeName 'System.Security.Principal.SecurityIdentifier' -ArgumentList ([System.Security.Principal.WellKnownSidType]::SelfSid, $null) # NT AUTHORITY\SELF
+                            $ChangePassword_Identity_Self = $ChangePassword_Identity_Self_SID.Translate([System.Security.Principal.NTAccount]).Value
                             $ChangePassword_Rules = $Current_Searcher_Result_Value.Access | Where-Object { $_.ObjectType -eq $ChangePassword_GUID }
                             $null = $ChangePassword_Identity_Everyone_Correct = $ChangePassword_Identity_Self_Correct
                             foreach ($ChangePassword_Rule in $ChangePassword_Rules) {
@@ -503,7 +505,7 @@ function Find-DSSObject {
                             } elseif ($Useful_Calculated_Domain_Property_Name -eq 'featurescope') {
                                 $Result_Object[$Useful_Calculated_Domain_Property_Name] = $OptionalFeature_Scope_Table[$Current_Searcher_Result_Value.ToString()]
                             } elseif ($Useful_Calculated_Domain_Property_Name -eq 'featureguid') {
-                                $Result_Object[$Useful_Calculated_Domain_Property_Name] = New-Object 'System.Guid' -ArgumentList @(, $Current_Searcher_Result_Value)
+                                $Result_Object[$Useful_Calculated_Domain_Property_Name] = $Current_Searcher_Result_Value
                             }
                         }
 
