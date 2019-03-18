@@ -54,25 +54,24 @@ function Get-DSSRootDSE {
 
         # Format the DirectoryEntry object to match that returned from Find-DSSObject.
         Write-Verbose ('{0}|Formatting result' -f $Function_Name)
-        $Result_Object = @{}
+        $Results_To_Return = @{}
         $Directory_Entry.Properties.PropertyNames | ForEach-Object {
             $RootDSE_Property = $_
             $RootDSE_Value = $($Directory_Entry.$_)
             Write-Verbose ('{0}|Property={1} Value={2}' -f $Function_Name, $RootDSE_Property, $RootDSE_Value)
 
             if ($RootDSE_Property -eq 'domaincontrollerfunctionality') {
-                $Result_Object[$RootDSE_Property] = $DomainControllerMode_Table[$RootDSE_Value]
+                $Results_To_Return[$RootDSE_Property] = $DomainControllerMode_Table[$RootDSE_Value]
             } elseif ($RootDSE_Property -eq 'domainfunctionality') {
-                $Result_Object[$RootDSE_Property] = $DomainMode_Table[$RootDSE_Value]
+                $Results_To_Return[$RootDSE_Property] = $DomainMode_Table[$RootDSE_Value]
             } elseif ($RootDSE_Property -eq 'forestfunctionality') {
-                $Result_Object[$RootDSE_Property] = $ForestMode_Table[$RootDSE_Value]
+                $Results_To_Return[$RootDSE_Property] = $ForestMode_Table[$RootDSE_Value]
             } else {
-                $Result_Object[$RootDSE_Property] = $RootDSE_Value
+                $Results_To_Return[$RootDSE_Property] = $RootDSE_Value
             }
         }
 
-        # Return the RootDSE object, after sorting.
-        ConvertTo-SortedPSObject -InputObject $Result_Object
+        $Results_To_Return | ConvertTo-SortedPSObject
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
             $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_
