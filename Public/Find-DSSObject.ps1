@@ -96,6 +96,7 @@ function Find-DSSObject {
         'msds-assignedauthnpolicy'     = 'authenticationpolicy'
         'msds-assignedauthnpolicysilo' = 'authenticationpolicysilo'
         'msds-hostserviceaccount'      = 'serviceaccount'
+        'msds-spnsuffixes'             = 'spnsuffixes'
         'o'                            = 'organization'
         'objectsid'                    = 'sid'
         'office'                       = 'physicaldeliveryofficename'

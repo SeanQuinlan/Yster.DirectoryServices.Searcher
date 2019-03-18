@@ -123,7 +123,7 @@ function Get-DSSForest {
         }
         Write-Verbose ('{0}|Properties: {1}' -f $Function_Name, ($Function_Search_Properties -join ' '))
 
-        $Forest_Results_To_Return = @{}
+        $Result_To_Return = @{}
 
         $DSE_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
         Write-Verbose ('{0}|Calling Get-DSSRootDSE' -f $Function_Name)
@@ -136,35 +136,23 @@ function Get-DSSForest {
                 $DSE_Property_Value = 'CN=Partitions,{0}' -f $DSE_Return_Object.'configurationNamingContext'
             }
             Write-Verbose ('{0}|DSE: Setting property: {1} = {2}' -f $Function_Name, $DSE_Property, $DSE_Property_Value)
-            $Forest_Results_To_Return[$DSE_Property] = $DSE_Property_Value
+            $Result_To_Return[$DSE_Property] = $DSE_Property_Value
         }
 
         $Partitions_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
-        $Partitions_Search_Properties = New-Object -TypeName 'System.Collections.Generic.List[String]'
-        foreach ($Partitions_Property in $Partitions_Properties) {
-            if ($Partitions_Property -eq 'spnsuffixes') {
-                $Partitions_Search_Properties.Add('msds-spnsuffixes')
-            } else {
-                $Partitions_Search_Properties.Add($Partitions_Property)
-            }
-        }
         $Partitions_Search_Parameters['Context'] = $Context
-        $Partitions_Search_Parameters['Properties'] = $Partitions_Search_Properties
-        $Partitions_Search_Parameters['SearchBase'] = $Forest_Results_To_Return['partitionscontainer']
+        $Partitions_Search_Parameters['Properties'] = $Partitions_Properties
+        $Partitions_Search_Parameters['SearchBase'] = $Result_To_Return['partitionscontainer']
         $Partitions_Search_Parameters['LDAPFilter'] = '(objectclass=crossrefcontainer)'
 
         Write-Verbose ('{0}|Partitions: Calling Find-DSSObject' -f $Function_Name)
-        $Partitions_Return_Object = Find-DSSObject @Partitions_Search_Parameters
+        $Partitions_Results_To_Return = Find-DSSObject @Partitions_Search_Parameters
 
-        if ($Partitions_Return_Object) {
+        if ($Partitions_Results_To_Return) {
             foreach ($Partitions_Property in $Partitions_Properties) {
-                if ($Partitions_Property -eq 'spnsuffixes') {
-                    $Partitions_Property_Value = $Partitions_Return_Object.'msds-spnsuffixes'
-                } else {
-                    $Partitions_Property_Value = $Partitions_Return_Object.$Partitions_Property
-                }
+                $Partitions_Property_Value = $Partitions_Results_To_Return.$Partitions_Property
                 Write-Verbose ('{0}|Partitions: Adding property: {1} = {2}' -f $Function_Name, $Partitions_Property, $Partitions_Property_Value)
-                $Forest_Results_To_Return[$Partitions_Property] = $Partitions_Property_Value
+                $Result_To_Return[$Partitions_Property] = $Partitions_Property_Value
             }
         }
 
@@ -187,11 +175,10 @@ function Get-DSSForest {
                 $Forest_Result_Value = $Current_Forest_Properties.$_
             }
             Write-Verbose ('{0}|Forest: Adding property: {1} = {2}' -f $Function_Name, $_, $Forest_Result_Value)
-            $Forest_Results_To_Return[$_] = $Forest_Result_Value
+            $Result_To_Return[$_] = $Forest_Result_Value
         }
 
-        # Return the full domain object after sorting.
-        ConvertTo-SortedPSObject -InputObject $Forest_Results_To_Return
+        $Result_To_Return | ConvertTo-SortedPSObject
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
             $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_
