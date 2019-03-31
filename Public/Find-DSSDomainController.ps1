@@ -103,6 +103,7 @@ function Find-DSSDomainController {
         'operatingsystemhotfix'
         'operatingsystemservicepack'
         'operatingsystemversion'
+        'operationmasterroles'
         'partitions'
         'primarygroupid'
         'serverobjectdn'
@@ -112,7 +113,6 @@ function Find-DSSDomainController {
         #'domain'
         #'forest'
         #'ldapport'
-        #'operationmasterroles'
         #'sslport'
     )
 
@@ -135,6 +135,7 @@ function Find-DSSDomainController {
         'invocationid'
         'isglobalcatalog'
         'ntdssettingsobjectdn'
+        'operationmasterroles'
         'serverobjectdn'
         'serverobjectguid'
         'site'
@@ -181,13 +182,13 @@ function Find-DSSDomainController {
         $Directory_Search_Properties = $Function_Search_Properties | Where-Object { $Computer_Properties -contains $_ }
         $Directory_Search_Parameters['Properties'] = $Directory_Search_Properties
 
-        $Default_Computer_LDAPFilter = '(&(userAccountControl:1.2.840.113556.1.4.803:=8192))'
+        $Default_DomainController_LDAPFilter = '(userAccountControl:1.2.840.113556.1.4.803:=8192)'
         if ($Name -eq '*') {
-            $Directory_Search_LDAPFilter = $Default_Computer_LDAPFilter
+            $Directory_Search_LDAPFilter = $Default_DomainController_LDAPFilter
         } elseif ($LDAPFilter) {
-            $Directory_Search_LDAPFilter = '(&{0}{1})' -f $Default_Computer_LDAPFilter, $LDAPFilter
+            $Directory_Search_LDAPFilter = '(&{0}{1})' -f $Default_DomainController_LDAPFilter, $LDAPFilter
         } else {
-            $Directory_Search_LDAPFilter = '(&{0}(ANR={1}))' -f $Default_Computer_LDAPFilter, $Name
+            $Directory_Search_LDAPFilter = '(&{0}(ANR={1}))' -f $Default_DomainController_LDAPFilter, $Name
         }
         Write-Verbose ('{0}|LDAPFilter: {1}' -f $Function_Name, $Directory_Search_LDAPFilter)
         $Directory_Search_Parameters['LDAPFilter'] = $Directory_Search_LDAPFilter
@@ -215,6 +216,38 @@ function Find-DSSDomainController {
 
                 Write-Verbose ('{0}|Sites: Calling Find-DSSObject' -f $Function_Name)
                 $Site_Results = Find-DSSObject @Site_Search_Parameters
+            }
+
+            if ($Function_Search_Properties -contains 'operationmasterroles') {
+                Write-Verbose ('{0}|Getting operationmasterroles' -f $Function_Name)
+                # Domain roles - Infrastructure Master, PDC Emulator, RID Master
+                $FSMO_Domain_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
+                $FSMO_Domain_Search_Parameters['Context'] = $Context
+                $FSMO_Domain_Search_Parameters['PageSize'] = $PageSize
+                $FSMO_Domain_Search_Parameters['SearchBase'] = $DSE_Return_Object.'defaultnamingcontext'
+                $FSMO_Domain_Search_Parameters['LDAPFilter'] = '(fsmoroleowner=*)'
+                $FSMO_Domain_Search_Parameters['Properties'] = @('fsmoroleowner', 'objectclass')
+                Write-Verbose ('{0}|FSMO_Domain: Calling Find-DSSObject' -f $Function_Name)
+                $FSMO_Domain_Results = Find-DSSObject @FSMO_Domain_Search_Parameters
+
+                # Forest Domain Naming Master
+                $FSMO_Forest_DomainNaming_Search_Parameters = $FSMO_Domain_Search_Parameters.PSObject.Copy()
+                $FSMO_Forest_DomainNaming_Search_Parameters['SearchBase'] = $DSE_Return_Object.'configurationnamingcontext'
+                Write-Verbose ('{0}|FSMO_Forest_DomainNaming: Calling Find-DSSObject' -f $Function_Name)
+                $FSMO_Forest_DomainNaming_Results = Find-DSSObject @FSMO_Forest_DomainNaming_Search_Parameters
+
+                # Forest Schema Master
+                $FSMO_Forest_Schema_Search_Parameters = $FSMO_Domain_Search_Parameters.PSObject.Copy()
+                $FSMO_Forest_Schema_Search_Parameters['SearchBase'] = $DSE_Return_Object.'schemanamingcontext'
+                Write-Verbose ('{0}|FSMO_Forest_Schema: Calling Find-DSSObject' -f $Function_Name)
+                $FSMO_Forest_Schema_Search_Results = Find-DSSObject @FSMO_Forest_Schema_Search_Parameters
+
+                $OperationsMaster_Roles = @{}
+                $OperationsMaster_Roles['InfrastructureMaster'] = ($FSMO_Domain_Results | Where-Object { $_.'objectclass' -eq 'infrastructureupdate' }).'fsmoroleowner'
+                $OperationsMaster_Roles['PDCEmulator'] = ($FSMO_Domain_Results | Where-Object { $_.'objectclass' -eq 'domain' }).'fsmoroleowner'
+                $OperationsMaster_Roles['RIDMaster'] = ($FSMO_Domain_Results | Where-Object { $_.'objectclass' -eq 'ridmanager' }).'fsmoroleowner'
+                $OperationsMaster_Roles['DomainNamingMaster'] = $FSMO_Forest_DomainNaming_Results.'fsmoroleowner'
+                $OperationsMaster_Roles['SchemaMaster'] = $FSMO_Forest_Schema_Search_Results.'fsmoroleowner'
             }
 
             foreach ($Result_To_Return in $Results_To_Return) {
@@ -256,9 +289,22 @@ function Find-DSSDomainController {
                     }
                 }
 
+                if ($Function_Search_Properties -contains 'operationmasterroles') {
+                    $Server_OperationsMaster_Roles = New-Object -TypeName 'System.Collections.Generic.List[String]'
+                    $OperationsMaster_Roles.GetEnumerator() | ForEach-Object {
+                        if ($_.Value -match $Results_To_Return['serverobjectdn']) {
+                            $Server_OperationsMaster_Roles.Add($_.Name)
+                        }
+                    }
+                    if ($OperationsMaster_Roles) {
+                        $Result_To_Return['operationmasterroles'] = $Server_OperationsMaster_Roles
+                    }
+                }
+
                 foreach ($Other_Property in $Other_Properties_To_Process) {
                     switch -Regex ($Other_Property) {
                         'isreadonly' {
+                            # 521 is the group ID for "Read-only Domain Controllers"
                             if ($Result_To_Return['primarygroupid'] -eq 521) {
                                 $Other_Property_Value = $true
                             } else {
