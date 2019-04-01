@@ -92,6 +92,9 @@ function Find-DSSObject {
         'isdeleted'                    = 'deleted'
         'l'                            = 'city'
         'mail'                         = 'emailaddress'
+        'maxpwdage'                    = 'maxpasswordage'
+        'minpwdage'                    = 'minpasswordage'
+        'minpwdlength'                 = 'minpasswordlength'
         'mobile'                       = 'mobilephone'
         'msds-assignedauthnpolicy'     = 'authenticationpolicy'
         'msds-assignedauthnpolicysilo' = 'authenticationpolicysilo'
@@ -101,6 +104,7 @@ function Find-DSSObject {
         'objectsid'                    = 'sid'
         'office'                       = 'physicaldeliveryofficename'
         'postofficebox'                = 'pobox'
+        'pwdhistorylength'             = 'passwordhistorycount'
         'serviceprincipalname'         = 'serviceprincipalnames'
         'sn'                           = 'surname'
         'st'                           = 'state'
@@ -198,6 +202,13 @@ function Find-DSSObject {
         'Resource-SID-Compression-Disabled' = '0x80000'
     }
 
+    # These are calculated from the 'pwdproperties' property.
+    # - Values taken from: https://docs.microsoft.com/en-us/windows/desktop/adschema/a-pwdproperties
+    $Useful_Calculated_Password_Properties = @{
+        'complexityenabled'           = '0x01'
+        'reversibleencryptionenabled' = '0x10'
+    }
+
     try {
         $Directory_Entry_Parameters = @{
             'Context' = $Context
@@ -283,6 +294,13 @@ function Find-DSSObject {
                     $Properties_To_Add.Add('msds-supportedencryptiontypes')
                 }
             }
+
+            # Add the 'pwdproperties' property if any password-related properties are requested.
+            foreach ($Useful_Calculated_Password_Property in $Useful_Calculated_Password_Properties.GetEnumerator()) {
+                if (($Useful_Calculated_Password_Property.Name -eq $Property) -and ($Properties_To_Add -notcontains 'pwdproperties')) {
+                    $Properties_To_Add.Add('pwdproperties')
+                }
+            }
         }
         Write-Verbose ('{0}|Adding Properties: {1}' -f $Function_Name, ($Properties_To_Add -join ' '))
         $Directory_Searcher.PropertiesToLoad.AddRange($Properties_To_Add)
@@ -324,6 +342,12 @@ function Find-DSSObject {
 
                     # Reformat certain properties:
                     switch -Regex ($Current_Searcher_Result_Property) {
+                        # - Durations stored as negative integers - convert to TimeSpans.
+                        'lockoutduration|lockoutobservationwindow|maxpwdage|minpwdage' {
+                            Write-Verbose ('{0}|Reformatting to TimeSpan object: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
+                            $Current_Searcher_Result_Value = New-TimeSpan -Seconds ([System.Math]::Abs($Current_Searcher_Result_Value / 10000000))
+                        }
+
                         # - NTSecurityDescriptor - replace with the System.DirectoryServices.ActiveDirectorySecurity object instead.
                         'ntsecuritydescriptor' {
                             Write-Verbose ('{0}|Reformatting to ActiveDirectorySecurity object: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
@@ -347,7 +371,7 @@ function Find-DSSObject {
                     if ($UAC_Calculated_Properties.GetEnumerator().Name -contains $Current_Searcher_Result_Property) {
                         Write-Verbose ('{0}|UAC: Base property found: {1}={2}' -f $Function_Name, $Current_Searcher_Result_Property, $Current_Searcher_Result_Value)
                         if ($Properties -contains $Current_Searcher_Result_Property) {
-                            Write-Verbose ('{0}|UAC: Base property specified directly: {0}' -f $Function_Name, $Current_Searcher_Result_Property)
+                            Write-Verbose ('{0}|UAC: Base property specified directly: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
                             $Result_Object[$Current_Searcher_Result_Property] = $Current_Searcher_Result_Value
                         }
 
@@ -466,7 +490,7 @@ function Find-DSSObject {
                     } elseif ($Containers_Calculated_Properties.GetEnumerator().Name -contains $Current_Searcher_Result_Property) {
                         Write-Verbose ('{0}|Containers: Base property found: {1}={2}' -f $Function_Name, $Current_Searcher_Result_Property, $Current_Searcher_Result_Value)
                         if ($Properties -contains $Current_Searcher_Result_Property) {
-                            Write-Verbose ('{0}|Containers: Base property specified directly: {0}' -f $Function_Name, $Current_Searcher_Result_Property)
+                            Write-Verbose ('{0}|Containers: Base property specified directly: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
                             $Result_Object[$Current_Searcher_Result_Property] = $Current_Searcher_Result_Value
                         }
 
@@ -532,6 +556,26 @@ function Find-DSSObject {
                             } else {
                                 Write-Verbose ('{0}|Useful_Calculated_Encryption: Returning false: {1}' -f $Function_Name, $Useful_Calculated_Encryption_Property_Name)
                                 $Result_Object[$Useful_Calculated_Encryption_Property_Name] = $false
+                            }
+                        }
+
+                    } elseif ($Current_Searcher_Result_Property -eq 'pwdproperties') {
+                        Write-Verbose ('{0}|Useful_Calculated_Password: Base property found: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
+                        if ($Properties -contains $Current_Searcher_Result_Property) {
+                            Write-Verbose ('{0}|Useful_Calculated_Password: Base property specified directly: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
+                            $Result_Object[$Current_Searcher_Result_Property] = $Current_Searcher_Result_Value
+                        }
+
+                        foreach ($Useful_Calculated_Password_Property in $Useful_Calculated_Password_Properties.GetEnumerator()) {
+                            if ($Properties -contains $Useful_Calculated_Password_Property.Name) {
+                                Write-Verbose ('{0}|Useful_Calculated_Password: Processing property: {1}' -f $Function_Name, $Useful_Calculated_Password_Property.Name)
+                                if (($Current_Searcher_Result_Value -band $Useful_Calculated_Password_Property.Value) -eq $Useful_Calculated_Password_Property.Value) {
+                                    Write-Verbose ('{0}|Useful_Calculated_Password: Returning true: {1}' -f $Function_Name, $Useful_Calculated_Password_Property.Name)
+                                    $Result_Object[$Useful_Calculated_Password_Property.Name] = $true
+                                } else {
+                                    Write-Verbose ('{0}|Useful_Calculated_Password: Returning false: {1}' -f $Function_Name, $Useful_Calculated_Password_Property.Name)
+                                    $Result_Object[$Useful_Calculated_Password_Property.Name] = $false
+                                }
                             }
                         }
 
