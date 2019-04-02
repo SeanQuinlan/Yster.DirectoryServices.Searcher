@@ -98,6 +98,7 @@ function Find-DSSUser {
     # Due to some constructed properties not being returned when search results include a wildcard, simply replace the wildcard with the full array of properties.
     # See http://www.rlmueller.net/UserAttributes.htm
     [String[]]$Wildcard_Properties = @(
+        'accountexpirationdate'
         'accountexpires'
         'accountlockouttime'
         'accountnotdelegated'
@@ -110,6 +111,7 @@ function Find-DSSUser {
         'c'
         'cannotchangepassword'
         'canonicalname'
+        'certificates'
         'city'
         'cn'
         'co'
@@ -147,8 +149,11 @@ function Find-DSSUser {
         'lastlogon'
         'lastlogondate'
         'lastlogontimestamp'
+        'lockedout'
         'lockouttime'
         'logoncount'
+        'logonhours'
+        'logonworkstations'
         'mail'
         'manager'
         'mnslogonaccount'
@@ -156,6 +161,7 @@ function Find-DSSUser {
         'mobilephone'
         'modified'
         'modifytimestamp'
+        'msds-allowedtoactonbehalfofotheridentity'
         'msds-assignedauthnpolicy'
         'msds-assignedauthnpolicysilo'
         'msds-supportedencryptiontypes'
@@ -170,11 +176,13 @@ function Find-DSSUser {
         'otherfacsimiletelephonenumber'
         'otherhomephone'
         'otheripphone'
+        'otherloginworkstations'
         'othermailbox'
         'othermobile'
         'otherpager'
         'othertelephone'
         'pager'
+        'passwordexpired'
         'passwordlastset'
         'passwordneverexpires'
         'passwordnotrequired'
@@ -202,6 +210,8 @@ function Find-DSSUser {
         'trustedtoauthfordelegation'
         'usedeskeyonly'
         'useraccountcontrol'
+        'usercertificate'
+        'userworkstations'
         'usnchanged'
         'usncreated'
         'wwwhomepage'
@@ -209,17 +219,9 @@ function Find-DSSUser {
         'whencreated'
 
         #todo not yet added
-        #'accountexpirationdate'
-        #'certificates'
         #'lastknownparent'
-        #'lockedout'
-        #'logonhours'
-        #'logonworkstations'
         #'memberof'
-        #'otherloginworkstations'
-        #'passwordexpired'
         #'principalsallowedtodelegatetoaccount'
-        #'usercertificate'
     )
 
     try {
