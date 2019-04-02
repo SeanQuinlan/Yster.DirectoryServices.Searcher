@@ -86,7 +86,6 @@ function Find-DSSObject {
         'badpwdcount'                  = 'badlogoncount'
         'distinguishedname'            = 'computerobjectdn'
         'c'                            = 'country'
-        'certificate'                  = 'usercertificate'
         'facsimiletelephonenumber'     = 'fax'
         'hostname'                     = 'dnshostname'
         'isdeleted'                    = 'deleted'
@@ -110,6 +109,8 @@ function Find-DSSObject {
         'st'                           = 'state'
         'street'                       = 'streetaddress'
         'telephonenumber'              = 'officephone'
+        'usercertificate'              = 'certificates'
+        'userworkstations'             = 'logonworkstations'
         'whenchanged'                  = @('modified', 'modifytimestamp')
         'whencreated'                  = @('created', 'createtimestamp')
         'wwwhomepage'                  = 'homepage'
@@ -210,22 +211,22 @@ function Find-DSSObject {
     }
 
     try {
-        $Directory_Entry_Parameters = @{
+        $Common_Search_Parameters = @{
             'Context' = $Context
         }
         if ($PSBoundParameters.ContainsKey('SearchBase')) {
             Write-Verbose ('{0}|Using SearchBase: {1}' -f $Function_Name, $SearchBase)
-            $Directory_Entry_Parameters['SearchBase'] = $SearchBase
+            $Common_Search_Parameters['SearchBase'] = $SearchBase
         }
         if ($PSBoundParameters.ContainsKey('Server')) {
             Write-Verbose ('{0}|Using Server: {1}' -f $Function_Name, $Server)
-            $Directory_Entry_Parameters['Server'] = $Server
+            $Common_Search_Parameters['Server'] = $Server
         }
         if ($PSBoundParameters.ContainsKey('Credential')) {
             Write-Verbose ('{0}|Using custom Credential' -f $Function_Name)
-            $Directory_Entry_Parameters['Credential'] = $Credential
+            $Common_Search_Parameters['Credential'] = $Credential
         }
-        $Directory_Entry = Get-DSSDirectoryEntry @Directory_Entry_Parameters
+        $Directory_Entry = Get-DSSDirectoryEntry @Common_Search_Parameters
 
         $Directory_Searcher_Arguments = @(
             $Directory_Entry
@@ -342,26 +343,29 @@ function Find-DSSObject {
 
                     # Reformat certain properties:
                     switch -Regex ($Current_Searcher_Result_Property) {
-                        # - Durations stored as negative integers - convert to TimeSpans.
+                        # Durations stored as negative integers - convert to TimeSpans.
                         'lockoutduration|lockoutobservationwindow|maxpwdage|minpwdage' {
                             Write-Verbose ('{0}|Reformatting to TimeSpan object: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
                             $Current_Searcher_Result_Value = New-TimeSpan -Seconds ([System.Math]::Abs($Current_Searcher_Result_Value / 10000000))
                         }
 
-                        # - NTSecurityDescriptor - replace with the System.DirectoryServices.ActiveDirectorySecurity object instead.
-                        'ntsecuritydescriptor' {
+                        # Security objects stored as byte arrays - convert to System.DirectoryServices.ActiveDirectorySecurity object.
+                        # - Taken from https://social.microsoft.com/Forums/en-US/4a2661f6-cfe1-45e8-958a-ff1b19d813a3/convert-default-security-descriptor-of-a-schema-class?forum=Offtopic
+                        'msds-allowedtoactonbehalfofotheridentity|ntsecuritydescriptor' {
                             Write-Verbose ('{0}|Reformatting to ActiveDirectorySecurity object: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
-                            $Current_Searcher_Result_Value = $Directory_Searcher_Result.GetDirectoryEntry().ObjectSecurity
+                            $Security_Object = New-Object -TypeName 'System.DirectoryServices.ActiveDirectorySecurity'
+                            $Security_Object.SetSecurityDescriptorBinaryForm($Current_Searcher_Result_Value)
+                            $Current_Searcher_Result_Value = $Security_Object
                         }
 
-                        # - GUID attributes - replace with System.Guid object.
+                        # GUID attributes - replace with System.Guid object.
                         'objectguid|featureguid' {
                             Write-Verbose ('{0}|Reformatting to GUID object: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
                             $Current_Searcher_Result_Value = New-Object -TypeName 'System.Guid' -ArgumentList @(, $Current_Searcher_Result_Value)
                         }
 
-                        # - SID attributes - replace with SecurityIdentifier object.
-                        'objectsid' {
+                        # SID attributes - replace with SecurityIdentifier object.
+                        'objectsid|sidhistory' {
                             Write-Verbose ('{0}|Reformatting to SID object: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
                             $Current_Searcher_Result_Value = New-Object -TypeName 'System.Security.Principal.SecurityIdentifier' -ArgumentList @($Current_Searcher_Result_Value, 0)
                         }
@@ -427,7 +431,9 @@ function Find-DSSObject {
                         if ($Properties -contains $Useful_Calculated_Group_Property_Name) {
                             # Convert the PrimaryGroupID to a full ObjectSID property, by using the AccountDomainSid sub-property of the ObjectSID property of the user and appending the PrimaryGroupID.
                             $PrimaryGroup_SID = '{0}-{1}' -f $Result_Object['objectsid'].AccountDomainSid.Value, $Current_Searcher_Result_Value
-                            $PrimaryGroup_Name = (Get-DSSGroup -ObjectSID $PrimaryGroup_SID).distinguishedname
+                            $Group_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
+                            $Group_Search_Parameters['ObjectSID'] = $PrimaryGroup_SID
+                            $PrimaryGroup_Name = (Get-DSSGroup @Group_Search_Parameters).distinguishedname
                             Write-Verbose ('{0}|Useful_Calculated_Group: Returning calculated property: {1}' -f $Function_Name, $Useful_Calculated_Group_Property_Name)
                             $Result_Object[$Useful_Calculated_Group_Property_Name] = $PrimaryGroup_Name
                         }
