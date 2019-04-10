@@ -194,6 +194,11 @@ function Find-DSSObject {
         'kerberosencryptiontype'
     )
 
+    # These are calculated from the 'msds-allowedtoactonbehalfofotheridentity' property.
+    $Useful_Calculated_Delegation_Properties = @(
+        'principalsallowedtodelegatetoaccount'
+    )
+
     # Some additional flags to the 'msds-supportedencryptiontypes' property which don't form part of the ADKerberosEncryptionTypes Enum.
     # - Taken from https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-kile/6cfc7b50-11ed-4b4d-846d-6f08f0812919
     $Additional_Encryption_Types = @{
@@ -293,6 +298,12 @@ function Find-DSSObject {
             foreach ($Useful_Calculated_Encryption_Property in $Useful_Calculated_Encryption_Properties) {
                 if (($Useful_Calculated_Encryption_Property -eq $Property) -and ($Properties_To_Add -notcontains 'msds-supportedencryptiontypes')) {
                     $Properties_To_Add.Add('msds-supportedencryptiontypes')
+                }
+            }
+            # Add the 'msds-allowedtoactonbehalfofotheridentity' property if any Delegation sub-properties are requested.
+            foreach ($Useful_Calculated_Delegation_Property in $Useful_Calculated_Delegation_Properties) {
+                if (($Useful_Calculated_Delegation_Property -eq $Property) -and ($Properties_To_Add -notcontains 'msds-allowedtoactonbehalfofotheridentity')) {
+                    $Properties_To_Add.Add('msds-allowedtoactonbehalfofotheridentity')
                 }
             }
 
@@ -563,6 +574,29 @@ function Find-DSSObject {
                                 Write-Verbose ('{0}|Useful_Calculated_Encryption: Returning false: {1}' -f $Function_Name, $Useful_Calculated_Encryption_Property_Name)
                                 $Result_Object[$Useful_Calculated_Encryption_Property_Name] = $false
                             }
+                        }
+
+                    } elseif ($Current_Searcher_Result_Property -eq 'msds-allowedtoactonbehalfofotheridentity') {
+                        Write-Verbose ('{0}|Useful_Calculated_Delegation: Base property found: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
+                        if ($Properties -contains $Current_Searcher_Result_Property) {
+                            Write-Verbose ('{0}|Useful_Calculated_Delegation: Base property specified directly: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
+                            $Result_Object[$Current_Searcher_Result_Property] = $Current_Searcher_Result_Value
+                        }
+                        if ($Properties -contains 'principalsallowedtodelegatetoaccount') {
+                            $Useful_Calculated_Delegation_Property_Name = 'principalsallowedtodelegatetoaccount'
+                            Write-Verbose ('{0}|Useful_Calculated_Delegation: Processing property: {1}' -f $Function_Name, $Useful_Calculated_Delegation_Property_Name)
+                            $Delegation_Principals = New-Object -TypeName 'System.Collections.Generic.List[PSObject]'
+                            $Current_Searcher_Result_Value.Access | Where-Object { $_.'AccessControlType' -eq 'Allow' } | ForEach-Object {
+                                # The computer object is stored as a System.Security.Principal.NTAccount object, with a default display of DOMAIN\COMPUTERNAME$.
+                                # Convert this to a SID, which can then be looked up in Active Directory to find the DistinguishedName.
+                                $Computer_Object = $_.'IdentityReference'
+                                $Computer_SID = $Computer_Object.Translate([Security.Principal.SecurityIdentifier])
+                                $Computer_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
+                                $Computer_Search_Parameters['ObjectSID'] = $Computer_SID
+                                $Computer_Search_Result = (Get-DSSComputer @Computer_Search_Parameters).distinguishedname
+                                $Delegation_Principals.Add($Computer_Search_Result)
+                            }
+                            $Result_Object[$Useful_Calculated_Delegation_Property_Name] = $Delegation_Principals
                         }
 
                     } elseif ($Current_Searcher_Result_Property -eq 'pwdproperties') {

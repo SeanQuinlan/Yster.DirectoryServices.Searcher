@@ -192,6 +192,7 @@ function Find-DSSUser {
         'postofficebox'
         'primarygroup'
         'primarygroupid'
+        'principalsallowedtodelegatetoaccount'
         'profilepath'
         'protectedfromaccidentaldeletion'
         'pwdlastset'
@@ -221,7 +222,6 @@ function Find-DSSUser {
         #todo not yet added
         #'lastknownparent'
         #'memberof'
-        #'principalsallowedtodelegatetoaccount'
     )
 
     try {
