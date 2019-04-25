@@ -237,8 +237,8 @@ function Find-DSSComputer {
         Write-Verbose ('{0}|LDAPFilter: {1}' -f $Function_Name, $Directory_Search_LDAPFilter)
         $Directory_Search_Parameters['LDAPFilter'] = $Directory_Search_LDAPFilter
 
-        Write-Verbose ('{0}|Finding computers using Find-DSSObject' -f $Function_Name)
-        $Results_To_Return = Find-DSSObject @Directory_Search_Parameters
+        Write-Verbose ('{0}|Finding computers using Find-DSSRawObject' -f $Function_Name)
+        $Results_To_Return = Find-DSSRawObject @Directory_Search_Parameters
 
         if ($Results_To_Return) {
             # Useful post here: https://www.myotherpcisacloud.com/post/IPv4Address-Attribute-In-Get-ADComputer

@@ -216,8 +216,8 @@ function Find-DSSGroup {
         Write-Verbose ('{0}|LDAPFilter: {1}' -f $Function_Name, $Directory_Search_LDAPFilter)
         $Directory_Search_Parameters['LDAPFilter'] = $Directory_Search_LDAPFilter
 
-        Write-Verbose ('{0}|Finding group using Find-DSSObject' -f $Function_Name)
-        Find-DSSObject @Directory_Search_Parameters | ConvertTo-SortedPSObject
+        Write-Verbose ('{0}|Finding group using Find-DSSRawObject' -f $Function_Name)
+        Find-DSSRawObject @Directory_Search_Parameters | ConvertTo-SortedPSObject
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
             $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_

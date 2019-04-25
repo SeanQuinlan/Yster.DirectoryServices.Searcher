@@ -205,8 +205,8 @@ function Get-DSSDomain {
         Write-Verbose ('{0}|LDAPFilter: {1}' -f $Function_Name, $Directory_Search_LDAPFilter)
         $Directory_Search_Parameters['LDAPFilter'] = $Directory_Search_LDAPFilter
 
-        Write-Verbose ('{0}|Calling Find-DSSObject' -f $Function_Name)
-        $Result_To_Return = Find-DSSObject @Directory_Search_Parameters
+        Write-Verbose ('{0}|Calling Find-DSSRawObject' -f $Function_Name)
+        $Result_To_Return = Find-DSSRawObject @Directory_Search_Parameters
 
         if ($Result_To_Return) {
             # Some properties need to be gathered via different methods.
@@ -228,8 +228,8 @@ function Get-DSSDomain {
                 $Network_Search_Parameters['LDAPFilter'] = '(&(objectclass=crossref)(netbiosname=*)(ncname={0}))' -f $Result_To_Return.'distinguishedname'
                 $Network_Search_Parameters['Properties'] = $Network_Properties
 
-                Write-Verbose ('{0}|Network/Domain: Calling Find-DSSObject' -f $Function_Name)
-                $Network_Result_To_Return = Find-DSSObject @Network_Search_Parameters
+                Write-Verbose ('{0}|Network/Domain: Calling Find-DSSRawObject' -f $Function_Name)
+                $Network_Result_To_Return = Find-DSSRawObject @Network_Search_Parameters
 
                 if ($Network_Result_To_Return) {
                     foreach ($Network_Property in $Network_Properties_To_Process) {

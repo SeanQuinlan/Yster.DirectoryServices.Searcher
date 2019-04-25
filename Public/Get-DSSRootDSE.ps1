@@ -52,7 +52,7 @@ function Get-DSSRootDSE {
             Write-Error ('Unable to contact the server: {0}' -f $Server) -ErrorAction 'Stop'
         }
 
-        # Format the DirectoryEntry object to match that returned from Find-DSSObject.
+        # Format the DirectoryEntry object to match that returned from Find-DSSRawObject.
         Write-Verbose ('{0}|Formatting result' -f $Function_Name)
         $Results_To_Return = @{}
         $Directory_Entry.Properties.PropertyNames | ForEach-Object {

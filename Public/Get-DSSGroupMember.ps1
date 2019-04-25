@@ -163,8 +163,8 @@ function Get-DSSGroupMember {
         Write-Verbose ('{0}|LDAPFilter: {1}' -f $Function_Name, $Directory_Search_LDAPFilter)
         $Directory_Search_Parameters['LDAPFilter'] = $Directory_Search_LDAPFilter
 
-        Write-Verbose ('{0}|Calling Find-DSSObject' -f $Function_Name)
-        Find-DSSObject @Directory_Search_Parameters
+        Write-Verbose ('{0}|Calling Find-DSSRawObject' -f $Function_Name)
+        Find-DSSRawObject @Directory_Search_Parameters
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
             $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_

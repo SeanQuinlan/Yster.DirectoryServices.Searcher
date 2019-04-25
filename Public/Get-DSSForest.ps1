@@ -145,8 +145,8 @@ function Get-DSSForest {
         $Partitions_Search_Parameters['SearchBase'] = $Result_To_Return['partitionscontainer']
         $Partitions_Search_Parameters['LDAPFilter'] = '(objectclass=crossrefcontainer)'
 
-        Write-Verbose ('{0}|Partitions: Calling Find-DSSObject' -f $Function_Name)
-        $Partitions_Results_To_Return = Find-DSSObject @Partitions_Search_Parameters
+        Write-Verbose ('{0}|Partitions: Calling Find-DSSRawObject' -f $Function_Name)
+        $Partitions_Results_To_Return = Find-DSSRawObject @Partitions_Search_Parameters
 
         if ($Partitions_Results_To_Return) {
             foreach ($Partitions_Property in $Partitions_Properties) {

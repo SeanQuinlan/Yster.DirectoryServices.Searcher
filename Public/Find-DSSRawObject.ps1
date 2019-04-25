@@ -1,7 +1,9 @@
-function Find-DSSObject {
+function Find-DSSRawObject {
     <#
     .SYNOPSIS
-        Finds an object in Active Directory.
+        Finds an object in Active Directory based on the specified LDAP filter provided.
+
+        This is not meant to be used as an interactive function; it is used as a worker function by many of the other higher-level functions.
     .DESCRIPTION
         Long description
     .EXAMPLE
@@ -10,7 +12,7 @@ function Find-DSSObject {
         Another example of how to use this script
     .NOTES
         NOTE: Calling this function directly with "*" anywhere in the properties may not return all the correct UAC-related attributes, even if specifying the property in addition to the wildcard.
-        Use the relevant Find-DSSUser/Find-DSSComputer/etc function instead.
+        Use the relevant Find-DSSUser/Find-DSSComputer/etc function instead for more accurate results.
 
         References:
         https://docs.microsoft.com/en-us/powershell/module/addsadministration/get-adobject

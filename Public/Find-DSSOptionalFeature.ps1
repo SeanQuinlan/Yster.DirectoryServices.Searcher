@@ -179,8 +179,8 @@ function Find-DSSOptionalFeature {
         Write-Verbose ('{0}|LDAPFilter: {1}' -f $Function_Name, $Directory_Search_LDAPFilter)
         $Directory_Search_Parameters['LDAPFilter'] = $Directory_Search_LDAPFilter
 
-        Write-Verbose ('{0}|Finding optional features using Find-DSSObject' -f $Function_Name)
-        $Results_To_Return = Find-DSSObject @Directory_Search_Parameters
+        Write-Verbose ('{0}|Finding optional features using Find-DSSRawObject' -f $Function_Name)
+        $Results_To_Return = Find-DSSRawObject @Directory_Search_Parameters
 
         if ($Results_To_Return) {
             foreach ($Result_To_Return in $Results_To_Return) {
@@ -193,8 +193,8 @@ function Find-DSSOptionalFeature {
                     $EnabledScopes_Search_Parameters['Properties'] = @('distinguishedname')
                     $EnabledScopes_Search_Parameters['LDAPFilter'] = '(msds-enabledfeature={0})' -f $Result_To_Return['distinguishedname']
 
-                    Write-Verbose ('{0}|EnabledScopes: Calling Find-DSSObject' -f $Function_Name)
-                    $EnabledScopes_Search_Results = Find-DSSObject @EnabledScopes_Search_Parameters
+                    Write-Verbose ('{0}|EnabledScopes: Calling Find-DSSRawObject' -f $Function_Name)
+                    $EnabledScopes_Search_Results = Find-DSSRawObject @EnabledScopes_Search_Parameters
 
                     if ($EnabledScopes_Search_Results) {
                         $EnabledScopes_Property = 'enabledscopes'

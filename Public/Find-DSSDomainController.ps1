@@ -193,8 +193,8 @@ function Find-DSSDomainController {
         Write-Verbose ('{0}|LDAPFilter: {1}' -f $Function_Name, $Directory_Search_LDAPFilter)
         $Directory_Search_Parameters['LDAPFilter'] = $Directory_Search_LDAPFilter
 
-        Write-Verbose ('{0}|Finding domain controllers using Find-DSSObject' -f $Function_Name)
-        $Results_To_Return = Find-DSSObject @Directory_Search_Parameters
+        Write-Verbose ('{0}|Finding domain controllers using Find-DSSRawObject' -f $Function_Name)
+        $Results_To_Return = Find-DSSRawObject @Directory_Search_Parameters
 
         if ($Results_To_Return) {
             $Partition_Properties_To_Process = $Function_Search_Properties | Where-Object { $Partition_Properties -contains $_ }
@@ -214,8 +214,8 @@ function Find-DSSDomainController {
                 $Site_Search_Parameters['LDAPFilter'] = '(|(objectclass=site)(objectclass=server)(objectclass=ntdsdsa))'
                 $Site_Search_Parameters['Properties'] = @('cn', 'distinguishedname', 'objectclass', 'objectguid', 'options', 'serverreference')
 
-                Write-Verbose ('{0}|Sites: Calling Find-DSSObject' -f $Function_Name)
-                $Site_Results = Find-DSSObject @Site_Search_Parameters
+                Write-Verbose ('{0}|Sites: Calling Find-DSSRawObject' -f $Function_Name)
+                $Site_Results = Find-DSSRawObject @Site_Search_Parameters
             }
 
             if ($Function_Search_Properties -contains 'operationmasterroles') {
@@ -227,20 +227,20 @@ function Find-DSSDomainController {
                 $FSMO_Domain_Search_Parameters['SearchBase'] = $DSE_Return_Object.'defaultnamingcontext'
                 $FSMO_Domain_Search_Parameters['LDAPFilter'] = '(fsmoroleowner=*)'
                 $FSMO_Domain_Search_Parameters['Properties'] = @('fsmoroleowner', 'objectclass')
-                Write-Verbose ('{0}|FSMO_Domain: Calling Find-DSSObject' -f $Function_Name)
-                $FSMO_Domain_Results = Find-DSSObject @FSMO_Domain_Search_Parameters
+                Write-Verbose ('{0}|FSMO_Domain: Calling Find-DSSRawObject' -f $Function_Name)
+                $FSMO_Domain_Results = Find-DSSRawObject @FSMO_Domain_Search_Parameters
 
                 # Forest Domain Naming Master
                 $FSMO_Forest_DomainNaming_Search_Parameters = $FSMO_Domain_Search_Parameters.PSObject.Copy()
                 $FSMO_Forest_DomainNaming_Search_Parameters['SearchBase'] = $DSE_Return_Object.'configurationnamingcontext'
-                Write-Verbose ('{0}|FSMO_Forest_DomainNaming: Calling Find-DSSObject' -f $Function_Name)
-                $FSMO_Forest_DomainNaming_Results = Find-DSSObject @FSMO_Forest_DomainNaming_Search_Parameters
+                Write-Verbose ('{0}|FSMO_Forest_DomainNaming: Calling Find-DSSRawObject' -f $Function_Name)
+                $FSMO_Forest_DomainNaming_Results = Find-DSSRawObject @FSMO_Forest_DomainNaming_Search_Parameters
 
                 # Forest Schema Master
                 $FSMO_Forest_Schema_Search_Parameters = $FSMO_Domain_Search_Parameters.PSObject.Copy()
                 $FSMO_Forest_Schema_Search_Parameters['SearchBase'] = $DSE_Return_Object.'schemanamingcontext'
-                Write-Verbose ('{0}|FSMO_Forest_Schema: Calling Find-DSSObject' -f $Function_Name)
-                $FSMO_Forest_Schema_Search_Results = Find-DSSObject @FSMO_Forest_Schema_Search_Parameters
+                Write-Verbose ('{0}|FSMO_Forest_Schema: Calling Find-DSSRawObject' -f $Function_Name)
+                $FSMO_Forest_Schema_Search_Results = Find-DSSRawObject @FSMO_Forest_Schema_Search_Parameters
 
                 $OperationsMaster_Roles = @{}
                 $OperationsMaster_Roles['InfrastructureMaster'] = ($FSMO_Domain_Results | Where-Object { $_.'objectclass' -eq 'infrastructureupdate' }).'fsmoroleowner'
