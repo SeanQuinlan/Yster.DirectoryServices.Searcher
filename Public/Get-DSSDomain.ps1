@@ -101,6 +101,7 @@ function Get-DSSDomain {
         'forest'
         'infrastructurecontainer'
         'infrastructuremaster'
+        'lastlogonreplicationinterval'
         'linkedgrouppolicyobjects'
         'lostandfoundcontainer'
         'keyscontainer'
@@ -108,6 +109,7 @@ function Get-DSSDomain {
         'managedserviceaccountscontainer'
         'microsoftprogramdatacontainer'
         'msds-alloweddnssuffixes'
+        'msds-logontimesyncinterval'
         'netbiosname'
         'objectsid'
         'parentdomain'
@@ -121,7 +123,6 @@ function Get-DSSDomain {
         'userscontainer'
 
         #todo not yet added
-        #'lastlogonreplicationinterval'
         #'publickeyrequiredpasswordrolling'
         #'readonlyreplicadirectoryservers'
         #'replicadirectoryservers'
@@ -141,7 +142,7 @@ function Get-DSSDomain {
         'ridmaster'
     )
 
-    # Only domain context makes sense here.
+    # Only domain context makes sense in this function, so we set it statically here.
     $Context = 'Domain'
 
     try {
@@ -196,8 +197,8 @@ function Get-DSSDomain {
         } elseif ($PSBoundParameters.ContainsKey('ObjectGUID')) {
             $Directory_Search_LDAPFilter = '(&({0})(objectguid={1}))' -f $Default_Domain_LDAPFilter, (Convert-GuidToHex -Guid $ObjectGUID)
             #todo
-            #        } elseif ($PSBoundParameters.ContainsKey('NetBIOSName')) {
-            #            $Directory_Search_LDAPFilter = '(x={0})' -f $NetBIOSName
+            #} elseif ($PSBoundParameters.ContainsKey('NetBIOSName')) {
+            #    $Directory_Search_LDAPFilter = '(&({0})(name={1}))' -f $Default_Domain_LDAPFilter, $NetBIOSName
         }
         Write-Verbose ('{0}|LDAPFilter: {1}' -f $Function_Name, $Directory_Search_LDAPFilter)
         $Directory_Search_Parameters['LDAPFilter'] = $Directory_Search_LDAPFilter

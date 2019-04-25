@@ -154,6 +154,10 @@ function Find-DSSRawObject {
     $Useful_Calculated_Group_Properties = @{
         'primarygroupid' = 'primarygroup'
     }
+    # Properties which are returned as TimeSpan objects, based on an integer stored in Active Directory.
+    $Useful_Calculated_TimeSpan_Properties = @{
+        'msds-logontimesyncinterval' = 'lastlogonreplicationinterval'
+    }
     # These are all calculated from the 'ntsecuritydescriptor' property.
     $Useful_Calculated_Security_Properties = @(
         'cannotchangepassword'
@@ -282,6 +286,11 @@ function Find-DSSRawObject {
             foreach ($Useful_Calculated_Security_Property in $Useful_Calculated_Security_Properties) {
                 if (($Useful_Calculated_Security_Property -eq $Property) -and ($Properties_To_Add -notcontains 'ntsecuritydescriptor')) {
                     $Properties_To_Add.Add('ntsecuritydescriptor')
+                }
+            }
+            foreach ($Useful_Calculated_TimeSpan_Property in $Useful_Calculated_TimeSpan_Properties.GetEnumerator()) {
+                if (($Useful_Calculated_TimeSpan_Property.Value -eq $Property) -and ($Properties_To_Add -notcontains $Useful_Calculated_TimeSpan_Property.Name)) {
+                    $Properties_To_Add.Add($Useful_Calculated_TimeSpan_Property.Name)
                 }
             }
 
@@ -450,6 +459,19 @@ function Find-DSSRawObject {
                             $PrimaryGroup_Name = (Get-DSSGroup @Group_Search_Parameters).distinguishedname
                             Write-Verbose ('{0}|Useful_Calculated_Group: Returning calculated property: {1}' -f $Function_Name, $Useful_Calculated_Group_Property_Name)
                             $Result_Object[$Useful_Calculated_Group_Property_Name] = $PrimaryGroup_Name
+                        }
+
+                    } elseif ($Useful_Calculated_TimeSpan_Properties.GetEnumerator().Name -contains $Current_Searcher_Result_Property) {
+                        Write-Verbose ('{0}|Useful_Calculated_TimeSpan: Base property found: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
+                        $Useful_Calculated_TimeSpan_Property_Name = $Useful_Calculated_TimeSpan_Properties.$Current_Searcher_Result_Property
+                        if ($Properties -contains $Current_Searcher_Result_Property) {
+                            Write-Verbose ('{0}|Useful_Calculated_TimeSpan: Base property specified directly: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
+                            $Result_Object[$Current_Searcher_Result_Property] = $Current_Searcher_Result_Value
+                        }
+                        if ($Properties -contains $Useful_Calculated_TimeSpan_Property_Name) {
+                            $Useful_Calculated_TimeSpan_Property_Value = New-TimeSpan -Days $Current_Searcher_Result_Value
+                            Write-Verbose ('{0}|Useful_Calculated_TimeSpan: Returning calculated property: {1}' -f $Function_Name, $Useful_Calculated_TimeSpan_Property_Name)
+                            $Result_Object[$Useful_Calculated_TimeSpan_Property_Name] = $Useful_Calculated_TimeSpan_Property_Value
                         }
 
                     } elseif ($Current_Searcher_Result_Property -eq 'ntsecuritydescriptor') {
