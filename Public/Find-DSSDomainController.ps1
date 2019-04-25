@@ -92,6 +92,7 @@ function Find-DSSDomainController {
     [String[]]$Wildcard_Properties = @(
         'computerobjectdn'
         'defaultpartition'
+        'domain'
         'hostname'
         'invocationid'
         'ipv4address'
@@ -110,17 +111,17 @@ function Find-DSSDomainController {
         'serverobjectguid'
 
         #todo not yet added
-        #'domain'
         #'forest'
         #'ldapport'
         #'sslport'
     )
 
-    # These are the properties that will be returned from a call to Get-DSSComputer.
+    # These are the computer object properties that will returned.
     $Computer_Properties = @(
         'distinguishedname'
         'dnshostname'
         'enabled'
+        'hostname'
         'ipv4address'
         'ipv6address'
         'name'
@@ -131,6 +132,7 @@ function Find-DSSDomainController {
         'primarygroupid'
     )
 
+    # These are properties gathered from the Partitions object in Active Directory.
     $Partition_Properties = @(
         'invocationid'
         'isglobalcatalog'
@@ -199,6 +201,7 @@ function Find-DSSDomainController {
         if ($Results_To_Return) {
             $Partition_Properties_To_Process = $Function_Search_Properties | Where-Object { $Partition_Properties -contains $_ }
             $Other_Properties_To_Process = $Function_Search_Properties | Where-Object { ($Computer_Properties -notcontains $_) -and ($Partition_Properties -notcontains $_) }
+
             if ($Partition_Properties_To_Process) {
                 Write-Verbose ('{0}|Calculating DSE properties' -f $Function_Name)
                 $DSE_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
@@ -322,6 +325,14 @@ function Find-DSSDomainController {
                             } elseif ($Other_Property -eq 'partitions') {
                                 $Other_Property_Value = $DSE_Return_Object.'namingcontexts'
                             }
+                        }
+                        'domain' {
+                            $Domain_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
+                            $Domain_Search_Parameters['Properties'] = @('dnsroot')
+                            $Domain_Search_Parameters['DistinguishedName'] = $Result_To_Return['distinguishedname'] -replace '.*,OU=Domain Controllers,'
+                            Write-Verbose ('{0}|Other: Calling Get-DSSDomain for: {1}' -f $Function_Name, $Result_To_Return['distinguishedname'])
+                            $Domain_Result = Get-DSSDomain @Domain_Search_Parameters
+                            $Other_Property_Value = $Domain_Result.'dnsroot'
                         }
                     }
 
