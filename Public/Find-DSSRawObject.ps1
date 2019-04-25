@@ -382,7 +382,7 @@ function Find-DSSRawObject {
                         }
 
                         # GUID attributes - replace with System.Guid object.
-                        'objectguid|featureguid' {
+                        'objectguid|featureguid|invocationid' {
                             Write-Verbose ('{0}|Reformatting to GUID object: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
                             $Current_Searcher_Result_Value = New-Object -TypeName 'System.Guid' -ArgumentList @(, $Current_Searcher_Result_Value)
                         }

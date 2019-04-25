@@ -93,6 +93,7 @@ function Find-DSSDomainController {
         'computerobjectdn'
         'defaultpartition'
         'domain'
+        'forest'
         'hostname'
         'invocationid'
         'ipv4address'
@@ -111,19 +112,19 @@ function Find-DSSDomainController {
         'serverobjectguid'
 
         #todo not yet added
-        #'forest'
         #'ldapport'
         #'sslport'
+        #       'ipv4address'
+        #      'ipv6address'
     )
 
     # These are the computer object properties that will returned.
     $Computer_Properties = @(
+        'computerobjectdn'
         'distinguishedname'
         'dnshostname'
         'enabled'
         'hostname'
-        'ipv4address'
-        'ipv6address'
         'name'
         'operatingsystem'
         'operatingsystemhotfix'
@@ -141,6 +142,12 @@ function Find-DSSDomainController {
         'serverobjectdn'
         'serverobjectguid'
         'site'
+    )
+
+    # Returned from a query to the domain/forest.
+    $Domain_Properties = @(
+        'domain'
+        'forest'
     )
 
     try {
@@ -200,7 +207,8 @@ function Find-DSSDomainController {
 
         if ($Results_To_Return) {
             $Partition_Properties_To_Process = $Function_Search_Properties | Where-Object { $Partition_Properties -contains $_ }
-            $Other_Properties_To_Process = $Function_Search_Properties | Where-Object { ($Computer_Properties -notcontains $_) -and ($Partition_Properties -notcontains $_) }
+            $Domain_Properties_To_Process = $Function_Search_Properties | Where-Object { $Domain_Properties -contains $_ }
+            $Other_Properties_To_Process = $Function_Search_Properties | Where-Object { ($Computer_Properties -notcontains $_) -and ($Partition_Properties -notcontains $_) -and ($Domain_Properties -notcontains $_) }
 
             if ($Partition_Properties_To_Process) {
                 Write-Verbose ('{0}|Calculating DSE properties' -f $Function_Name)
@@ -215,7 +223,15 @@ function Find-DSSDomainController {
                 $Site_Search_Parameters['PageSize'] = $PageSize
                 $Site_Search_Parameters['SearchBase'] = $Sites_Path
                 $Site_Search_Parameters['LDAPFilter'] = '(|(objectclass=site)(objectclass=server)(objectclass=ntdsdsa))'
-                $Site_Search_Parameters['Properties'] = @('cn', 'distinguishedname', 'objectclass', 'objectguid', 'options', 'serverreference')
+                $Site_Search_Parameters['Properties'] = @(
+                    'cn'
+                    'distinguishedname'
+                    'invocationid'
+                    'objectclass'
+                    'objectguid'
+                    'options'
+                    'serverreference'
+                )
 
                 Write-Verbose ('{0}|Sites: Calling Find-DSSRawObject' -f $Function_Name)
                 $Site_Results = Find-DSSRawObject @Site_Search_Parameters
@@ -262,7 +278,7 @@ function Find-DSSDomainController {
                     foreach ($Partition_Property in $Partition_Properties_To_Process) {
                         switch ($Partition_Property) {
                             'invocationid' {
-                                $Partition_Property_Value = $NTDS_Settings['objectguid']
+                                $Partition_Property_Value = $NTDS_Settings['invocationid']
                             }
                             'isglobalcatalog' {
                                 $NTDS_Options_Flags = [Enum]::Parse('NTDSDSAOption', $NTDS_Settings['options'])
@@ -289,6 +305,28 @@ function Find-DSSDomainController {
 
                         Write-Verbose ('{0}|Partition: Adding Property: {1} = {2}' -f $Function_Name, $Partition_Property, $Partition_Property_Value)
                         $Result_To_Return[$Partition_Property] = $Partition_Property_Value
+                    }
+                }
+
+                if ($Domain_Properties_To_Process) {
+                    $Domain_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
+                    $Domain_Search_Parameters['Properties'] = @('dnsroot', 'parentdomain')
+                    $Domain_Search_Parameters['DistinguishedName'] = $Result_To_Return['distinguishedname'] -replace '.*,OU=Domain Controllers,'
+                    Write-Verbose ('{0}|Domain: Calling Get-DSSDomain for: {1}' -f $Function_Name, $Result_To_Return['distinguishedname'])
+                    $Domain_Result = Get-DSSDomain @Domain_Search_Parameters
+
+                    foreach ($Domain_Property in $Domain_Properties_To_Process) {
+                        if ($Domain_Property -eq 'domain') {
+                            $Domain_Property_Value = $Domain_Result.'dnsroot'
+                        } elseif ($Domain_Property -eq 'forest') {
+                            if (-not $Domain_Result.'parentdomain') {
+                                $Domain_Property_Value = $Domain_Result.'dnsroot'
+                            } else {
+                                $Domain_Property_Value = $Domain_Result.'parentdomain'
+                            }
+                        }
+                        Write-Verbose ('{0}|Domain: Adding Property: {1} = {2}' -f $Function_Name, $Domain_Property, $Domain_Property_Value)
+                        $Result_To_Return[$Domain_Property] = $Domain_Property_Value
                     }
                 }
 
@@ -325,14 +363,6 @@ function Find-DSSDomainController {
                             } elseif ($Other_Property -eq 'partitions') {
                                 $Other_Property_Value = $DSE_Return_Object.'namingcontexts'
                             }
-                        }
-                        'domain' {
-                            $Domain_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
-                            $Domain_Search_Parameters['Properties'] = @('dnsroot')
-                            $Domain_Search_Parameters['DistinguishedName'] = $Result_To_Return['distinguishedname'] -replace '.*,OU=Domain Controllers,'
-                            Write-Verbose ('{0}|Other: Calling Get-DSSDomain for: {1}' -f $Function_Name, $Result_To_Return['distinguishedname'])
-                            $Domain_Result = Get-DSSDomain @Domain_Search_Parameters
-                            $Other_Property_Value = $Domain_Result.'dnsroot'
                         }
                     }
 
