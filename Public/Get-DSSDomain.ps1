@@ -102,6 +102,7 @@ function Get-DSSDomain {
         'dnsroot'
         'domaincontrollerscontainer'
         'domainmode'
+        'domainsid'
         'foreignsecurityprincipalscontainer'
         'forest'
         'infrastructurecontainer'
@@ -120,6 +121,7 @@ function Get-DSSDomain {
         'programdatacontainer'
         'quotascontainer'
         'ridmaster'
+        'subordinatereferences'
         'subrefs'
         'systemscontainer'
         'userscontainer'
@@ -212,21 +214,21 @@ function Get-DSSDomain {
             $Domain_Properties_To_Process = $Function_Search_Properties | Where-Object { $Domain_Properties -contains $_ }
 
             if ($Network_Properties_To_Process -or $Domain_Properties_To_Process) {
-                Write-Verbose ('{0}|Calculating DSE properties' -f $Function_Name)
+                Write-Verbose ('{0}|Network/Domain: Calculating DSE properties' -f $Function_Name)
                 $DSE_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
-                Write-Verbose ('{0}|Calling Get-DSSRootDSE' -f $Function_Name)
+                Write-Verbose ('{0}|Network/Domain: Calling Get-DSSRootDSE' -f $Function_Name)
                 $DSE_Return_Object = Get-DSSRootDSE @DSE_Search_Parameters
 
                 $Partitions_Path = 'CN=Partitions,{0}' -f $DSE_Return_Object.'configurationnamingcontext'
-                Write-Verbose ('{0}|DSE: Partitions_Path: {1}' -f $Function_Name, $Partitions_Path)
+                Write-Verbose ('{0}|Network/Domain: Partitions_Path: {1}' -f $Function_Name, $Partitions_Path)
 
                 $Network_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
                 $Network_Search_Parameters['Context'] = $Context
                 $Network_Search_Parameters['SearchBase'] = $Partitions_Path
-                $Network_Search_Parameters['LDAPFilter'] = '(&(objectclass=crossref)(netbiosname=*))'
+                $Network_Search_Parameters['LDAPFilter'] = '(&(objectclass=crossref)(netbiosname=*)(ncname={0}))' -f $Result_To_Return.'distinguishedname'
                 $Network_Search_Parameters['Properties'] = $Network_Properties
 
-                Write-Verbose ('{0}|Network: Calling Find-DSSObject' -f $Function_Name)
+                Write-Verbose ('{0}|Network/Domain: Calling Find-DSSObject' -f $Function_Name)
                 $Network_Result_To_Return = Find-DSSObject @Network_Search_Parameters
 
                 if ($Network_Result_To_Return) {
@@ -242,12 +244,12 @@ function Get-DSSDomain {
                 }
 
                 if ($Domain_Properties_To_Process) {
-                    Write-Verbose ('{0}|Calculating Domain properties for: {1}' -f $Function_Name, $Result_To_Return['dnsroot'])
+                    Write-Verbose ('{0}|Domain: Calculating Domain properties for: {1}' -f $Function_Name, $Result_To_Return['dnsroot'])
                     $Domain_Context_Arguments = $Common_Search_Parameters.PSObject.Copy()
                     if ($PSBoundParameters.ContainsKey('Server')) {
-                        $Forest_Context_Arguments['Context'] = 'Server'
+                        $Domain_Context_Arguments['Context'] = 'Server'
                     } else {
-                        $Forest_Context_Arguments['Context'] = 'Forest'
+                        $Domain_Context_Arguments['Context'] = $Context
                     }
                     Write-Verbose ('{0}|Domain: Getting domain details' -f $Function_Name)
                     $Domain_Context = Get-DSSDirectoryContext @Domain_Context_Arguments

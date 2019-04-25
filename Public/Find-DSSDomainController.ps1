@@ -297,6 +297,7 @@ function Find-DSSDomainController {
                         }
                     }
                     if ($OperationsMaster_Roles) {
+                        Write-Verbose ('{0}|OperationMasterRoles: Adding Property: {1} = {2}' -f $Function_Name, 'operationmasterroles', ($Server_OperationsMaster_Roles -join ','))
                         $Result_To_Return['operationmasterroles'] = $Server_OperationsMaster_Roles
                     }
                 }

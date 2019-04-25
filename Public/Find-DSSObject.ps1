@@ -100,7 +100,7 @@ function Find-DSSObject {
         'msds-hostserviceaccount'      = 'serviceaccount'
         'msds-spnsuffixes'             = 'spnsuffixes'
         'o'                            = 'organization'
-        'objectsid'                    = 'sid'
+        'objectsid'                    = @('sid', 'domainsid')
         'office'                       = 'physicaldeliveryofficename'
         'postofficebox'                = 'pobox'
         'pwdhistorylength'             = 'passwordhistorycount'
@@ -108,6 +108,7 @@ function Find-DSSObject {
         'sn'                           = 'surname'
         'st'                           = 'state'
         'street'                       = 'streetaddress'
+        'subrefs'                      = 'subordinatereferences'
         'telephonenumber'              = 'officephone'
         'usercertificate'              = 'certificates'
         'userworkstations'             = 'logonworkstations'
