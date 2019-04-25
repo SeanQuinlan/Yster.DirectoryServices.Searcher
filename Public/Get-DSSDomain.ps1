@@ -63,12 +63,6 @@ function Get-DSSDomain {
         [String[]]
         $Properties,
 
-        # The context to search - Domain or Forest.
-        [Parameter(Mandatory = $false)]
-        [ValidateSet('Domain', 'Forest')]
-        [String]
-        $Context = 'Domain',
-
         # The server to connect to.
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
@@ -146,6 +140,9 @@ function Get-DSSDomain {
         'pdcemulator'
         'ridmaster'
     )
+
+    # Only domain context makes sense here.
+    $Context = 'Domain'
 
     try {
         $Common_Search_Parameters = @{}
@@ -257,7 +254,7 @@ function Get-DSSDomain {
 
                     foreach ($Domain_Property in $Domain_Properties_To_Process) {
                         if ($Domain_Property -eq 'childdomains') {
-                            $Domain_Property_Value = $Current_Domain_Properties.'Children'
+                            $Domain_Property_Value = $Current_Domain_Properties.'Children'.Name
                         } elseif ($Domain_Property -eq 'infrastructuremaster') {
                             $Domain_Property_Value = $Current_Domain_Properties.'InfrastructureRoleOwner'
                         } elseif ($Domain_Property -eq 'parentdomain') {
