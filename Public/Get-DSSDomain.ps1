@@ -116,6 +116,8 @@ function Get-DSSDomain {
         'pdcemulator'
         'programdatacontainer'
         'quotascontainer'
+        'readonlyreplicadirectoryservers'
+        'replicadirectoryservers'
         'ridmaster'
         'subordinatereferences'
         'subrefs'
@@ -124,8 +126,7 @@ function Get-DSSDomain {
 
         #todo not yet added
         #'publickeyrequiredpasswordrolling'
-        #'readonlyreplicadirectoryservers'
-        #'replicadirectoryservers'
+
     )
 
     $Network_Properties = @(
@@ -140,6 +141,10 @@ function Get-DSSDomain {
         'parentdomain'
         'pdcemulator'
         'ridmaster'
+    )
+    $Replica_Properties = @(
+        'readonlyreplicadirectoryservers'
+        'replicadirectoryservers'
     )
 
     # Only domain context makes sense in this function, so we set it statically here.
@@ -210,6 +215,7 @@ function Get-DSSDomain {
             # Some properties need to be gathered via different methods.
             $Network_Properties_To_Process = $Function_Search_Properties | Where-Object { $Network_Properties -contains $_ }
             $Domain_Properties_To_Process = $Function_Search_Properties | Where-Object { $Domain_Properties -contains $_ }
+            $Replica_Properties_To_Process = $Function_Search_Properties | Where-Object { $Replica_Properties -contains $_ }
 
             if ($Network_Properties_To_Process -or $Domain_Properties_To_Process) {
                 Write-Verbose ('{0}|Network/Domain: Calculating DSE properties' -f $Function_Name)
@@ -269,6 +275,26 @@ function Get-DSSDomain {
                         }
                         Write-Verbose ('{0}|Domain: Adding: {1} - {2}' -f $Function_Name, $Domain_Property, $Domain_Property_Value)
                         $Result_To_Return[$Domain_Property] = $Domain_Property_Value
+                    }
+                }
+
+                if ($Replica_Properties_To_Process) {
+                    Write-Verbose ('{0}|Replica: Calculating Replica properties for: {1}' -f $Function_Name, $Result_To_Return['dnsroot'])
+                    $Replica_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
+                    $Replica_Search_Parameters['Context'] = $Context
+                    $Replica_Search_Parameters['Properties'] = @('isreadonly')
+                    $Replica_Search_Parameters['Name'] = '*'
+
+                    Write-Verbose ('{0}|Replica: Calling Find-DSSDomainController')
+                    $Replica_Results = Find-DSSDomainController @Replica_Search_Parameters
+                    foreach ($Replica_Property in $Replica_Properties) {
+                        if ($Replica_Property -eq 'replicadirectoryservers') {
+                            $Replica_Property_Value = ($Replica_Results | Where-Object { $_.'isreadonly' -eq $false }).'dnshostname'
+                        } elseif ($Replica_Property -eq 'readonlyreplicadirectoryservers') {
+                            $Replica_Property_Value = ($Replica_Results | Where-Object { $_.'isreadonly' -eq $true }).'dnshostname'
+                        }
+                        Write-Verbose ('{0}|Replica: Adding: {1} - {2}' -f $Function_Name, $Replica_Property, $Replica_Property_Value)
+                        $Result_To_Return[$Replica_Property] = $Replica_Property_Value
                     }
                 }
             }
