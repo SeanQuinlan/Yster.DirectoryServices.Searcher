@@ -125,7 +125,7 @@ function Get-DSSDomain {
         'userscontainer'
 
         #todo not yet added
-        #'publickeyrequiredpasswordrolling'
+        #'publickeyrequiredpasswordrolling' - can't even find anything on this from a google search :(
 
     )
 
@@ -254,6 +254,7 @@ function Get-DSSDomain {
                         $Domain_Context_Arguments['Context'] = 'Server'
                     } else {
                         $Domain_Context_Arguments['Context'] = $Context
+                        $Domain_Context_Arguments['Server'] = $Result_To_Return['dnsroot']
                     }
                     Write-Verbose ('{0}|Domain: Getting domain details' -f $Function_Name)
                     $Domain_Context = Get-DSSDirectoryContext @Domain_Context_Arguments
