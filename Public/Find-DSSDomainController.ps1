@@ -96,6 +96,8 @@ function Find-DSSDomainController {
         'forest'
         'hostname'
         'invocationid'
+        'ipv4address'
+        'ipv6address'
         'isglobalcatalog'
         'isreadonly'
         'ntdssettingsobjectdn'
@@ -112,8 +114,6 @@ function Find-DSSDomainController {
         #todo not yet added
         #'ldapport'
         #'sslport'
-        #       'ipv4address'
-        #      'ipv6address'
     )
 
     # These are the computer object properties that will returned.
@@ -389,6 +389,32 @@ function Find-DSSDomainController {
 
                     Write-Verbose ('{0}|Other: Adding Property: {1} = {2}' -f $Function_Name, $Other_Property, $Other_Property_Value)
                     $Result_To_Return[$Other_Property] = $Other_Property_Value
+                }
+
+                # Useful post here: https://www.myotherpcisacloud.com/post/IPv4Address-Attribute-In-Get-ADComputer
+                $Non_LDAP_Network_Properties = @('ipv4address', 'ipv6address')
+                $Non_LDAP_Network_Properties_To_Process = $Function_Search_Properties | Where-Object { $Non_LDAP_Network_Properties -contains $_ }
+
+                if ($Non_LDAP_Network_Properties_To_Process) {
+                    foreach ($Result_To_Return in $Results_To_Return) {
+                        # Try and get the IP address(es) from DNS or just return null if any error.
+                        try {
+                            $Host_IP_Addresses = [System.Net.Dns]::GetHostEntry($Result_To_Return['dnshostname']).AddressList
+                        } catch {
+                            $Host_IP_Addresses = $null
+                        }
+                        foreach ($Non_LDAP_Network_Property in $Non_LDAP_Network_Properties_To_Process) {
+                            $Non_LDAP_Network_Property_AddressList = $null
+                            if ($Non_LDAP_Network_Property -eq 'ipv4address') {
+                                $Non_LDAP_Network_Property_AddressList = ($Host_IP_Addresses | Where-Object { $_.AddressFamily -eq 'InterNetwork' }).IPAddressToString
+                            } elseif ($Non_LDAP_Network_Property -eq 'ipv6address') {
+                                $Non_LDAP_Network_Property_AddressList = ($Host_IP_Addresses | Where-Object { ($_.AddressFamily -eq 'InterNetworkV6') -and (-not $_.IsIPv6LinkLocal) -and (-not $_.IsIPv6SiteLocal) }).IPAddressToString
+                            }
+
+                            Write-Verbose ('{0}|Non_LDAP: Adding Property: {1} = {2}' -f $Function_Name, $Non_LDAP_Network_Property, $Non_LDAP_Network_Property_AddressList)
+                            $Result_To_Return[$Non_LDAP_Network_Property] = $Non_LDAP_Network_Property_AddressList
+                        }
+                    }
                 }
             }
 
