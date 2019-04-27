@@ -96,8 +96,6 @@ function Find-DSSDomainController {
         'forest'
         'hostname'
         'invocationid'
-        'ipv4address'
-        'ipv6address'
         'isglobalcatalog'
         'isreadonly'
         'ntdssettingsobjectdn'
@@ -208,18 +206,20 @@ function Find-DSSDomainController {
         if ($Results_To_Return) {
             $Partition_Properties_To_Process = $Function_Search_Properties | Where-Object { $Partition_Properties -contains $_ }
             $Domain_Properties_To_Process = $Function_Search_Properties | Where-Object { $Domain_Properties -contains $_ }
+            $OperationsMaster_Roles_Domain = New-Object -TypeName 'System.Collections.Generic.List[PSObject]'
             $Other_Properties_To_Process = $Function_Search_Properties | Where-Object { ($Computer_Properties -notcontains $_) -and ($Partition_Properties -notcontains $_) -and ($Domain_Properties -notcontains $_) }
 
             if ($Partition_Properties_To_Process) {
-                Write-Verbose ('{0}|Calculating DSE properties' -f $Function_Name)
+                Write-Verbose ('{0}|Sites: Calculating DSE properties' -f $Function_Name)
                 $DSE_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
-                Write-Verbose ('{0}|Calling Get-DSSRootDSE' -f $Function_Name)
+                Write-Verbose ('{0}|Sites: Calling Get-DSSRootDSE' -f $Function_Name)
                 $DSE_Return_Object = Get-DSSRootDSE @DSE_Search_Parameters
                 $Sites_Path = 'CN=Sites,{0}' -f $DSE_Return_Object.'configurationnamingcontext'
-                Write-Verbose ('{0}|DSE: Sites_Path: {1}' -f $Function_Name, $Sites_Path)
+                Write-Verbose ('{0}|Sites: Sites_Path: {1}' -f $Function_Name, $Sites_Path)
 
                 $Site_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
-                $Site_Search_Parameters['Context'] = $Context
+                # Some of the below properties are not held within the global catalog, so we have to look these up using a domain query.
+                $Site_Search_Parameters['Context'] = 'Domain'
                 $Site_Search_Parameters['PageSize'] = $PageSize
                 $Site_Search_Parameters['SearchBase'] = $Sites_Path
                 $Site_Search_Parameters['LDAPFilter'] = '(|(objectclass=site)(objectclass=server)(objectclass=ntdsdsa))'
@@ -235,38 +235,6 @@ function Find-DSSDomainController {
 
                 Write-Verbose ('{0}|Sites: Calling Find-DSSRawObject' -f $Function_Name)
                 $Site_Results = Find-DSSRawObject @Site_Search_Parameters
-            }
-
-            if ($Function_Search_Properties -contains 'operationmasterroles') {
-                Write-Verbose ('{0}|Getting operationmasterroles' -f $Function_Name)
-                # Domain roles - Infrastructure Master, PDC Emulator, RID Master
-                $FSMO_Domain_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
-                $FSMO_Domain_Search_Parameters['Context'] = $Context
-                $FSMO_Domain_Search_Parameters['PageSize'] = $PageSize
-                $FSMO_Domain_Search_Parameters['SearchBase'] = $DSE_Return_Object.'defaultnamingcontext'
-                $FSMO_Domain_Search_Parameters['LDAPFilter'] = '(fsmoroleowner=*)'
-                $FSMO_Domain_Search_Parameters['Properties'] = @('fsmoroleowner', 'objectclass')
-                Write-Verbose ('{0}|FSMO_Domain: Calling Find-DSSRawObject' -f $Function_Name)
-                $FSMO_Domain_Results = Find-DSSRawObject @FSMO_Domain_Search_Parameters
-
-                # Forest Domain Naming Master
-                $FSMO_Forest_DomainNaming_Search_Parameters = $FSMO_Domain_Search_Parameters.PSObject.Copy()
-                $FSMO_Forest_DomainNaming_Search_Parameters['SearchBase'] = $DSE_Return_Object.'configurationnamingcontext'
-                Write-Verbose ('{0}|FSMO_Forest_DomainNaming: Calling Find-DSSRawObject' -f $Function_Name)
-                $FSMO_Forest_DomainNaming_Results = Find-DSSRawObject @FSMO_Forest_DomainNaming_Search_Parameters
-
-                # Forest Schema Master
-                $FSMO_Forest_Schema_Search_Parameters = $FSMO_Domain_Search_Parameters.PSObject.Copy()
-                $FSMO_Forest_Schema_Search_Parameters['SearchBase'] = $DSE_Return_Object.'schemanamingcontext'
-                Write-Verbose ('{0}|FSMO_Forest_Schema: Calling Find-DSSRawObject' -f $Function_Name)
-                $FSMO_Forest_Schema_Search_Results = Find-DSSRawObject @FSMO_Forest_Schema_Search_Parameters
-
-                $OperationsMaster_Roles = @{}
-                $OperationsMaster_Roles['InfrastructureMaster'] = ($FSMO_Domain_Results | Where-Object { $_.'objectclass' -eq 'infrastructureupdate' }).'fsmoroleowner'
-                $OperationsMaster_Roles['PDCEmulator'] = ($FSMO_Domain_Results | Where-Object { $_.'objectclass' -eq 'domain' }).'fsmoroleowner'
-                $OperationsMaster_Roles['RIDMaster'] = ($FSMO_Domain_Results | Where-Object { $_.'objectclass' -eq 'ridmanager' }).'fsmoroleowner'
-                $OperationsMaster_Roles['DomainNamingMaster'] = $FSMO_Forest_DomainNaming_Results.'fsmoroleowner'
-                $OperationsMaster_Roles['SchemaMaster'] = $FSMO_Forest_Schema_Search_Results.'fsmoroleowner'
             }
 
             foreach ($Result_To_Return in $Results_To_Return) {
@@ -308,13 +276,14 @@ function Find-DSSDomainController {
                     }
                 }
 
-                if ($Domain_Properties_To_Process) {
+                if (($Domain_Properties_To_Process) -or ($Function_Search_Properties -contains 'operationmasterroles')) {
                     $Domain_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
                     $Domain_Search_Parameters['Properties'] = @('dnsroot', 'parentdomain')
                     $Domain_Search_Parameters['DistinguishedName'] = $Result_To_Return['distinguishedname'] -replace '.*,OU=Domain Controllers,'
                     Write-Verbose ('{0}|Domain: Calling Get-DSSDomain for: {1}' -f $Function_Name, $Result_To_Return['distinguishedname'])
                     $Domain_Result = Get-DSSDomain @Domain_Search_Parameters
 
+                    # todo fix below: is parentdomain enough?
                     foreach ($Domain_Property in $Domain_Properties_To_Process) {
                         if ($Domain_Property -eq 'domain') {
                             $Domain_Property_Value = $Domain_Result.'dnsroot'
@@ -328,16 +297,68 @@ function Find-DSSDomainController {
                         Write-Verbose ('{0}|Domain: Adding Property: {1} = {2}' -f $Function_Name, $Domain_Property, $Domain_Property_Value)
                         $Result_To_Return[$Domain_Property] = $Domain_Property_Value
                     }
-                }
 
-                if ($Function_Search_Properties -contains 'operationmasterroles') {
-                    $Server_OperationsMaster_Roles = New-Object -TypeName 'System.Collections.Generic.List[String]'
-                    $OperationsMaster_Roles.GetEnumerator() | ForEach-Object {
-                        if ($_.Value -match $Results_To_Return['serverobjectdn']) {
-                            $Server_OperationsMaster_Roles.Add($_.Name)
+                    if ($Function_Search_Properties -contains 'operationmasterroles') {
+                        if (-not $OperationsMaster_Roles_Forest) {
+                            Write-Verbose ('{0}|FSMO: Getting operationmasterroles for Forest: {1}' -f $Function_Name, $Result_To_Return['forest'])
+
+                            # Forest Domain Naming Master
+                            $FSMO_Forest_DomainNaming_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
+                            $FSMO_Forest_DomainNaming_Search_Parameters['Context'] = 'Domain'
+                            $FSMO_Forest_DomainNaming_Search_Parameters['Server'] = $Result_To_Return['forest']
+                            $FSMO_Forest_DomainNaming_Search_Parameters['PageSize'] = $PageSize
+                            $FSMO_Forest_DomainNaming_Search_Parameters['SearchBase'] = $DSE_Return_Object.'configurationnamingcontext'
+                            $FSMO_Forest_DomainNaming_Search_Parameters['LDAPFilter'] = '(fsmoroleowner=*)'
+                            $FSMO_Forest_DomainNaming_Search_Parameters['Properties'] = @('fsmoroleowner')
+                            Write-Verbose ('{0}|FSMO_Forest_DomainNaming: Calling Find-DSSRawObject' -f $Function_Name)
+                            $FSMO_Forest_DomainNaming_Results = Find-DSSRawObject @FSMO_Forest_DomainNaming_Search_Parameters
+
+                            # Forest Schema Master
+                            $FSMO_Forest_Schema_Search_Parameters = $FSMO_Forest_DomainNaming_Search_Parameters.PSObject.Copy()
+                            $FSMO_Forest_Schema_Search_Parameters['SearchBase'] = $DSE_Return_Object.'schemanamingcontext'
+                            Write-Verbose ('{0}|FSMO_Forest_Schema: Calling Find-DSSRawObject' -f $Function_Name)
+                            $FSMO_Forest_Schema_Search_Results = Find-DSSRawObject @FSMO_Forest_Schema_Search_Parameters
+
+                            $OperationsMaster_Roles_Forest_Properties = @{
+                                'DomainNamingMaster' = $FSMO_Forest_DomainNaming_Results.'fsmoroleowner'
+                                'SchemaMaster'       = $FSMO_Forest_Schema_Search_Results.'fsmoroleowner'
+                            }
+                            $OperationsMaster_Roles_Forest = New-Object -TypeName 'System.Management.Automation.PSObject' -Property $OperationsMaster_Roles_Forest_Properties
                         }
-                    }
-                    if ($OperationsMaster_Roles) {
+
+                        $OperationsMaster_Roles_CurrentDomain = $OperationsMaster_Roles_Domain | Where-Object { $_.'Domain' -eq $Result_To_Return['domain'] }
+                        if (-not $OperationsMaster_Roles_CurrentDomain) {
+                            Write-Verbose ('{0}|FSMO: Getting operationmasterroles for Domain: {1}' -f $Function_Name, $Result_To_Return['domain'])
+
+                            # Domain roles - Infrastructure Master, PDC Emulator, RID Master
+                            $FSMO_Domain_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
+                            $FSMO_Domain_Search_Parameters['Context'] = 'Domain'
+                            $FSMO_Domain_Search_Parameters['Server'] = $Result_To_Return['domain']
+                            $FSMO_Domain_Search_Parameters['PageSize'] = $PageSize
+                            $FSMO_Domain_Search_Parameters['LDAPFilter'] = '(fsmoroleowner=*)'
+                            $FSMO_Domain_Search_Parameters['Properties'] = @('fsmoroleowner', 'objectclass')
+                            Write-Verbose ('{0}|FSMO_Domain: Calling Find-DSSRawObject' -f $Function_Name)
+                            $FSMO_Domain_Results = Find-DSSRawObject @FSMO_Domain_Search_Parameters
+
+                            $OperationsMaster_Roles_Domain_Properties = @{
+                                'Domain'               = $Result_To_Return['domain']
+                                'InfrastructureMaster' = ($FSMO_Domain_Results | Where-Object { $_.'objectclass' -eq 'infrastructureupdate' }).'fsmoroleowner'
+                                'PDCEmulator'          = ($FSMO_Domain_Results | Where-Object { $_.'objectclass' -eq 'domain' }).'fsmoroleowner'
+                                'RIDMaster'            = ($FSMO_Domain_Results | Where-Object { $_.'objectclass' -eq 'ridmanager' }).'fsmoroleowner'
+                            }
+                            $OperationsMaster_Roles_Domain.Add((New-Object -TypeName 'System.Management.Automation.PSObject' -Property $OperationsMaster_Roles_Domain_Properties))
+                            $OperationsMaster_Roles_CurrentDomain = $OperationsMaster_Roles_Domain | Where-Object { $_.'Domain' -eq $Result_To_Return['domain'] }
+                        }
+
+                        $Server_OperationsMaster_Roles = New-Object -TypeName 'System.Collections.Generic.List[String]'
+                        $OperationsMaster_Roles_CurrentDomain, $OperationsMaster_Roles_Forest | ForEach-Object {
+                            foreach ($FSMO_Role in $_.PSObject.Properties) {
+                                if ($FSMO_Role.Value -match $Result_To_Return['serverobjectdn']) {
+                                    $Server_OperationsMaster_Roles.Add($FSMO_Role.Name)
+                                }
+                            }
+                        }
+
                         Write-Verbose ('{0}|OperationMasterRoles: Adding Property: {1} = {2}' -f $Function_Name, 'operationmasterroles', ($Server_OperationsMaster_Roles -join ','))
                         $Result_To_Return['operationmasterroles'] = $Server_OperationsMaster_Roles
                     }

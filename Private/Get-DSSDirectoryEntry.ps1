@@ -64,16 +64,20 @@ function Get-DSSDirectoryEntry {
             [void]$Directory_Entry_Path.Append(('{0}' -f $Server))
         } else {
             try {
-                Write-Verbose ('{0}|No Server specified, attempting to find current domain to use instead...' -f $Function_Name)
-                $Check_For_Domain = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
-                Write-Verbose ('{0}|Found domain: {1}' -f $Function_Name, $Check_For_Domain.Name)
-                [void]$Directory_Entry_Path.Append($Check_For_Domain.Name)
+                Write-Verbose ('{0}|No Server specified, attempting to find current {1} to use instead...' -f $Function_Name, $Context)
+                if ($Context -eq 'Forest') {
+                    $Check_For_Context = [System.DirectoryServices.ActiveDirectory.Forest]::GetCurrentForest()
+                } else {
+                    $Check_For_Context = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
+                }
+                Write-Verbose ('{0}|Found {1}: {2}' -f $Function_Name, $Context, $Check_For_Context.Name)
+                [void]$Directory_Entry_Path.Append($Check_For_Context.Name)
             } catch {
                 $Terminating_ErrorRecord_Parameters = @{
                     'Exception'      = 'System.DirectoryServices.ActiveDirectory.ActiveDirectoryOperationException'
                     'ID'             = 'DSS-Active Directory'
                     'Category'       = 'InvalidOperation'
-                    'TargetObject'   = $Check_For_Domain
+                    'TargetObject'   = $Check_For_Context
                     'Message'        = $_.Exception.InnerException.Message
                     'InnerException' = $_.Exception
                 }
