@@ -99,14 +99,9 @@ function Get-DSSDefaultDomainPasswordPolicy {
         $Common_Search_Parameters = @{}
         if ($PSBoundParameters.ContainsKey('Server')) {
             $Common_Search_Parameters['Server'] = $Server
-        } else {
-            if ($PSBoundParameters.ContainsKey('DNSName')) {
-                Write-Verbose ('{0}|Adding DNSName as Server Name: {1}' -f $Function_Name, $DNSName)
-                $Common_Search_Parameters['Server'] = $DNSName
-            } elseif ($PSBoundParameters.ContainsKey('NetBIOSName')) {
-                Write-Verbose ('{0}|Adding NetBIOSName as Server Name: {1}' -f $Function_Name, $NetBIOSName)
-                $Common_Search_Parameters['Server'] = $NetBIOSName
-            }
+        } elseif ($PSBoundParameters.ContainsKey('DNSName')) {
+            Write-Verbose ('{0}|Adding DNSName as Server Name: {1}' -f $Function_Name, $DNSName)
+            $Common_Search_Parameters['Server'] = $DNSName
         }
         if ($PSBoundParameters.ContainsKey('Credential')) {
             $Common_Search_Parameters['Credential'] = $Credential
@@ -142,9 +137,27 @@ function Get-DSSDefaultDomainPasswordPolicy {
             $Directory_Search_LDAPFilter = '(&({0})(objectsid={1}))' -f $Default_Domain_LDAPFilter, $ObjectSID
         } elseif ($PSBoundParameters.ContainsKey('ObjectGUID')) {
             $Directory_Search_LDAPFilter = '(&({0})(objectguid={1}))' -f $Default_Domain_LDAPFilter, (Convert-GuidToHex -Guid $ObjectGUID)
-            #todo
-            #        } elseif ($PSBoundParameters.ContainsKey('NetBIOSName')) {
-            #            $Directory_Search_LDAPFilter = '(x={0})' -f $NetBIOSName
+        } elseif ($PSBoundParameters.ContainsKey('NetBIOSName')) {
+            Write-Verbose ('{0}|NetBIOSName: Calculating DSE properties' -f $Function_Name)
+            $DSE_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
+            Write-Verbose ('{0}|NetBIOSName: Calling Get-DSSRootDSE' -f $Function_Name)
+            $DSE_Return_Object = Get-DSSRootDSE @DSE_Search_Parameters
+
+            $Partitions_Path = 'CN=Partitions,{0}' -f $DSE_Return_Object.'configurationnamingcontext'
+            Write-Verbose ('{0}|NetBIOSName: Partitions_Path: {1}' -f $Function_Name, $Partitions_Path)
+
+            $NetBIOSName_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
+            $NetBIOSName_Search_Parameters['Context'] = $Context
+            $NetBIOSName_Search_Parameters['SearchBase'] = $Partitions_Path
+            $NetBIOSName_Search_Parameters['LDAPFilter'] = '(netbiosname={0})' -f $NetBIOSName
+            $NetBIOSName_Search_Parameters['Properties'] = @('ncname')
+
+            Write-Verbose ('{0}|NetBIOSName: Calling Find-DSSRawObject' -f $Function_Name)
+            $NetBIOSName_Result_To_Return = Find-DSSRawObject @NetBIOSName_Search_Parameters
+
+            $Directory_Search_LDAPFilter = $Default_Domain_LDAPFilter
+            $Directory_Search_Parameters['SearchBase'] = $NetBIOSName_Result_To_Return['ncname']
+            Write-Verbose ('{0}|NetBIOSName: Using DN: {1}' -f $Function_Name, $NetBIOSName_Result_To_Return['ncname'])
         }
         Write-Verbose ('{0}|LDAPFilter: {1}' -f $Function_Name, $Directory_Search_LDAPFilter)
         $Directory_Search_Parameters['LDAPFilter'] = $Directory_Search_LDAPFilter
