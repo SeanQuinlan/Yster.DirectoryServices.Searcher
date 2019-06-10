@@ -203,7 +203,7 @@ function Get-DSSDomain {
             $Directory_Search_LDAPFilter = '(&({0})(objectguid={1}))' -f $Default_Domain_LDAPFilter, (Convert-GuidToHex -Guid $ObjectGUID)
             #todo
             #} elseif ($PSBoundParameters.ContainsKey('NetBIOSName')) {
-            #    $Directory_Search_LDAPFilter = '(&({0})(name={1}))' -f $Default_Domain_LDAPFilter, $NetBIOSName
+            #    $Directory_Search_LDAPFilter = '(&({0})(netbiosname={1}))' -f $Default_Domain_LDAPFilter, $NetBIOSName
         }
         Write-Verbose ('{0}|LDAPFilter: {1}' -f $Function_Name, $Directory_Search_LDAPFilter)
         $Directory_Search_Parameters['LDAPFilter'] = $Directory_Search_LDAPFilter
@@ -248,13 +248,13 @@ function Get-DSSDomain {
                 }
 
                 if ($Domain_Properties_To_Process) {
-                    Write-Verbose ('{0}|Domain: Calculating Domain properties for: {1}' -f $Function_Name, $Result_To_Return['dnsroot'])
+                    Write-Verbose ('{0}|Domain: Calculating Domain properties for: {1}' -f $Function_Name, $Network_Result_To_Return['dnsroot'])
                     $Domain_Context_Arguments = $Common_Search_Parameters.PSObject.Copy()
                     if ($PSBoundParameters.ContainsKey('Server')) {
                         $Domain_Context_Arguments['Context'] = 'Server'
                     } else {
                         $Domain_Context_Arguments['Context'] = $Context
-                        $Domain_Context_Arguments['Server'] = $Result_To_Return['dnsroot']
+                        $Domain_Context_Arguments['Server'] = $Network_Result_To_Return['dnsroot']
                     }
                     Write-Verbose ('{0}|Domain: Getting domain details' -f $Function_Name)
                     $Domain_Context = Get-DSSDirectoryContext @Domain_Context_Arguments
@@ -280,7 +280,7 @@ function Get-DSSDomain {
                 }
 
                 if ($Replica_Properties_To_Process) {
-                    Write-Verbose ('{0}|Replica: Calculating Replica properties for: {1}' -f $Function_Name, $Result_To_Return['dnsroot'])
+                    Write-Verbose ('{0}|Replica: Calculating Replica properties for: {1}' -f $Function_Name, $Network_Result_To_Return['dnsroot'])
                     $Replica_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
                     $Replica_Search_Parameters['Context'] = $Context
                     $Replica_Search_Parameters['Properties'] = @('isreadonly')
