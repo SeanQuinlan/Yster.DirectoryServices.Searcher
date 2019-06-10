@@ -152,7 +152,9 @@ function Find-DSSRawObject {
         'pwdlastset'         = 'passwordlastset'
     }
     $Useful_Calculated_Group_Properties = @{
+        'grouptype'      = 'groupscope'
         'primarygroupid' = 'primarygroup'
+        'samaccounttype' = 'groupcategory'
     }
     # Properties which are returned as TimeSpan objects, based on an integer stored in Active Directory.
     $Useful_Calculated_TimeSpan_Properties = @{
@@ -444,7 +446,7 @@ function Find-DSSRawObject {
                         }
 
                     } elseif ($Useful_Calculated_Group_Properties.GetEnumerator().Name -contains $Current_Searcher_Result_Property) {
-                        Write-Verbose ('{0}|Useful_Calculated_Group: Base property found: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
+                        Write-Verbose ('{0}|Useful_Calculated_Group: Base property found: {1} - {2}' -f $Function_Name, $Current_Searcher_Result_Property,$Current_Searcher_Result_Value)
                         $Useful_Calculated_Group_Property_Name = $Useful_Calculated_Group_Properties.$Current_Searcher_Result_Property
 
                         if ($Properties -contains $Current_Searcher_Result_Property) {
@@ -452,13 +454,34 @@ function Find-DSSRawObject {
                             $Result_Object[$Current_Searcher_Result_Property] = $Current_Searcher_Result_Value
                         }
                         if ($Properties -contains $Useful_Calculated_Group_Property_Name) {
-                            # Convert the PrimaryGroupID to a full ObjectSID property, by using the AccountDomainSid sub-property of the ObjectSID property of the user and appending the PrimaryGroupID.
-                            $PrimaryGroup_SID = '{0}-{1}' -f $Result_Object['objectsid'].AccountDomainSid.Value, $Current_Searcher_Result_Value
-                            $Group_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
-                            $Group_Search_Parameters['ObjectSID'] = $PrimaryGroup_SID
-                            $PrimaryGroup_Name = (Get-DSSGroup @Group_Search_Parameters).distinguishedname
+                            Write-Verbose ('{0}|Useful_Calculated_Group: Calculating Property {1} from: {2}' -f $Function_Name, $Useful_Calculated_Group_Property_Name, $Current_Searcher_Result_Property)
+                            if ($Useful_Calculated_Group_Property_Name -eq 'primarygroup') {
+                                # Convert the PrimaryGroupID to a full ObjectSID property, by using the AccountDomainSid sub-property of the ObjectSID property of the user and appending the PrimaryGroupID.
+                                $PrimaryGroup_SID = '{0}-{1}' -f $Result_Object['objectsid'].AccountDomainSid.Value, $Current_Searcher_Result_Value
+                                $Group_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
+                                $Group_Search_Parameters['ObjectSID'] = $PrimaryGroup_SID
+                                $Useful_Calculated_Group_Property_Value = (Get-DSSGroup @Group_Search_Parameters).'distinguishedname'
+                            } elseif ($Useful_Calculated_Group_Property_Name -eq 'groupscope') {
+                                if (($Current_Searcher_Result_Value -bor 2) -eq $Current_Searcher_Result_Value) {
+                                    $Useful_Calculated_Group_Property_Value = 'Global'
+                                } elseif (($Current_Searcher_Result_Value -bor 4) -eq $Current_Searcher_Result_Value) {
+                                    $Useful_Calculated_Group_Property_Value = 'Domain Local'
+                                } elseif (($Current_Searcher_Result_Value -bor 8) -eq $Current_Searcher_Result_Value) {
+                                    $Useful_Calculated_Group_Property_Value = 'Universal'
+                                } else {
+                                    $Useful_Calculated_Group_Property_Value = 'Unknown'
+                                }
+                            } elseif ($Useful_Calculated_Group_Property_Name -eq 'groupcategory') {
+                                if (($Current_Searcher_Result_Value -eq 268435456) -or ($Current_Searcher_Result_Value -eq 536870912)) {
+                                    $Useful_Calculated_Group_Property_Value = 'Security'
+                                } elseif (($Current_Searcher_Result_Value -eq 268435457) -or ($Current_Searcher_Result_Value -eq 536870913)) {
+                                    $Useful_Calculated_Group_Property_Value = 'Distribution'
+                                } else {
+                                    $Useful_Calculated_Group_Property_Value = 'Unknown'
+                                }
+                            }
                             Write-Verbose ('{0}|Useful_Calculated_Group: Returning calculated property: {1}' -f $Function_Name, $Useful_Calculated_Group_Property_Name)
-                            $Result_Object[$Useful_Calculated_Group_Property_Name] = $PrimaryGroup_Name
+                            $Result_Object[$Useful_Calculated_Group_Property_Name] = $Useful_Calculated_Group_Property_Value
                         }
 
                     } elseif ($Useful_Calculated_TimeSpan_Properties.GetEnumerator().Name -contains $Current_Searcher_Result_Property) {
