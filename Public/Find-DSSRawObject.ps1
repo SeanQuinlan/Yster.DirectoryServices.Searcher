@@ -338,7 +338,7 @@ function Find-DSSRawObject {
                 'ID'             = 'DSS-{0}' -f $Function_Name
                 'Category'       = 'SecurityError'
                 'TargetObject'   = $Directory_Searcher
-                'Message'        = 'The server has rejected the client credentials.'
+                'Message'        = $_.Exception.InnerException.Message
                 'InnerException' = $_.Exception
             }
             $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
