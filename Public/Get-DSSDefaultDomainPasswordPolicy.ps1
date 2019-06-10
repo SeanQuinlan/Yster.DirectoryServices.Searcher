@@ -163,9 +163,7 @@ function Get-DSSDefaultDomainPasswordPolicy {
         $Directory_Search_Parameters['LDAPFilter'] = $Directory_Search_LDAPFilter
 
         Write-Verbose ('{0}|Calling Find-DSSRawObject' -f $Function_Name)
-        $Result_To_Return = Find-DSSRawObject @Directory_Search_Parameters
-
-        $Result_To_Return | ConvertTo-SortedPSObject
+        Find-DSSRawObject @Directory_Search_Parameters | ConvertTo-SortedPSObject
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
             $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_
