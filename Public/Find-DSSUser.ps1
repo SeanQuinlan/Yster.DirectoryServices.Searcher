@@ -156,6 +156,7 @@ function Find-DSSUser {
         'logonworkstations'
         'mail'
         'manager'
+        'memberof'
         'mnslogonaccount'
         'mobile'
         'mobilephone'
@@ -221,7 +222,6 @@ function Find-DSSUser {
 
         #todo not yet added
         #'lastknownparent'
-        #'memberof'
     )
 
     try {

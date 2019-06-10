@@ -119,6 +119,7 @@ function Find-DSSGroup {
         'isdeleted'
         'mail'
         'managedby'
+        'memberof'
         'modified'
         'modifytimestamp'
         'ntsecuritydescriptor'
@@ -137,7 +138,6 @@ function Find-DSSGroup {
         #'lastknownparent'
         #'member'
         #'members' # looks like alias of members
-        #'memberof'
     )
 
     try {
