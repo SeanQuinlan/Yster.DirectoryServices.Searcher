@@ -1,9 +1,9 @@
 function Find-DSSDomainController {
     <#
     .SYNOPSIS
-        Finds a domain controller object(s) in Active Directory.
+        Finds domain controller objects in Active Directory.
     .DESCRIPTION
-        Performs an search for domain controller objects in Active Directory, using the Name or a custom LDAPFilter.
+        Performs a search for domain controller objects in Active Directory, using the Name or a custom LDAPFilter.
     .EXAMPLE
         Find-DSSDomainController -Name *
 
@@ -278,21 +278,16 @@ function Find-DSSDomainController {
 
                 if (($Domain_Properties_To_Process) -or ($Function_Search_Properties -contains 'operationmasterroles')) {
                     $Domain_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
-                    $Domain_Search_Parameters['Properties'] = @('dnsroot', 'parentdomain')
+                    $Domain_Search_Parameters['Properties'] = @('dnsroot', 'forest')
                     $Domain_Search_Parameters['DistinguishedName'] = $Result_To_Return['distinguishedname'] -replace '.*,OU=Domain Controllers,'
                     Write-Verbose ('{0}|Domain: Calling Get-DSSDomain for: {1}' -f $Function_Name, $Result_To_Return['distinguishedname'])
                     $Domain_Result = Get-DSSDomain @Domain_Search_Parameters
 
-                    # todo fix below: is parentdomain enough?
                     foreach ($Domain_Property in $Domain_Properties_To_Process) {
                         if ($Domain_Property -eq 'domain') {
                             $Domain_Property_Value = $Domain_Result.'dnsroot'
                         } elseif ($Domain_Property -eq 'forest') {
-                            if (-not $Domain_Result.'parentdomain') {
-                                $Domain_Property_Value = $Domain_Result.'dnsroot'
-                            } else {
-                                $Domain_Property_Value = $Domain_Result.'parentdomain'
-                            }
+                            $Domain_Property_Value = $Domain_Result.'forest'
                         }
                         Write-Verbose ('{0}|Domain: Adding Property: {1} = {2}' -f $Function_Name, $Domain_Property, $Domain_Property_Value)
                         $Result_To_Return[$Domain_Property] = $Domain_Property_Value
