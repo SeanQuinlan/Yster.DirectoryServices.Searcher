@@ -98,14 +98,13 @@ function Get-DSSPrincipalGroupMembership {
     # Default properties when none are specified. Otherwise the specified properties override these.
     [String[]]$Default_Properties = @(
         'distinguishedname'
+        'groupcategory'
+        'groupscope'
         'name'
         'objectclass'
         'objectguid'
         'samaccountname'
         'sid'
-
-        #'groupcategory'
-        #'groupscope'
     )
 
     try {
