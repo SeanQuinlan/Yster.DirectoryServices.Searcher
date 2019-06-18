@@ -46,6 +46,12 @@ function Get-DSSComputer {
         [String]
         $SAMAccountName,
 
+        # Whether to return deleted objects in the search results.
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Switch]
+        $IncludeDeletedObjects,
+
         # The properties of any results to return.
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
@@ -86,6 +92,9 @@ function Get-DSSComputer {
         $Directory_Search_Parameters = @{
             'Context'  = $Context
             'PageSize' = $PageSize
+        }
+        if ($PSBoundParameters.ContainsKey('IncludeDeletedObjects')) {
+            $Directory_Search_Parameters['IncludeDeletedObjects'] = $true
         }
         if ($PSBoundParameters.ContainsKey('Server')) {
             $Directory_Search_Parameters['Server'] = $Server

@@ -43,6 +43,12 @@ function Find-DSSObject {
         [String]
         $SearchScope,
 
+        # Whether to return deleted objects in the search results.
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Switch]
+        $IncludeDeletedObjects,
+
         # The properties of any results to return.
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
@@ -107,12 +113,14 @@ function Find-DSSObject {
         'instancetype'
         'iscriticalsystemobject'
         'isdeleted'
+        'lastknownparent'
         'lastlogoff'
         'lastlogon'
         'localpolicyflags'
         'logoncount'
         'modified'
         'modifytimestamp'
+        'msds-lastknownrdn'
         'ntsecuritydescriptor'
         'objectcategory'
         'objectsid'
@@ -127,9 +135,6 @@ function Find-DSSObject {
         'usncreated'
         'whenchanged'
         'whencreated'
-
-        #todo not yet added
-        #'lastknownparent'
     )
 
     try {
@@ -142,6 +147,9 @@ function Find-DSSObject {
         }
         if ($PSBoundParameters.ContainsKey('SearchScope')) {
             $Directory_Search_Parameters['SearchScope'] = $SearchScope
+        }
+        if ($PSBoundParameters.ContainsKey('IncludeDeletedObjects')) {
+            $Directory_Search_Parameters['IncludeDeletedObjects'] = $true
         }
         if ($PSBoundParameters.ContainsKey('Server')) {
             $Directory_Search_Parameters['Server'] = $Server

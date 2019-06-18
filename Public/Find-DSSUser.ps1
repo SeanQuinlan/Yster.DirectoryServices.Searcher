@@ -44,6 +44,12 @@ function Find-DSSUser {
         [String]
         $SearchScope,
 
+        # Whether to return deleted objects in the search results.
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Switch]
+        $IncludeDeletedObjects,
+
         # The properties of any results to return.
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
@@ -145,6 +151,7 @@ function Find-DSSUser {
         'kerberosencryptiontype'
         'l'
         'lastbadpasswordattempt'
+        'lastknownparent'
         'lastlogoff'
         'lastlogon'
         'lastlogondate'
@@ -165,6 +172,7 @@ function Find-DSSUser {
         'msds-allowedtoactonbehalfofotheridentity'
         'msds-assignedauthnpolicy'
         'msds-assignedauthnpolicysilo'
+        'msds-lastknownrdn'
         'msds-supportedencryptiontypes'
         'msds-user-account-control-computed'
         'ntsecuritydescriptor'
@@ -219,9 +227,6 @@ function Find-DSSUser {
         'wwwhomepage'
         'whenchanged'
         'whencreated'
-
-        #todo not yet added
-        #'lastknownparent'
     )
 
     try {
@@ -234,6 +239,9 @@ function Find-DSSUser {
         }
         if ($PSBoundParameters.ContainsKey('SearchScope')) {
             $Directory_Search_Parameters['SearchScope'] = $SearchScope
+        }
+        if ($PSBoundParameters.ContainsKey('IncludeDeletedObjects')) {
+            $Directory_Search_Parameters['IncludeDeletedObjects'] = $true
         }
         if ($PSBoundParameters.ContainsKey('Server')) {
             $Directory_Search_Parameters['Server'] = $Server
@@ -263,7 +271,14 @@ function Find-DSSUser {
         Write-Verbose ('{0}|Properties: {1}' -f $Function_Name, ($Function_Search_Properties -join ' '))
         $Directory_Search_Parameters['Properties'] = $Function_Search_Properties
 
-        $Default_User_LDAPFilter = '(samaccounttype=805306368)'     # sAMAccountType is best method to search just user accounts - http://www.selfadsi.org/extended-ad/search-user-accounts.htm
+        # SAMAccountType is the fastest method of searching for users - http://www.selfadsi.org/extended-ad/search-user-accounts.htm.
+        # However this property is not available on groups that have been deleted. So set the filter to use ObjectClass instead, if $IncludeDeletedObjects is set to $true.
+        if ($IncludeDeletedObjects) {
+            $Default_User_LDAPFilter = '(objectclass=user)'
+        } else {
+            $Default_User_LDAPFilter = '(samaccounttype=805306368)'
+        }
+
         if ($Name -eq '*') {
             $Directory_Search_LDAPFilter = $Default_User_LDAPFilter
         } elseif ($LDAPFilter) {

@@ -44,6 +44,12 @@ function Find-DSSOrganizationalUnit {
         [String]
         $SearchScope,
 
+        # Whether to return deleted objects in the search results.
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Switch]
+        $IncludeDeletedObjects,
+
         # The properties of any results to return.
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
@@ -112,8 +118,10 @@ function Find-DSSOrganizationalUnit {
         'instancetype'
         'isdeleted'
         'l'
+        'lastknownparent'
         'modified'
         'modifytimestamp'
+        'msds-lastknownrdn'
         'ntsecuritydescriptor'
         'objectcategory'
         'ou'
@@ -125,9 +133,6 @@ function Find-DSSOrganizationalUnit {
         'usncreated'
         'whenchanged'
         'whencreated'
-
-        #todo not added yet
-        #'lastknownparent'
     )
 
     try {
@@ -140,6 +145,9 @@ function Find-DSSOrganizationalUnit {
         }
         if ($PSBoundParameters.ContainsKey('SearchScope')) {
             $Directory_Search_Parameters['SearchScope'] = $SearchScope
+        }
+        if ($PSBoundParameters.ContainsKey('IncludeDeletedObjects')) {
+            $Directory_Search_Parameters['IncludeDeletedObjects'] = $true
         }
         if ($PSBoundParameters.ContainsKey('Server')) {
             $Directory_Search_Parameters['Server'] = $Server

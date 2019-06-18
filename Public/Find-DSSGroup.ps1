@@ -53,6 +53,12 @@ function Find-DSSGroup {
         [String]
         $GroupType,
 
+        # Whether to return deleted objects in the search results.
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Switch]
+        $IncludeDeletedObjects,
+
         # The properties of any results to return.
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
@@ -117,11 +123,13 @@ function Find-DSSGroup {
         'info'
         'instancetype'
         'isdeleted'
+        'lastknownparent'
         'mail'
         'managedby'
         'memberof'
         'modified'
         'modifytimestamp'
+        'msds-lastknownrdn'
         'ntsecuritydescriptor'
         'objectcategory'
         'objectsid'
@@ -135,7 +143,6 @@ function Find-DSSGroup {
         'whencreated'
 
         #todo not yet added
-        #'lastknownparent'
         #'member'
         #'members' # looks like alias of members
     )
@@ -150,6 +157,9 @@ function Find-DSSGroup {
         }
         if ($PSBoundParameters.ContainsKey('SearchScope')) {
             $Directory_Search_Parameters['SearchScope'] = $SearchScope
+        }
+        if ($PSBoundParameters.ContainsKey('IncludeDeletedObjects')) {
+            $Directory_Search_Parameters['IncludeDeletedObjects'] = $true
         }
         if ($PSBoundParameters.ContainsKey('Server')) {
             $Directory_Search_Parameters['Server'] = $Server
@@ -179,7 +189,13 @@ function Find-DSSGroup {
         Write-Verbose ('{0}|Properties: {1}' -f $Function_Name, ($Function_Search_Properties -join ' '))
         $Directory_Search_Parameters['Properties'] = $Function_Search_Properties
 
-        $Default_Group_LDAPFilter = '(objectcategory=group)'
+        # ObjectCategory is the fastest method of searching for groups.
+        # However this property is not available on groups that have been deleted. So set the filter to use ObjectClass instead, if $IncludeDeletedObjects is set to $true.
+        if ($IncludeDeletedObjects) {
+            $Default_Group_LDAPFilter = '(objectclass=group)'
+        } else {
+            $Default_Group_LDAPFilter = '(objectcategory=group)'
+        }
 
         # Add any filtering on GroupScope and/or GroupType
         # See: https://haczela.wordpress.com/2012/03/07/how-to-search-for-groups-of-different-type-and-scope/
@@ -194,6 +210,7 @@ function Find-DSSGroup {
             }
         }
         if ($PSBoundParameters.ContainsKey('GroupType')) {
+            #todo: samaccounttype doesn't work for deleted objects
             Write-Verbose ('{0}|GroupType: {1}' -f $Function_Name, $GroupType)
             if ($GroupType -eq 'Security') {
                 $Addtional_LDAPFilter = $Addtional_LDAPFilter + '(|(samaccounttype=268435456)(samaccounttype=536870912))'

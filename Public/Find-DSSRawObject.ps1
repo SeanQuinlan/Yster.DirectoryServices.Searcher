@@ -38,6 +38,12 @@ function Find-DSSRawObject {
         [String]
         $SearchScope,
 
+        # Whether to return deleted objects in the search results.
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Switch]
+        $IncludeDeletedObjects,
+
         # The properties of any results to return.
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
@@ -245,12 +251,17 @@ function Find-DSSRawObject {
         $Directory_Searcher_Arguments = @(
             $Directory_Entry
             $LDAPFilter
+            #todo: if ldapfilter includes the word "true", replace with "TRUE" in all caps as LDAP seems to need that in order to match.
         )
         $Directory_Searcher = New-Object -TypeName 'System.DirectoryServices.DirectorySearcher' -ArgumentList $Directory_Searcher_Arguments
 
         if ($PSBoundParameters.ContainsKey('SearchScope')) {
             Write-Verbose ('{0}|Adding SearchScope: {1}' -f $Function_Name, $SearchScope)
             $Directory_Searcher.SearchScope = $SearchScope
+        }
+        if ($PSBoundParameters.ContainsKey('IncludeDeletedObjects')) {
+            Write-Verbose ('{0}|Including Deleted Objects (Tombstone): {1}' -f $Function_Name, $IncludeDeletedObjects)
+            $Directory_Searcher.Tombstone = $IncludeDeletedObjects
         }
 
         Write-Verbose ('{0}|Setting PageSize to: {1}' -f $Function_Name, $PageSize)
@@ -439,7 +450,7 @@ function Find-DSSRawObject {
                             if (($Current_Searcher_Result_Value -eq 0) -or ($Current_Searcher_Result_Value -gt [DateTime]::MaxValue.Ticks)) {
                                 $Useful_Calculated_Time_Property_Value = $null
                             } else {
-                                $Useful_Calculated_Time_Property_Value = [DateTime]::FromFileTime($Current_Searcher_Result_Value)
+                                $Useful_Calculated_Time_Property_Value = [DateTime]::FromFileTimeUtc($Current_Searcher_Result_Value)
                             }
                             Write-Verbose ('{0}|Useful_Calculated_Time: Returning calculated property: {1}' -f $Function_Name, $Useful_Calculated_Time_Property_Name)
                             $Result_Object[$Useful_Calculated_Time_Property_Name] = $Useful_Calculated_Time_Property_Value

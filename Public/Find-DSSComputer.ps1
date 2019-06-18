@@ -44,6 +44,12 @@ function Find-DSSComputer {
         [String]
         $SearchScope,
 
+        # Whether to return deleted objects in the search results.
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Switch]
+        $IncludeDeletedObjects,
+
         # The properties of any results to return.
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
@@ -148,6 +154,7 @@ function Find-DSSComputer {
         'msds-assignedauthnpolicy'
         'msds-assignedauthnpolicysilo'
         'msds-generationid'
+        'msds-lastknownrdn'
         'msds-supportedencryptiontypes'
         'msds-user-account-control-computed'
         'mnslogonaccount'
@@ -198,6 +205,9 @@ function Find-DSSComputer {
         if ($PSBoundParameters.ContainsKey('SearchScope')) {
             $Directory_Search_Parameters['SearchScope'] = $SearchScope
         }
+        if ($PSBoundParameters.ContainsKey('IncludeDeletedObjects')) {
+            $Directory_Search_Parameters['IncludeDeletedObjects'] = $true
+        }
         if ($PSBoundParameters.ContainsKey('Server')) {
             $Directory_Search_Parameters['Server'] = $Server
         }
@@ -226,7 +236,14 @@ function Find-DSSComputer {
         Write-Verbose ('{0}|Properties: {1}' -f $Function_Name, ($Function_Search_Properties -join ' '))
         $Directory_Search_Parameters['Properties'] = $Function_Search_Properties
 
-        $Default_Computer_LDAPFilter = '(objectcategory=computer)'
+        # ObjectCategory is the fastest method of searching for computer objects.
+        # However this property is not available on objects that have been deleted. So set the filter to use ObjectClass instead, if $IncludeDeletedObjects is set to $true.
+        if ($IncludeDeletedObjects) {
+            $Default_Computer_LDAPFilter = '(objectclass=computer)'
+        } else {
+            $Default_Computer_LDAPFilter = '(objectcategory=computer)'
+        }
+
         if ($Name -eq '*') {
             $Directory_Search_LDAPFilter = $Default_Computer_LDAPFilter
         } elseif ($LDAPFilter) {
@@ -261,6 +278,7 @@ function Find-DSSComputer {
                             $Non_LDAP_Network_Property_AddressList = ($Host_IP_Addresses | Where-Object { ($_.AddressFamily -eq 'InterNetworkV6') -and (-not $_.IsIPv6LinkLocal) -and (-not $_.IsIPv6SiteLocal) }).IPAddressToString
                         }
 
+                        Write-Verbose ('{0}|Non_LDAP: Adding Property: {1} = {2}' -f $Function_Name, $Non_LDAP_Network_Property, $Non_LDAP_Network_Property_AddressList)
                         $Result_To_Return[$Non_LDAP_Network_Property] = $Non_LDAP_Network_Property_AddressList
                     }
                 }
