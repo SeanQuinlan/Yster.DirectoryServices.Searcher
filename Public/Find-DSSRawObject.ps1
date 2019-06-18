@@ -407,6 +407,11 @@ function Find-DSSRawObject {
                         }
                     }
 
+                    # Reformat any DateTime objects from UTC to local time (which is what the ActiveDirectory module does)
+                    if ($Current_Searcher_Result_Value -is [DateTime]) {
+                        $Current_Searcher_Result_Value = [System.TimeZoneInfo]::ConvertTimeFromUtc($Current_Searcher_Result_Value,[System.TimeZoneInfo]::Local)
+                    }
+
                     # Add the calculated property if the property is found on one of the Calculated Property lists. Otherwise default to just outputting the property and value.
                     if ($UAC_Calculated_Properties.GetEnumerator().Name -contains $Current_Searcher_Result_Property) {
                         Write-Verbose ('{0}|UAC: Base property found: {1}={2}' -f $Function_Name, $Current_Searcher_Result_Property, $Current_Searcher_Result_Value)
