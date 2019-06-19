@@ -198,7 +198,7 @@ function Find-DSSGroup {
         }
 
         # Add any filtering on GroupScope and/or GroupType
-        # See: https://haczela.wordpress.com/2012/03/07/how-to-search-for-groups-of-different-type-and-scope/
+        # See: https://ldapwiki.com/wiki/Active%20Directory%20Group%20Related%20Searches
         if ($PSBoundParameters.ContainsKey('GroupScope')) {
             Write-Verbose ('{0}|GroupScope: {1}' -f $Function_Name, $GroupScope)
             if ($GroupScope -eq 'DomainLocal') {
@@ -210,12 +210,11 @@ function Find-DSSGroup {
             }
         }
         if ($PSBoundParameters.ContainsKey('GroupType')) {
-            #todo: samaccounttype doesn't work for deleted objects
             Write-Verbose ('{0}|GroupType: {1}' -f $Function_Name, $GroupType)
             if ($GroupType -eq 'Security') {
-                $Addtional_LDAPFilter = $Addtional_LDAPFilter + '(|(samaccounttype=268435456)(samaccounttype=536870912))'
+                $Addtional_LDAPFilter = $Addtional_LDAPFilter + '(groupType:1.2.840.113556.1.4.803:=2147483648)'
             } else {
-                $Addtional_LDAPFilter = $Addtional_LDAPFilter + '(|(samaccounttype=268435457)(samaccounttype=536870913))'
+                $Addtional_LDAPFilter = $Addtional_LDAPFilter + '(!(groupType:1.2.840.113556.1.4.803:=2147483648))'
             }
         }
         if ($Addtional_LDAPFilter) {
