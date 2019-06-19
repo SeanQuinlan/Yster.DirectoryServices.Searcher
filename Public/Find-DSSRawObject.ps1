@@ -203,7 +203,6 @@ function Find-DSSRawObject {
             'managedserviceaccountscontainer' = 'B:32:1EB93889E40C45DF9F0C64D23BBB6237:'
         }
 
-        # todo: change to same format as above 2 lists, change name of all subproperty lists
         # These are calculated from the 'pwdproperties' property.
         # - Values taken from: https://docs.microsoft.com/en-us/windows/desktop/adschema/a-pwdproperties
         'pwdproperties'                      = @{
@@ -241,8 +240,8 @@ function Find-DSSRawObject {
 
         $Directory_Searcher_Arguments = @(
             $Directory_Entry
-            $LDAPFilter
-            #todo: if ldapfilter includes the word "true", replace with "TRUE" in all caps as LDAP seems to need that in order to match.
+            # LDAP filters seem to need TRUE and FALSE in boolean comparisons to be upper case, so simply convert any here.
+            $LDAPFilter -replace 'true', 'TRUE' -replace 'false', 'FALSE'
         )
         $Directory_Searcher = New-Object -TypeName 'System.DirectoryServices.DirectorySearcher' -ArgumentList $Directory_Searcher_Arguments
 
@@ -562,7 +561,6 @@ function Find-DSSRawObject {
                                 $Result_Object[$Useful_Calculated_SubProperty_Name] = $Useful_Calculated_SubProperty_Value
                             }
                         }
-
 
                     } elseif ($Microsoft_Alias_Properties.GetEnumerator().Name -contains $Current_Searcher_Result_Property) {
                         ####################################
