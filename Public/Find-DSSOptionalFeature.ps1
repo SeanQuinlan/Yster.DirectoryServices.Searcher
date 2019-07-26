@@ -134,14 +134,13 @@ function Find-DSSOptionalFeature {
             $Common_Search_Parameters['Credential'] = $Credential
         }
         if (-not $PSBoundParameters.ContainsKey('SearchBase')) {
-            $DSE_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
             Write-Verbose ('{0}|Calling Get-DSSRootDSE' -f $Function_Name)
-            $DSE_Return_Object = Get-DSSRootDSE @DSE_Search_Parameters
+            $DSE_Return_Object = Get-DSSRootDSE @Common_Search_Parameters
             $SearchBase = $DSE_Return_Object.'configurationnamingcontext'
             Write-Verbose ('{0}|DSE: Configuration Path: {1}' -f $Function_Name, $SearchBase)
         }
 
-        $Directory_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
+        $Directory_Search_Parameters = @{}
         if ($PSBoundParameters.ContainsKey('SearchScope')) {
             $Directory_Search_Parameters['SearchScope'] = $SearchScope
         }
@@ -180,13 +179,13 @@ function Find-DSSOptionalFeature {
         $Directory_Search_Parameters['LDAPFilter'] = $Directory_Search_LDAPFilter
 
         Write-Verbose ('{0}|Finding optional features using Find-DSSRawObject' -f $Function_Name)
-        $Results_To_Return = Find-DSSRawObject @Directory_Search_Parameters
+        $Results_To_Return = Find-DSSRawObject @Common_Search_Parameters @Directory_Search_Parameters
 
         if ($Results_To_Return) {
             foreach ($Result_To_Return in $Results_To_Return) {
                 if ($Function_Search_Properties -contains 'enabledscopes') {
                     Write-Verbose ('{0}|EnabledScopes: Searching for EnabledScopes for: {1}' -f $Function_Name, $Result_To_Return['name'])
-                    $EnabledScopes_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
+                    $EnabledScopes_Search_Parameters = @{}
                     $EnabledScopes_Search_Parameters['Context'] = $Context
                     $EnabledScopes_Search_Parameters['PageSize'] = $PageSize
                     $EnabledScopes_Search_Parameters['SearchBase'] = $SearchBase
@@ -194,7 +193,7 @@ function Find-DSSOptionalFeature {
                     $EnabledScopes_Search_Parameters['LDAPFilter'] = '(msds-enabledfeature={0})' -f $Result_To_Return['distinguishedname']
 
                     Write-Verbose ('{0}|EnabledScopes: Calling Find-DSSRawObject' -f $Function_Name)
-                    $EnabledScopes_Search_Results = Find-DSSRawObject @EnabledScopes_Search_Parameters
+                    $EnabledScopes_Search_Results = Find-DSSRawObject @Common_Search_Parameters @EnabledScopes_Search_Parameters
 
                     if ($EnabledScopes_Search_Results) {
                         $EnabledScopes_Property = 'enabledscopes'

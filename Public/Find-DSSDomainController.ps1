@@ -177,7 +177,7 @@ function Find-DSSDomainController {
         }
         Write-Verbose ('{0}|Properties: {1}' -f $Function_Name, ($Function_Search_Properties -join ' '))
 
-        $Directory_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
+        $Directory_Search_Parameters = @{}
         $Directory_Search_Parameters['Context'] = $Context
         $Directory_Search_Parameters['PageSize'] = $PageSize
         if ($PSBoundParameters.ContainsKey('SearchBase')) {
@@ -201,7 +201,7 @@ function Find-DSSDomainController {
         $Directory_Search_Parameters['LDAPFilter'] = $Directory_Search_LDAPFilter
 
         Write-Verbose ('{0}|Finding domain controllers using Find-DSSRawObject' -f $Function_Name)
-        $Results_To_Return = Find-DSSRawObject @Directory_Search_Parameters
+        $Results_To_Return = Find-DSSRawObject @Common_Search_Parameters @Directory_Search_Parameters
 
         if ($Results_To_Return) {
             $Partition_Properties_To_Process = $Function_Search_Properties | Where-Object { $Partition_Properties -contains $_ }
@@ -211,13 +211,12 @@ function Find-DSSDomainController {
 
             if ($Partition_Properties_To_Process) {
                 Write-Verbose ('{0}|Sites: Calculating DSE properties' -f $Function_Name)
-                $DSE_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
                 Write-Verbose ('{0}|Sites: Calling Get-DSSRootDSE' -f $Function_Name)
-                $DSE_Return_Object = Get-DSSRootDSE @DSE_Search_Parameters
+                $DSE_Return_Object = Get-DSSRootDSE @Common_Search_Parameters
                 $Sites_Path = 'CN=Sites,{0}' -f $DSE_Return_Object.'configurationnamingcontext'
                 Write-Verbose ('{0}|Sites: Sites_Path: {1}' -f $Function_Name, $Sites_Path)
 
-                $Site_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
+                $Site_Search_Parameters = @{}
                 # Some of the below properties are not held within the global catalog, so we have to look these up using a domain query.
                 $Site_Search_Parameters['Context'] = 'Domain'
                 $Site_Search_Parameters['PageSize'] = $PageSize
@@ -234,7 +233,7 @@ function Find-DSSDomainController {
                 )
 
                 Write-Verbose ('{0}|Sites: Calling Find-DSSRawObject' -f $Function_Name)
-                $Site_Results = Find-DSSRawObject @Site_Search_Parameters
+                $Site_Results = Find-DSSRawObject @Common_Search_Parameters @Site_Search_Parameters
             }
 
             foreach ($Result_To_Return in $Results_To_Return) {
@@ -277,11 +276,11 @@ function Find-DSSDomainController {
                 }
 
                 if (($Domain_Properties_To_Process) -or ($Function_Search_Properties -contains 'operationmasterroles')) {
-                    $Domain_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
+                    $Domain_Search_Parameters = @{}
                     $Domain_Search_Parameters['Properties'] = @('dnsroot', 'forest')
                     $Domain_Search_Parameters['DistinguishedName'] = $Result_To_Return['distinguishedname'] -replace '.*,OU=Domain Controllers,'
                     Write-Verbose ('{0}|Domain: Calling Get-DSSDomain for: {1}' -f $Function_Name, $Result_To_Return['distinguishedname'])
-                    $Domain_Result = Get-DSSDomain @Domain_Search_Parameters
+                    $Domain_Result = Get-DSSDomain @Common_Search_Parameters @Domain_Search_Parameters
 
                     foreach ($Domain_Property in $Domain_Properties_To_Process) {
                         if ($Domain_Property -eq 'domain') {

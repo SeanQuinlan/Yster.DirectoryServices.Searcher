@@ -123,7 +123,7 @@ function Get-DSSDefaultDomainPasswordPolicy {
         }
         Write-Verbose ('{0}|Properties: {1}' -f $Function_Name, ($Function_Search_Properties -join ' '))
 
-        $Directory_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
+        $Directory_Search_Parameters = @{}
         $Directory_Search_Parameters['Context'] = $Context
         $Directory_Search_Parameters['Properties'] = $Function_Search_Properties
 
@@ -139,21 +139,20 @@ function Get-DSSDefaultDomainPasswordPolicy {
             $Directory_Search_LDAPFilter = '(&({0})(objectguid={1}))' -f $Default_Domain_LDAPFilter, (Convert-GuidToHex -Guid $ObjectGUID)
         } elseif ($PSBoundParameters.ContainsKey('NetBIOSName')) {
             Write-Verbose ('{0}|NetBIOSName: Calculating DSE properties' -f $Function_Name)
-            $DSE_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
             Write-Verbose ('{0}|NetBIOSName: Calling Get-DSSRootDSE' -f $Function_Name)
-            $DSE_Return_Object = Get-DSSRootDSE @DSE_Search_Parameters
+            $DSE_Return_Object = Get-DSSRootDSE @Common_Search_Parameters
 
             $Partitions_Path = 'CN=Partitions,{0}' -f $DSE_Return_Object.'configurationnamingcontext'
             Write-Verbose ('{0}|NetBIOSName: Partitions_Path: {1}' -f $Function_Name, $Partitions_Path)
 
-            $NetBIOSName_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
+            $NetBIOSName_Search_Parameters = @{}
             $NetBIOSName_Search_Parameters['Context'] = $Context
             $NetBIOSName_Search_Parameters['SearchBase'] = $Partitions_Path
             $NetBIOSName_Search_Parameters['LDAPFilter'] = '(netbiosname={0})' -f $NetBIOSName
             $NetBIOSName_Search_Parameters['Properties'] = @('ncname')
 
             Write-Verbose ('{0}|NetBIOSName: Calling Find-DSSRawObject' -f $Function_Name)
-            $NetBIOSName_Result_To_Return = Find-DSSRawObject @NetBIOSName_Search_Parameters
+            $NetBIOSName_Result_To_Return = Find-DSSRawObject @Common_Search_Parameters @NetBIOSName_Search_Parameters
 
             $Directory_Search_LDAPFilter = $Default_Domain_LDAPFilter
             $Directory_Search_Parameters['SearchBase'] = $NetBIOSName_Result_To_Return['ncname']
@@ -163,7 +162,7 @@ function Get-DSSDefaultDomainPasswordPolicy {
         $Directory_Search_Parameters['LDAPFilter'] = $Directory_Search_LDAPFilter
 
         Write-Verbose ('{0}|Calling Find-DSSRawObject' -f $Function_Name)
-        Find-DSSRawObject @Directory_Search_Parameters | ConvertTo-SortedPSObject
+        Find-DSSRawObject @Common_Search_Parameters @Directory_Search_Parameters | ConvertTo-SortedPSObject
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
             $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_

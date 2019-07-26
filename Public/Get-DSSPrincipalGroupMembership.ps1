@@ -121,7 +121,7 @@ function Get-DSSPrincipalGroupMembership {
 
         # We need the DistinguishedName to perform the LDAP_MATCHING_RULE_IN_CHAIN search, so if another identity is given, perform a search to retrieve the DistinguishedName
         if (-not $PSBoundParameters.ContainsKey('DistinguishedName')) {
-            $DN_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
+            $DN_Search_Parameters = @{}
             if ($PSBoundParameters.ContainsKey('ObjectSID')) {
                 $DN_Search_Object = $ObjectSID
                 $DN_Search_LDAPFilter = '(objectsid={0})' -f $ObjectSID
@@ -136,7 +136,7 @@ function Get-DSSPrincipalGroupMembership {
             $DN_Search_Parameters['LDAPFilter'] = $DN_Search_LDAPFilter
 
             Write-Verbose ('{0}|DN Search:Calling Find-DSSObject' -f $Function_Name)
-            $DN_Search_Return = Find-DSSObject @DN_Search_Parameters
+            $DN_Search_Return = Find-DSSObject @Common_Search_Parameters @DN_Search_Parameters
             if (-not $DN_Search_Return) {
                 $Terminating_ErrorRecord_Parameters = @{
                     'Exception'    = 'Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException'
@@ -152,7 +152,7 @@ function Get-DSSPrincipalGroupMembership {
             }
         }
 
-        $Directory_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
+        $Directory_Search_Parameters = @{}
         if ($PSBoundParameters.ContainsKey('Properties')) {
             $Directory_Search_Parameters['Properties'] = $Properties
         } else {
@@ -167,7 +167,7 @@ function Get-DSSPrincipalGroupMembership {
         $Directory_Search_Parameters['LDAPFilter'] = $Directory_Search_LDAPFilter
 
         Write-Verbose ('{0}|Calling Find-DSSRawObject' -f $Function_Name)
-        Find-DSSRawObject @Directory_Search_Parameters | ConvertTo-SortedPSObject
+        Find-DSSRawObject @Common_Search_Parameters @Directory_Search_Parameters | ConvertTo-SortedPSObject
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
             $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_

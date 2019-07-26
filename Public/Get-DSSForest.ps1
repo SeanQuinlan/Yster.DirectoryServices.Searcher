@@ -125,9 +125,8 @@ function Get-DSSForest {
 
         $Result_To_Return = @{}
 
-        $DSE_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
         Write-Verbose ('{0}|Calling Get-DSSRootDSE' -f $Function_Name)
-        $DSE_Return_Object = Get-DSSRootDSE @DSE_Search_Parameters
+        $DSE_Return_Object = Get-DSSRootDSE @Common_Search_Parameters
 
         foreach ($DSE_Property in $DSE_Properties) {
             if ($DSE_Property -eq 'forestmode') {
@@ -139,14 +138,14 @@ function Get-DSSForest {
             $Result_To_Return[$DSE_Property] = $DSE_Property_Value
         }
 
-        $Partitions_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
+        $Partitions_Search_Parameters = @{}
         $Partitions_Search_Parameters['Context'] = $Context
         $Partitions_Search_Parameters['Properties'] = $Partitions_Properties
         $Partitions_Search_Parameters['SearchBase'] = $Result_To_Return['partitionscontainer']
         $Partitions_Search_Parameters['LDAPFilter'] = '(objectclass=crossrefcontainer)'
 
         Write-Verbose ('{0}|Partitions: Calling Find-DSSRawObject' -f $Function_Name)
-        $Partitions_Results_To_Return = Find-DSSRawObject @Partitions_Search_Parameters
+        $Partitions_Results_To_Return = Find-DSSRawObject @Common_Search_Parameters @Partitions_Search_Parameters
 
         if ($Partitions_Results_To_Return) {
             foreach ($Partitions_Property in $Partitions_Properties) {
@@ -156,14 +155,14 @@ function Get-DSSForest {
             }
         }
 
-        $Forest_Context_Arguments = $Common_Search_Parameters.PSObject.Copy()
+        $Forest_Context_Arguments = @{}
         if ($PSBoundParameters.ContainsKey('Server')) {
             $Forest_Context_Arguments['Context'] = 'Server'
         } else {
             $Forest_Context_Arguments['Context'] = 'Forest'
         }
         Write-Verbose ('{0}|Forest: Getting forest details' -f $Function_Name)
-        $Forest_Context = Get-DSSDirectoryContext @Forest_Context_Arguments
+        $Forest_Context = Get-DSSDirectoryContext @Common_Search_Parameters @Forest_Context_Arguments
         $Current_Forest_Properties = [System.DirectoryServices.ActiveDirectory.Forest]::GetForest($Forest_Context)
 
         $Function_Search_Properties | Where-Object { ($DSE_Properties -notcontains $_) -and ($Partitions_Properties -notcontains $_) } | ForEach-Object {

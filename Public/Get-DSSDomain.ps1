@@ -126,6 +126,7 @@ function Get-DSSDomain {
 
         #todo not yet added
         #'publickeyrequiredpasswordrolling' - can't even find anything on this from a google search :(
+        #'alloweddnssuffixes'
 
     )
 
@@ -182,7 +183,7 @@ function Get-DSSDomain {
         }
         Write-Verbose ('{0}|Properties: {1}' -f $Function_Name, ($Function_Search_Properties -join ' '))
 
-        $Directory_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
+        $Directory_Search_Parameters = @{}
         $Directory_Search_Parameters['Context'] = $Context
         $Directory_Search_Parameters['Properties'] = $Function_Search_Properties
 
@@ -198,21 +199,20 @@ function Get-DSSDomain {
             $Directory_Search_LDAPFilter = '(&({0})(objectguid={1}))' -f $Default_Domain_LDAPFilter, (Convert-GuidToHex -Guid $ObjectGUID)
         } elseif ($PSBoundParameters.ContainsKey('NetBIOSName')) {
             Write-Verbose ('{0}|NetBIOSName: Calculating DSE properties' -f $Function_Name)
-            $DSE_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
             Write-Verbose ('{0}|NetBIOSName: Calling Get-DSSRootDSE' -f $Function_Name)
-            $DSE_Return_Object = Get-DSSRootDSE @DSE_Search_Parameters
+            $DSE_Return_Object = Get-DSSRootDSE @Common_Search_Parameters
 
             $Partitions_Path = 'CN=Partitions,{0}' -f $DSE_Return_Object.'configurationnamingcontext'
             Write-Verbose ('{0}|NetBIOSName: Partitions_Path: {1}' -f $Function_Name, $Partitions_Path)
 
-            $NetBIOSName_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
+            $NetBIOSName_Search_Parameters = @{}
             $NetBIOSName_Search_Parameters['Context'] = $Context
             $NetBIOSName_Search_Parameters['SearchBase'] = $Partitions_Path
             $NetBIOSName_Search_Parameters['LDAPFilter'] = '(netbiosname={0})' -f $NetBIOSName
             $NetBIOSName_Search_Parameters['Properties'] = @('ncname')
 
             Write-Verbose ('{0}|NetBIOSName: Calling Find-DSSRawObject' -f $Function_Name)
-            $NetBIOSName_Result_To_Return = Find-DSSRawObject @NetBIOSName_Search_Parameters
+            $NetBIOSName_Result_To_Return = Find-DSSRawObject @Common_Search_Parameters @NetBIOSName_Search_Parameters
 
             $Directory_Search_LDAPFilter = $Default_Domain_LDAPFilter
             $Directory_Search_Parameters['SearchBase'] = $NetBIOSName_Result_To_Return['ncname']
@@ -222,7 +222,7 @@ function Get-DSSDomain {
         $Directory_Search_Parameters['LDAPFilter'] = $Directory_Search_LDAPFilter
 
         Write-Verbose ('{0}|Calling Find-DSSRawObject' -f $Function_Name)
-        $Result_To_Return = Find-DSSRawObject @Directory_Search_Parameters
+        $Result_To_Return = Find-DSSRawObject @Common_Search_Parameters @Directory_Search_Parameters
 
         if ($Result_To_Return) {
             # Some properties need to be gathered via different methods.
@@ -233,22 +233,21 @@ function Get-DSSDomain {
             if ($Network_Properties_To_Process -or $Domain_Properties_To_Process) {
                 if (-not $DSE_Return_Object) {
                     Write-Verbose ('{0}|Network/Domain: Calculating DSE properties' -f $Function_Name)
-                    $DSE_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
                     Write-Verbose ('{0}|Network/Domain: Calling Get-DSSRootDSE' -f $Function_Name)
-                    $DSE_Return_Object = Get-DSSRootDSE @DSE_Search_Parameters
+                    $DSE_Return_Object = Get-DSSRootDSE @Common_Search_Parameters
 
                     $Partitions_Path = 'CN=Partitions,{0}' -f $DSE_Return_Object.'configurationnamingcontext'
                     Write-Verbose ('{0}|Network/Domain: Partitions_Path: {1}' -f $Function_Name, $Partitions_Path)
                 }
 
-                $Network_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
+                $Network_Search_Parameters = @{}
                 $Network_Search_Parameters['Context'] = $Context
                 $Network_Search_Parameters['SearchBase'] = $Partitions_Path
                 $Network_Search_Parameters['LDAPFilter'] = '(&(objectclass=crossref)(netbiosname=*)(ncname={0}))' -f $Result_To_Return.'distinguishedname'
                 $Network_Search_Parameters['Properties'] = $Network_Properties
 
                 Write-Verbose ('{0}|Network/Domain: Calling Find-DSSRawObject' -f $Function_Name)
-                $Network_Result_To_Return = Find-DSSRawObject @Network_Search_Parameters
+                $Network_Result_To_Return = Find-DSSRawObject @Common_Search_Parameters @Network_Search_Parameters
 
                 if ($Network_Result_To_Return) {
                     foreach ($Network_Property in $Network_Properties_To_Process) {
@@ -296,13 +295,13 @@ function Get-DSSDomain {
 
                 if ($Replica_Properties_To_Process) {
                     Write-Verbose ('{0}|Replica: Calculating Replica properties for: {1}' -f $Function_Name, $Network_Result_To_Return['dnsroot'])
-                    $Replica_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
+                    $Replica_Search_Parameters = @{}
                     $Replica_Search_Parameters['Context'] = $Context
                     $Replica_Search_Parameters['Properties'] = @('isreadonly')
                     $Replica_Search_Parameters['Name'] = '*'
 
                     Write-Verbose ('{0}|Replica: Calling Find-DSSDomainController' -f $Function_Name)
-                    $Replica_Results = Find-DSSDomainController @Replica_Search_Parameters
+                    $Replica_Results = Find-DSSDomainController @Common_Search_Parameters @Replica_Search_Parameters
                     foreach ($Replica_Property in $Replica_Properties) {
                         if ($Replica_Property -eq 'replicadirectoryservers') {
                             $Replica_Property_Value = ($Replica_Results | Where-Object { $_.'isreadonly' -eq $false }).'dnshostname'
