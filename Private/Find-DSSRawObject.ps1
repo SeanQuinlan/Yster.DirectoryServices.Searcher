@@ -22,6 +22,7 @@ function Find-DSSRawObject {
         Use the relevant Find-DSSUser/Find-DSSComputer/etc function instead for more accurate results.
 
         References:
+        https://docs.microsoft.com/en-us/dotnet/api/system.directoryservices.directorysearcher
         https://docs.microsoft.com/en-us/powershell/module/addsadministration/get-adobject
     #>
 
@@ -90,6 +91,7 @@ function Find-DSSRawObject {
     # The order of properties returned from an LDAP search can be random, or at least they are not returned in the same order as they are requested.
     # Therefore certain properties need to be processed first when returned, as other properties may depend on them being already populated.
     $Returned_Properties_To_Process_First = @(
+        'adspath'
         'distinguishedname'
         'objectclass'
         'objectsid'
@@ -107,6 +109,7 @@ function Find-DSSRawObject {
         'l'                            = 'city'
         'mail'                         = 'emailaddress'
         'maxpwdage'                    = 'maxpasswordage'
+        'member'                       = 'members'
         'minpwdage'                    = 'minpasswordage'
         'minpwdlength'                 = 'minpasswordlength'
         'mobile'                       = 'mobilephone'
@@ -227,6 +230,9 @@ function Find-DSSRawObject {
         'Resource-SID-Compression-Disabled' = '0x80000'
     }
 
+    # A regular expression to determine if a property needs to be paged to return all values.
+    $Paging_Regex = '\;range=(\d+)-(.*)'
+
     try {
         $Common_Search_Parameters = @{
             'Context' = $Context
@@ -305,21 +311,30 @@ function Find-DSSRawObject {
         if ($Directory_Searcher_Results) {
             Write-Verbose ('{0}|Found {1} result(s)' -f $Function_Name, $Directory_Searcher_Results.Count)
             $Directory_Searcher_Result_To_Return = New-Object -TypeName 'System.Collections.Generic.List[PSObject]'
-            foreach ($Directory_Searcher_Result in $Directory_Searcher_Results) {
+            foreach ($global:Directory_Searcher_Result in $Directory_Searcher_Results) {
                 Write-Verbose ('{0}|Reformatting result properties order' -f $Function_Name)
                 $Reformatted_Directory_Searcher_Result = [Ordered]@{}
+                # In order to keep the logic in the main part of this script, I need to process any paged properties before their regular counterparts, otherwise they get overwritten by null values.
                 $Directory_Searcher_Result.Properties.GetEnumerator() | ForEach-Object {
                     if ($Returned_Properties_To_Process_First -contains $_.Name) {
-                        $Reformatted_Directory_Searcher_Result.Insert(0, $_.Name, $_.Value)
-                    } else {
+                        $Reformatted_Directory_Searcher_Result[$_.Name] = $_.Value
+                    }
+                }
+                $Directory_Searcher_Result.Properties.GetEnumerator() | ForEach-Object {
+                    if ($_.Name -match $Paging_Regex) {
+                        $Reformatted_Directory_Searcher_Result[$_.Name] = $_.Value
+                    }
+                }
+                $Directory_Searcher_Result.Properties.GetEnumerator() | ForEach-Object {
+                    if (-not $Reformatted_Directory_Searcher_Result[$_.Name]) {
                         $Reformatted_Directory_Searcher_Result[$_.Name] = $_.Value
                     }
                 }
 
                 $Result_Object = @{}
-                foreach ($Current_Searcher_Result in $Reformatted_Directory_Searcher_Result.GetEnumerator()) {
-                    $Current_Searcher_Result_Property = $Current_Searcher_Result.Name
-                    $Current_Searcher_Result_Value = $($Current_Searcher_Result.Value)
+                foreach ($Current_Searcher_Result in $Reformatted_Directory_Searcher_Result.GetEnumerator().Name) {
+                    $Current_Searcher_Result_Property = $Current_Searcher_Result
+                    $Current_Searcher_Result_Value = $($Reformatted_Directory_Searcher_Result[$Current_Searcher_Result])
                     Write-Verbose ('{0}|Results: Property={1} Value={2}' -f $Function_Name, $Current_Searcher_Result_Property, $Current_Searcher_Result_Value)
 
                     ######################################
@@ -357,6 +372,73 @@ function Find-DSSRawObject {
                     # Reformat any DateTime objects from UTC to local time (which is what the ActiveDirectory module does).
                     if ($Current_Searcher_Result_Value -is [DateTime]) {
                         $Current_Searcher_Result_Value = [System.TimeZoneInfo]::ConvertTimeFromUtc($Current_Searcher_Result_Value, [System.TimeZoneInfo]::Local)
+                    }
+
+                    # Page additional results if a property requires it.
+                    if ($Current_Searcher_Result_Property -match $Paging_Regex) {
+                        $Current_Searcher_Result_Base_Property = $Current_Searcher_Result_Property -replace $Paging_Regex, ''
+                        Write-Verbose ('{0}|Paging: Found property requiring paging: {1}' -f $Function_Name, $Current_Searcher_Result_Base_Property)
+                        $Paging_Results = New-Object -TypeName 'System.Collections.Generic.List[Object]'
+                        $Paging_Results.AddRange($Current_Searcher_Result_Value)
+                        $Paging_Total = $Current_Searcher_Result_Value.Count
+                        $Paging_Start = $Matches[1]
+                        $Paging_End = $Matches[2]
+
+                        $Paging_Directory_Entry_Parameters = $Common_Search_Parameters.PSBase.Clone()
+                        $Paging_Directory_Entry_Parameters['SearchBase'] = $Result_Object['distinguishedname']
+                        $Paging_Directory_Entry = Get-DSSDirectoryEntry @Paging_Directory_Entry_Parameters
+                        $Paging_Directory_Searcher = New-Object -TypeName 'System.DirectoryServices.DirectorySearcher' -ArgumentList @($Paging_Directory_Entry)
+
+                        do {
+                            $Paging_Start = ($Paging_Start -as [int]) + $Paging_Total
+                            $Paging_End = ($Paging_End -as [int]) + $Paging_Total
+                            $Paging_Property = '{0};range={1}-{2}' -f $Current_Searcher_Result_Base_Property, $Paging_Start, $Paging_End
+                            $Paging_Directory_Searcher.PropertiesToLoad.Clear()
+                            [void]$Paging_Directory_Searcher.PropertiesToLoad.Add($Paging_Property)
+                            Write-Verbose ('{0}|Paging: Searching for this range: {1}' -f $Function_Name, $Paging_Property)
+
+                            try {
+                                Write-Verbose ('{0}|Paging: Performing search...' -f $Function_Name)
+                                $Paging_Directory_Searcher_Result = $Paging_Directory_Searcher.FindOne()
+                            } catch {
+                                $Terminating_ErrorRecord_Parameters = @{
+                                    'Exception'      = 'System.Security.Authentication.AuthenticationException'
+                                    'ID'             = 'DSS-{0}' -f $Function_Name
+                                    'Category'       = 'SecurityError'
+                                    'TargetObject'   = $Paging_Directory_Searcher
+                                    'Message'        = $_.Exception.InnerException.Message
+                                    'InnerException' = $_.Exception
+                                }
+                                $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+                                $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+                            }
+                            if ($Paging_Directory_Searcher_Result) {
+                                $Paging_Result = $Paging_Directory_Searcher_Result.Properties.GetEnumerator() | Where-Object { $_.'Name' -match $Current_Searcher_Result_Base_Property }
+                                $Paging_Result_Name = $Paging_Result.Name
+                                $Paging_Result_Value = $($Paging_Result.Value)
+                                Write-Verbose ('{0}|Paging: Found {1} results' -f $Function_Name, $Paging_Result_Value.Count)
+
+                                $Paging_Results.AddRange($Paging_Result_Value)
+                                $null = $Paging_Result_Name -match $Paging_Regex
+                                $Paging_Start = $Matches[1]
+                                $Paging_End = $Matches[2]
+                            } else {
+                                Write-Verbose ('{0}|Paging: No result returned from paging search!')
+                                $Terminating_ErrorRecord_Parameters = @{
+                                    'Exception'      = 'ActiveDirectory.InvalidResult'
+                                    'ID'             = 'DSS-{0}' -f $Function_Name
+                                    'Category'       = 'InvalidResult'
+                                    'TargetObject'   = $Paging_Directory_Searcher
+                                    'Message'        = 'Incomplete paging result set returned'
+                                }
+                                $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+                                $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+                            }
+
+                        } until ($Paging_End -match '\*')
+
+                        Write-Verbose ('{0}|Paging: Completed paging, adding regular property: {1} with {2} entries' -f $Function_Name, $Current_Searcher_Result_Base_Property, $Paging_Results.Count)
+                        $Reformatted_Directory_Searcher_Result[$Current_Searcher_Result_Base_Property] = $Paging_Results
                     }
 
                     if ($Useful_Calculated_Properties.GetEnumerator().Name -contains $Current_Searcher_Result_Property) {
@@ -587,7 +669,7 @@ function Find-DSSRawObject {
                             }
                         }
 
-                    } else {
+                    } elseif ($Current_Searcher_Result_Property -notmatch $Paging_Regex) {
                         ###################################################################################
                         # STEP 5: If no matches, simply add the property as it is returned from the server.
                         ###################################################################################
