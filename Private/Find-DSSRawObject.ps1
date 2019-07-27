@@ -115,6 +115,7 @@ function Find-DSSRawObject {
         'minpwdage'                    = 'minpasswordage'
         'minpwdlength'                 = 'minpasswordlength'
         'mobile'                       = 'mobilephone'
+        'msds-alloweddnssuffixes'      = 'alloweddnssuffixes'
         'msds-assignedauthnpolicy'     = 'authenticationpolicy'
         'msds-assignedauthnpolicysilo' = 'authenticationpolicysilo'
         'msds-hostserviceaccount'      = 'serviceaccount'
@@ -427,11 +428,11 @@ function Find-DSSRawObject {
                             } else {
                                 Write-Verbose ('{0}|Paging: No result returned from paging search!')
                                 $Terminating_ErrorRecord_Parameters = @{
-                                    'Exception'      = 'ActiveDirectory.InvalidResult'
-                                    'ID'             = 'DSS-{0}' -f $Function_Name
-                                    'Category'       = 'InvalidResult'
-                                    'TargetObject'   = $Paging_Directory_Searcher
-                                    'Message'        = 'Incomplete paging result set returned'
+                                    'Exception'    = 'ActiveDirectory.InvalidResult'
+                                    'ID'           = 'DSS-{0}' -f $Function_Name
+                                    'Category'     = 'InvalidResult'
+                                    'TargetObject' = $Paging_Directory_Searcher
+                                    'Message'      = 'Incomplete paging result set returned'
                                 }
                                 $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
                                 $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
