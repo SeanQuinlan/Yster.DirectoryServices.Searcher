@@ -3,46 +3,35 @@
     // Custom Settings for this module
     //
     // These are here so that anyone potentially modifying the code base has the same editor experience, this ensures that the code will follow the same structure.
-
     // Number of spaces for tabs
     "editor.tabSize": 4, // Default: 4
-
     // Use spaces not tabs
-    "editor.insertSpaces": true,  // Default: true
-
+    "editor.insertSpaces": true, // Default: true
     // When enabled, will trim trailing whitespace when you save a file.
-    "files.trimTrailingWhitespace": true,  // Default: false
+    "files.trimTrailingWhitespace": true, // Default: false
+	"files.trimFinalNewlines": true,
+	"files.insertFinalNewline": true,
 
     // Does not reformat one-line code blocks, such as "if (...) {...} else {...}".
     "powershell.codeFormatting.ignoreOneLineBlock": false, // Default: True
-
     // Adds a newline (line break) after a closing brace.
     "powershell.codeFormatting.newLineAfterCloseBrace": true, // Default: True
-
     // Adds a newline (line break) after an open brace.
     "powershell.codeFormatting.newLineAfterOpenBrace": true, // Default: True
-	
-	// Uses One True Brace Style.
-	"powershell.codeFormatting.preset": "OTBS",
-
+    // Uses One True Brace Style.
+    "powershell.codeFormatting.preset": "OTBS",
     // Places open brace on the same line as its associated statement.
     "powershell.codeFormatting.openBraceOnSameLine": true, // Default: True
-
     // Adds a space after a separator (',' and ';').
     "powershell.codeFormatting.whitespaceAfterSeparator": true, // Default: True
-
     // Adds spaces before and after an operator ('=', '+', '-', etc.).
     "powershell.codeFormatting.whitespaceAroundOperator": true, // Default: True
-
     // Adds a space between a keyword and its associated scriptblock expression.
     "powershell.codeFormatting.whitespaceBeforeOpenBrace": true, // Default: True
-
     // Adds a space between a keyword (if, elseif, while, switch, etc) and its associated conditional expression.
     "powershell.codeFormatting.whitespaceBeforeOpenParen": true, // Default: True
-	
-	// Do not add whitespace after open brace and before close brace.
-	"powershell.codeFormatting.whitespaceInsideBrace": false // Default: True
-
+    // Do not add whitespace after open brace and before close brace.
+    "powershell.codeFormatting.whitespaceInsideBrace": false, // Default: True
     // Align assignment statements in a hashtable or a DSC Configuration.
-    "powershell.codeFormatting.alignPropertyValuePairs": true // Default: True
+    "powershell.codeFormatting.alignPropertyValuePairs": true,
 }
