@@ -2,14 +2,21 @@ function Find-DSSRawObject {
     <#
     .SYNOPSIS
         Finds an object in Active Directory based on the specified LDAP filter provided.
-
-        This is not meant to be used as an interactive function; it is used as a worker function by many of the other higher-level functions.
     .DESCRIPTION
-        Long description
+        Returns the raw properties of an object based on the specified LDAP filter. Results are returned as an unsorted hashtable, meant for later formatting to an object using ConvertTo-SortedObject.
+
+        This is not meant to be used as an interactive function; it is used as a worker function by most of the other higher-level functions.
     .EXAMPLE
-        Example of how to use this script
-    .EXAMPLE
-        Another example of how to use this script
+        $Directory_Search_Parameters = @{
+            'Context'    = 'Domain'
+            'PageSize'   = 1000
+            'SearchBase' = 'OU=RootOU,DC=root,DC=lab'
+            'Properties' = @('distinguishedname','samaccountname')
+            'LDAPFilter' = '(samaccountname=generic*)'
+        }
+        Find-DSSRawObject @Directory_Search_Parameters
+
+        Returns two properties of the objects found with the above SAMAccountName.
     .NOTES
         NOTE: Calling this function directly with "*" anywhere in the properties may not return all the correct UAC-related attributes, even if specifying the property in addition to the wildcard.
         Use the relevant Find-DSSUser/Find-DSSComputer/etc function instead for more accurate results.
@@ -581,14 +588,14 @@ function Find-DSSRawObject {
                         }
 
                     } else {
-                        ####################################################################################
-                        # STEP 5: If not matches, simply add the property as it is returned from the server.
-                        ####################################################################################
+                        ###################################################################################
+                        # STEP 5: If no matches, simply add the property as it is returned from the server.
+                        ###################################################################################
                         $Result_Object[$Current_Searcher_Result_Property] = $Current_Searcher_Result_Value
                     }
                 }
 
-                # Add the formatted object to the return array.
+                # Add the object to the return array.
                 $Directory_Searcher_Result_To_Return.Add($Result_Object)
             }
 

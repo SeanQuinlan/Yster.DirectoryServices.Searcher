@@ -7,9 +7,9 @@ function Get-DSSComputer {
             - DistinguishedName
             - ObjectSID (SID)
             - ObjectGUID (GUID)
-            - SAMAccountName (Note: Must end in $)
+            - SAMAccountName
 
-        This is a wrapper function that takes one of the required parameters and passes that to the Find-DSSComputer with a specific LDAPFilter.
+        This is a wrapper function that takes one of the required parameters and passes that to Find-DSSComputer with a specific LDAPFilter.
     .EXAMPLE
         Get-DSSComputer -ObjectGUID 'eaa2e65d-fe54-4fe2-9f4e-acf9f65a2323'
 
@@ -18,7 +18,7 @@ function Get-DSSComputer {
 
     [CmdletBinding(DefaultParameterSetName = 'DistinguishedName')]
     param(
-        # The DistinguishedName of the .
+        # The DistinguishedName of the computer.
         [Parameter(Mandatory = $true, ParameterSetName = 'DistinguishedName')]
         [ValidateNotNullOrEmpty()]
         [Alias('DN')]

@@ -1,9 +1,9 @@
 function Find-DSSObject {
     <#
     .SYNOPSIS
-        Finds an object(s) in Active Directory.
+        Searches for any objects in Active Directory.
     .DESCRIPTION
-        Performs an Ambiguous Name Recognition (ANR) search through Active Directory for the supplied Name, or uses a custom LDAPFilter.
+        Performs an Ambiguous Name Recognition (ANR) search through Active Directory for any objects with the supplied Name, or using a custom LDAPFilter.
     .EXAMPLE
         Find-DSSObject "administrator"
 

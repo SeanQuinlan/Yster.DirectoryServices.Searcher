@@ -36,11 +36,11 @@ function Get-DSSForest {
         [String[]]
         $Properties,
 
-        # The context to search - Domain or Forest.
+        # The context to search - only Forest allowed.
         [Parameter(Mandatory = $false)]
-        [ValidateSet('Domain', 'Forest')]
+        [ValidateSet('Forest')]
         [String]
-        $Context = 'Domain',
+        $Context = 'Forest',
 
         # The server to connect to.
         [Parameter(Mandatory = $false)]
@@ -62,6 +62,7 @@ function Get-DSSForest {
     # All the properties as per Get-ADForest. Not that many, so no need to return a subset by default.
     [String[]]$Default_Properties = @(
         'applicationpartitions'
+        'crossforestreferences'
         'domainnamingmaster'
         'domains'
         'forestmode'
@@ -73,9 +74,6 @@ function Get-DSSForest {
         'sites'
         'spnsuffixes'
         'upnsuffixes'
-
-        #todo not yet added
-        #'crossforestreferences'
     )
 
     $DSE_Properties = @(

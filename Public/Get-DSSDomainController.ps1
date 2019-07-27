@@ -123,20 +123,3 @@ function Get-DSSDomainController {
         }
     }
 }
-
-
-<#
-#todo
-Options for -Identity from Get-addomaincontroller
-----------------
-x guid
-ipv4 address
-global ipv6 address
-dns host name
-x name of server object
-dn of ntds settings object
-dn of server object
-guid of ntds settings object under configuration
-guid of ntds server object under configuration
-x dn
-#>

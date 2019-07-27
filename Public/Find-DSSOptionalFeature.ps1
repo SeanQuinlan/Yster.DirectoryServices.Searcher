@@ -1,7 +1,7 @@
 function Find-DSSOptionalFeature {
     <#
     .SYNOPSIS
-        Finds an optional feature in Active Directory.
+        Searches for optional features in Active Directory.
     .DESCRIPTION
         Performs a search within Active Directory for the optional feature with the supplied Name, or uses a custom LDAPFilter.
     .EXAMPLE

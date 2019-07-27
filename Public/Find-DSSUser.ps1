@@ -1,9 +1,9 @@
 function Find-DSSUser {
     <#
     .SYNOPSIS
-        Finds a user object(s) in Active Directory.
+        Searches for user objects in Active Directory.
     .DESCRIPTION
-        Performs an Ambiguous Name Recognition (ANR) search through Active Directory for the supplied Name, or uses a custom LDAPFilter.
+        Performs an Ambiguous Name Recognition (ANR) search through Active Directory for users with the supplied Name, or uses a custom LDAPFilter.
     .EXAMPLE
         Find-DSSUser "administrator"
 

@@ -3,25 +3,32 @@ function New-ErrorRecord {
     .SYNOPSIS
         Create an ErrorRecord object that can be used to output a custom error message.
     .DESCRIPTION
-        Long description
+        Create a custom ErrorRecord object using a number of input parameters, in order to pass a better error message up the stack.
     .EXAMPLE
-        Example of how to use this script
+        $Terminating_ErrorRecord_Parameters = @{
+            'Exception'    = 'Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException'
+            'ID'           = 'ADObjectNotFound'
+            'Category'     = 'ObjectNotFound'
+            'TargetObject' = $DN_Search_Return
+            'Message'      = ('Cannot find group with identity: {0}' -f $DN_Search_Object)
+        }
+        $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
     #>
 
     [CmdletBinding()]
     param(
         # The exception used to describe the error.
-        [Parameter(Mandatory = $true, Position = 1)]
+        [Parameter(Mandatory = $true)]
         [String]
         $Exception,
 
         # The ID of the exception.
-        [Parameter(Mandatory = $true, Position = 2)]
+        [Parameter(Mandatory = $true)]
         [String]
         $ID,
 
         # The category of the exception.
-        [Parameter(Mandatory = $true, Position = 3)]
+        [Parameter(Mandatory = $true)]
         [ValidateSet(
             # From: https://docs.microsoft.com/en-us/dotnet/api/system.management.automation.errorcategory?view=powershellsdk-1.1.0
             'AuthenticationError',
@@ -60,17 +67,17 @@ function New-ErrorRecord {
         $Category,
 
         # The object against which the cmdlet was operating when the error occurred.
-        [Parameter(Mandatory = $false, Position = 4)]
+        [Parameter(Mandatory = $false)]
         [Object]
         $TargetObject = $null,
 
         # A custom error message to display with the error.
-        [Parameter(Mandatory = $false, Position = 5)]
+        [Parameter(Mandatory = $false)]
         [String]
         $Message,
 
         # The inner exception that is the cause of this exception.
-        [Parameter(Mandatory = $false, Position = 6)]
+        [Parameter(Mandatory = $false)]
         [Object]
         $InnerException
     )

@@ -1,7 +1,7 @@
 function Find-DSSComputer {
     <#
     .SYNOPSIS
-        Finds a computer object(s) in Active Directory.
+        Searches for computer objects in Active Directory.
     .DESCRIPTION
         Performs an Ambiguous Name Recognition (ANR) search through Active Directory for the supplied Name, or uses a custom LDAPFilter.
     .EXAMPLE

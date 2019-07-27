@@ -1,7 +1,7 @@
 function Find-DSSOrganizationalUnit {
     <#
     .SYNOPSIS
-        Finds an Organizational Unit (OU) in Active Directory.
+        Searches for Organizational Units (OU) in Active Directory.
     .DESCRIPTION
         Performs an LDAP search for all Organizational Units that match the Name or LDAPFilter supplied properties.
     .EXAMPLE
@@ -9,9 +9,9 @@ function Find-DSSOrganizationalUnit {
 
         Finds all the OUs that match "Sales".
     .EXAMPLE
-        Find-DSSOrganizationalUnit -LDAPFilter '(name=UK*)' -Properties *
+        Find-DSSOrganizationalUnit -LDAPFilter '(name=UK*)' -SearchBase 'OU=RootOU,DC=root,DC=lab' -Properties *
 
-        Finds all the OUs that have a "name" starting with "UK", and return all properties for each result.
+        Finds all the OUs that have a "name" starting with "UK", under the above OU, and return all properties for each result.
     .NOTES
         References:
         https://docs.microsoft.com/en-us/powershell/module/addsadministration/get-adorganizationalunit

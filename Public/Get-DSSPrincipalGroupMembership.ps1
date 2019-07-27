@@ -3,7 +3,7 @@ function Get-DSSPrincipalGroupMembership {
     .SYNOPSIS
         Returns all the groups that an account is a member of.
     .DESCRIPTION
-        Queries Active Directory for the group membership a specific account, based on one of the following specified parameters:
+        Queries Active Directory for the direct group membership a specific account, based on one of the following specified parameters:
             - DistinguishedName
             - ObjectSID (SID)
             - ObjectGUID (GUID)
@@ -11,11 +11,11 @@ function Get-DSSPrincipalGroupMembership {
     .EXAMPLE
         Get-DSSPrincipalGroupMembership -ObjectSID 'S-1-5-21-3515480276-2049723633-1306762111-1103'
 
-        Returns the immediate members of the group with the above SID. Nested member objects are not returned.
+        Returns all the groups that the account with the above SID is a direct member of.
     .EXAMPLE
-        Get-DSSGroupMember -ObjectSID 'S-1-5-21-3272082711-1601384293-958068986-1112' -Recursive | Where-Object { $_.objectclass -contains 'user' }
+        Get-DSSPrincipalGroupMembership -SAMAccountName 'Administrator'
 
-        Gets the all the members of the group with the above SID, including nested members, filtering the results so that only user objects are returned.
+        Returns all the groups that the Administrator account is a member of.
     .NOTES
         References:
         https://docs.microsoft.com/en-us/powershell/module/addsadministration/get-adprincipalgroupmembership

@@ -1,14 +1,17 @@
 function Find-DSSGroup {
     <#
     .SYNOPSIS
-        Finds a group object(s) in Active Directory.
+        Searches for group objects in Active Directory.
     .DESCRIPTION
         Performs an Ambiguous Name Recognition (ANR) search through Active Directory for the supplied group Name, or uses a custom LDAPFilter.
     .EXAMPLE
-        Find-DSSGroup "domain admins"
+        Find-DSSGroup -Name "domain admins"
 
+        Returns basic properties from the Domain Admins group.
     .EXAMPLE
+        Find-DSSGroup -Name 'grp' -SearchBase 'OU=RootOU,DC=root,DC=lab' -Properties *
 
+        Returns all properties for any groups with "grp" in a common indexed attribute, only if found under the specified OU.
     .NOTES
         References:
         https://docs.microsoft.com/en-us/powershell/module/addsadministration/get-adgroup
@@ -141,10 +144,6 @@ function Find-DSSGroup {
         'usncreated'
         'whenchanged'
         'whencreated'
-
-        #todo not yet added
-        #'member'
-        #'members' # looks like alias of members
     )
 
     try {

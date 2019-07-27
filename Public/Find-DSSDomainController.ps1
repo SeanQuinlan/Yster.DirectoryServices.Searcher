@@ -1,15 +1,17 @@
 function Find-DSSDomainController {
     <#
     .SYNOPSIS
-        Finds domain controller objects in Active Directory.
+        Searches for domain controller objects in Active Directory.
     .DESCRIPTION
         Performs a search for domain controller objects in Active Directory, using the Name or a custom LDAPFilter.
     .EXAMPLE
-        Find-DSSDomainController -Name *
+        Find-DSSDomainController -Name 'dc'
 
-        Finds all domain controllers for the current domain.
+        Finds all domain controllers that have "dc" in their name.
     .EXAMPLE
+        Find-DSSDomainController -Name * -Context forest
 
+        Finds all domain controllers in the current forest.
     .NOTES
         References:
         https://docs.microsoft.com/en-us/powershell/module/addsadministration/get-addomaincontroller
@@ -110,10 +112,6 @@ function Find-DSSDomainController {
         'primarygroupid'
         'serverobjectdn'
         'serverobjectguid'
-
-        #todo not yet added
-        #'ldapport'
-        #'sslport'
     )
 
     # These are the computer object properties that will returned.

@@ -14,7 +14,7 @@ function Get-DSSDirectoryContext {
 
     [CmdletBinding()]
     param(
-        # The context to search - Domain or Forest.
+        # The context to search - Domain, Forest or Server.
         [Parameter(Mandatory = $true)]
         [ValidateSet('Domain', 'Forest', 'Server')]
         [String]

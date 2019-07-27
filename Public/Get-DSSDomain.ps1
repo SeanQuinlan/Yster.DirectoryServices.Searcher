@@ -123,11 +123,6 @@ function Get-DSSDomain {
         'subrefs'
         'systemscontainer'
         'userscontainer'
-
-        #todo not yet added
-        #'publickeyrequiredpasswordrolling' - can't even find anything on this from a google search :(
-        #'alloweddnssuffixes'
-
     )
 
     $Network_Properties = @(
