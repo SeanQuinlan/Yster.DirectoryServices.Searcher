@@ -8,8 +8,6 @@ function Enable-DSSAccount {
         Enable-DSSAccount -SAMAccountName 'Guest'
 
         Enables the "Guest" account.
-    .EXAMPLE
-
     .NOTES
         References:
         https://docs.microsoft.com/en-us/powershell/module/addsadministration/enable-adaccount
@@ -110,7 +108,16 @@ function Enable-DSSAccount {
                 try {
                     $Account_Directory_Entry.SetInfo()
                 } catch {
-                    # todo: add appropriate error(s) - insufficient permissions
+                    $Terminating_ErrorRecord_Parameters = @{
+                        'Exception'      = 'System.UnauthorizedAccessException'
+                        'ID'             = 'DSS-{0}' -f $Function_Name
+                        'Category'       = 'SecurityError'
+                        'TargetObject'   = $Account_Directory_Entry
+                        'Message'        = 'Insufficient access rights to perform the operation'
+                        'InnerException' = $_.Exception
+                    }
+                    $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+                    $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
                 }
             } else {
                 Write-Verbose ('{0}|Account is already Enabled, doing nothing' -f $Function_Name)
