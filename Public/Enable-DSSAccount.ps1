@@ -111,7 +111,7 @@ function Enable-DSSAccount {
                     $Terminating_ErrorRecord_Parameters = @{
                         'Exception'      = 'System.UnauthorizedAccessException'
                         'ID'             = 'DSS-{0}' -f $Function_Name
-                        'Category'       = 'SecurityError'
+                        'Category'       = 'AuthenticationError'
                         'TargetObject'   = $Account_Directory_Entry
                         'Message'        = 'Insufficient access rights to perform the operation'
                         'InnerException' = $_.Exception
