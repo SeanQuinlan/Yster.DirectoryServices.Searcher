@@ -13,7 +13,7 @@ function Enable-DSSAccount {
         https://docs.microsoft.com/en-us/powershell/module/addsadministration/enable-adaccount
     #>
 
-    [CmdletBinding(DefaultParameterSetName = 'SAM')]
+    [CmdletBinding(DefaultParameterSetName = 'SAM', SupportsShouldProcess = $true, ConfirmImpact = 'Medium')]
     param(
         # The SAMAccountName of the account.
         [Parameter(Mandatory = $true, ParameterSetName = 'SAM')]
@@ -102,25 +102,27 @@ function Enable-DSSAccount {
         $Account_Directory_Entry = Find-DSSRawObject @Directory_Search_Parameters
         if ($Account_Directory_Entry) {
             $UAC_AccountDisabled = '0x02'
-            if (($Account_Directory_Entry.useraccountcontrol.Value -band $UAC_AccountDisabled) -eq $UAC_AccountDisabled) {
-                Write-Verbose ('{0}|Account is Disabled, enabling' -f $Function_Name)
-                $Account_Directory_Entry.useraccountcontrol.Value = $Account_Directory_Entry.useraccountcontrol.Value -bxor $UAC_AccountDisabled
-                try {
-                    $Account_Directory_Entry.SetInfo()
-                } catch {
-                    $Terminating_ErrorRecord_Parameters = @{
-                        'Exception'      = 'System.UnauthorizedAccessException'
-                        'ID'             = 'DSS-{0}' -f $Function_Name
-                        'Category'       = 'AuthenticationError'
-                        'TargetObject'   = $Account_Directory_Entry
-                        'Message'        = 'Insufficient access rights to perform the operation'
-                        'InnerException' = $_.Exception
+            if ($PSCmdlet.ShouldProcess($Account_Directory_Entry.distinguishedname, 'Set')) {
+                if (($Account_Directory_Entry.useraccountcontrol.Value -band $UAC_AccountDisabled) -eq $UAC_AccountDisabled) {
+                    Write-Verbose ('{0}|Account is Disabled, enabling' -f $Function_Name)
+                    $Account_Directory_Entry.useraccountcontrol.Value = $Account_Directory_Entry.useraccountcontrol.Value -bxor $UAC_AccountDisabled
+                    try {
+                        $Account_Directory_Entry.SetInfo()
+                    } catch {
+                        $Terminating_ErrorRecord_Parameters = @{
+                            'Exception'      = 'System.UnauthorizedAccessException'
+                            'ID'             = 'DSS-{0}' -f $Function_Name
+                            'Category'       = 'AuthenticationError'
+                            'TargetObject'   = $Account_Directory_Entry
+                            'Message'        = 'Insufficient access rights to perform the operation'
+                            'InnerException' = $_.Exception
+                        }
+                        $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+                        $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
                     }
-                    $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
-                    $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+                } else {
+                    Write-Verbose ('{0}|Account is already Enabled, doing nothing' -f $Function_Name)
                 }
-            } else {
-                Write-Verbose ('{0}|Account is already Enabled, doing nothing' -f $Function_Name)
             }
         } else {
             $Terminating_ErrorRecord_Parameters = @{
