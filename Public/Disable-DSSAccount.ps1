@@ -108,7 +108,7 @@ function Disable-DSSAccount {
                     $Account_Directory_Entry.useraccountcontrol.Value = $Account_Directory_Entry.useraccountcontrol.Value -bxor $UAC_AccountDisabled
                     try {
                         $Account_Directory_Entry.SetInfo()
-                    } catch {
+                    } catch [System.UnauthorizedAccessException] {
                         $Terminating_ErrorRecord_Parameters = @{
                             'Exception'      = 'System.UnauthorizedAccessException'
                             'ID'             = 'DSS-{0}' -f $Function_Name

@@ -108,7 +108,7 @@ function Unlock-DSSAccount {
                     $Account_Directory_Entry.lockouttime.Value = 0
                     try {
                         $Account_Directory_Entry.SetInfo()
-                    } catch {
+                    } catch [System.UnauthorizedAccessException] {
                         $Terminating_ErrorRecord_Parameters = @{
                             'Exception'      = 'System.UnauthorizedAccessException'
                             'ID'             = 'DSS-{0}' -f $Function_Name
