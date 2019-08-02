@@ -1,9 +1,9 @@
 function Unlock-DSSAccount {
     <#
     .SYNOPSIS
-        Unlocks an Active Directory account.
+        Unlocks an Active Directory user account.
     .DESCRIPTION
-        Unlocks a computer, user or service account in Active Directory.
+        Unlocks a user account in Active Directory.
     .EXAMPLE
         Unlock-DSSAccount -SAMAccountName 'Guest'
 
