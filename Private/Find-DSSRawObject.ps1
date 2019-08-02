@@ -596,7 +596,7 @@ function Find-DSSRawObject {
                                         if (($Current_Searcher_Result_Value -eq 0) -or ($Current_Searcher_Result_Value -gt [DateTime]::MaxValue.Ticks)) {
                                             $Useful_Calculated_Property_Value = $null
                                         } else {
-                                            $Useful_Calculated_Property_Value = [DateTime]::FromFileTimeUtc($Current_Searcher_Result_Value)
+                                            $Useful_Calculated_Property_Value = [DateTime]::FromFileTime($Current_Searcher_Result_Value)
                                         }
                                     }
 
