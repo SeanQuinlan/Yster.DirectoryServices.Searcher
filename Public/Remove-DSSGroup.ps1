@@ -12,6 +12,9 @@ function Remove-DSSGroup {
         Remove-DSSGroup -ObjectSID 'S-1-5-21-3515480276-2049723633-1306762111-1103'
 
         Deletes the group with the above SID.
+    .NOTES
+        References:
+        https://docs.microsoft.com/en-us/powershell/module/addsadministration/remove-adgroup
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'SAM', SupportsShouldProcess = $true, ConfirmImpact = 'High')]
