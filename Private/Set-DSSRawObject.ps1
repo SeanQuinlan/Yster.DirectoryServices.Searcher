@@ -153,6 +153,17 @@ function Set-DSSRawObject {
                             $Object_Directory_Entry.DeleteTree()
                         }
                         Write-Verbose ('{0}|Delete successful' -f $Function_Name)
+                    } elseif ($SetType -eq 'Unlock') {
+                        Write-Verbose ('{0}|Found object, attempting unlock' -f $Function_Name)
+                        # Taken from jrv's answer here: https://social.technet.microsoft.com/Forums/lync/en-US/349c0b3e-f4d6-4a65-8218-60901488855e/getting-user-quotlockouttimequot-using-adsi-interface-or-other-method-not-using-module?forum=ITCG
+                        if ($Object_Directory_Entry.ConvertLargeIntegerToInt64($Object_Directory_Entry.lockouttime.Value) -gt 0) {
+                            Write-Verbose ('{0}|Account is Locked, unlocking' -f $Function_Name)
+                            $Object_Directory_Entry.lockouttime.Value = 0
+                            $Object_Directory_Entry.SetInfo()
+                            Write-Verbose ('{0}|Unlock successful' -f $Function_Name)
+                        } else {
+                            Write-Verbose ('{0}|Account is already Unlocked, doing nothing' -f $Function_Name)
+                        }
                     }
                 } catch [System.UnauthorizedAccessException] {
                     $Terminating_ErrorRecord_Parameters = @{
