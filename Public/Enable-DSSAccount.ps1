@@ -66,75 +66,23 @@ function Enable-DSSAccount {
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
 
+    $Set_Parameters = @{
+        'SetType' = 'Enable'
+    }
+
+    # This will add the -Confirm parameter if ConfirmPreference is set high enough.
+    # The Set-DSSRawObject doesn't have a default ConfirmImpact set, so this passes the ConfirmImpact from this function if required.
+    if (-not $PSBoundParameters.ContainsKey('Confirm')) {
+        $ConfirmImpact = 'Medium'
+        if ([System.Management.Automation.ConfirmImpact]::$ConfirmImpact.Value__ -ge [System.Management.Automation.ConfirmImpact]::$ConfirmPreference.Value__) {
+            Write-Verbose ('{0}|Adding Confirm parameter' -f $Function_Name)
+            $Set_Parameters['Confirm'] = $True
+        }
+    }
+
     try {
-        $Directory_Search_Parameters = @{
-            'Context'      = $Context
-            'OutputFormat' = 'DirectoryEntry'
-        }
-        if ($PSBoundParameters.ContainsKey('Server')) {
-            $Directory_Search_Parameters['Server'] = $Server
-        }
-        if ($PSBoundParameters.ContainsKey('Credential')) {
-            $Directory_Search_Parameters['Credential'] = $Credential
-        }
-
-        if ($PSBoundParameters.ContainsKey('SAMAccountName')) {
-            $Directory_Search_LDAPFilter = '(samaccountname={0})' -f $SAMAccountName
-            $Directory_Search_Type = 'SAMAccountName'
-            $Directory_Search_Value = $SAMAccountName
-        } elseif ($PSBoundParameters.ContainsKey('DistinguishedName')) {
-            $Directory_Search_LDAPFilter = '(distinguishedname={0})' -f $DistinguishedName
-            $Directory_Search_Type = 'DistinguishedName'
-            $Directory_Search_Value = $DistinguishedName
-        } elseif ($PSBoundParameters.ContainsKey('ObjectSID')) {
-            $Directory_Search_LDAPFilter = '(objectsid={0})' -f $ObjectSID
-            $Directory_Search_Type = 'ObjectSID'
-            $Directory_Search_Value = $ObjectSID
-        } elseif ($PSBoundParameters.ContainsKey('ObjectGUID')) {
-            $Directory_Search_LDAPFilter = '(objectguid={0})' -f (Convert-GuidToHex -Guid $ObjectGUID)
-            $Directory_Search_Type = 'ObjectGUID'
-            $Directory_Search_Value = $ObjectGUID
-        }
-        Write-Verbose ('{0}|LDAPFilter: {1}' -f $Function_Name, $Directory_Search_LDAPFilter)
-        $Directory_Search_Parameters['LDAPFilter'] = $Directory_Search_LDAPFilter
-
-        Write-Verbose ('{0}|Calling Find-DSSRawObject to get DirectoryEntry' -f $Function_Name)
-        $Account_Directory_Entry = Find-DSSRawObject @Directory_Search_Parameters
-        if ($Account_Directory_Entry) {
-            $UAC_AccountDisabled = '0x02'
-            if ($PSCmdlet.ShouldProcess($Account_Directory_Entry.distinguishedname, 'Set')) {
-                if (($Account_Directory_Entry.useraccountcontrol.Value -band $UAC_AccountDisabled) -eq $UAC_AccountDisabled) {
-                    Write-Verbose ('{0}|Account is Disabled, enabling' -f $Function_Name)
-                    $Account_Directory_Entry.useraccountcontrol.Value = $Account_Directory_Entry.useraccountcontrol.Value -bxor $UAC_AccountDisabled
-                    try {
-                        $Account_Directory_Entry.SetInfo()
-                    } catch [System.UnauthorizedAccessException] {
-                        $Terminating_ErrorRecord_Parameters = @{
-                            'Exception'      = 'System.UnauthorizedAccessException'
-                            'ID'             = 'DSS-{0}' -f $Function_Name
-                            'Category'       = 'AuthenticationError'
-                            'TargetObject'   = $Account_Directory_Entry
-                            'Message'        = 'Insufficient access rights to perform the operation'
-                            'InnerException' = $_.Exception
-                        }
-                        $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
-                        $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
-                    }
-                } else {
-                    Write-Verbose ('{0}|Account is already Enabled, doing nothing' -f $Function_Name)
-                }
-            }
-        } else {
-            $Terminating_ErrorRecord_Parameters = @{
-                'Exception'    = 'System.DirectoryServices.ActiveDirectory.ActiveDirectoryObjectNotFoundException'
-                'ID'           = 'DSS-{0}' -f $Function_Name
-                'Category'     = 'ObjectNotFound'
-                'TargetObject' = $Account_Directory_Entry
-                'Message'      = 'Cannot find account with {0} of "{1}"' -f $Directory_Search_Type, $Directory_Search_Value
-            }
-            $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
-            $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
-        }
+        Write-Verbose ('{0}|Calling Set-DSSRawObject' -f $Function_Name)
+        Set-DSSRawObject @Set_Parameters @PSBoundParameters
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
             $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_

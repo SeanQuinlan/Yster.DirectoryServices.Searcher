@@ -123,7 +123,26 @@ function Set-DSSRawObject {
                 try {
                     if ($SetType -eq 'Enable') {
                         Write-Verbose ('{0}|Found object, attempting enable' -f $Function_Name)
-
+                        $UAC_AccountDisabled = '0x02'
+                        if (($Object_Directory_Entry.useraccountcontrol.Value -band $UAC_AccountDisabled) -eq $UAC_AccountDisabled) {
+                            Write-Verbose ('{0}|Account is Disabled, enabling' -f $Function_Name)
+                            $Object_Directory_Entry.useraccountcontrol.Value = $Object_Directory_Entry.useraccountcontrol.Value -bxor $UAC_AccountDisabled
+                            $Object_Directory_Entry.SetInfo()
+                            Write-Verbose ('{0}|Enable successful' -f $Function_Name)
+                        } else {
+                            Write-Verbose ('{0}|Account is already Enabled, doing nothing' -f $Function_Name)
+                        }
+                    } elseif ($SetType -eq 'Disable') {
+                        Write-Verbose ('{0}|Found object, attempting disable' -f $Function_Name)
+                        $UAC_AccountDisabled = '0x02'
+                        if (($Object_Directory_Entry.useraccountcontrol.Value -band $UAC_AccountDisabled) -ne $UAC_AccountDisabled) {
+                            Write-Verbose ('{0}|Account is Enabled, disabling' -f $Function_Name)
+                            $Object_Directory_Entry.useraccountcontrol.Value = $Object_Directory_Entry.useraccountcontrol.Value -bxor $UAC_AccountDisabled
+                            $Object_Directory_Entry.SetInfo()
+                            Write-Verbose ('{0}|Disable successful' -f $Function_Name)
+                        } else {
+                            Write-Verbose ('{0}|Account is already Disabled, doing nothing' -f $Function_Name)
+                        }
                     } elseif ($SetType -eq 'Remove') {
                         Write-Verbose ('{0}|Found object, attempting delete' -f $Function_Name)
                         if ($Object_Directory_Entry.objectclass -contains 'Group') {
@@ -141,11 +160,29 @@ function Set-DSSRawObject {
                         'ID'             = 'DSS-{0}' -f $Function_Name
                         'Category'       = 'AuthenticationError'
                         'TargetObject'   = $Object_Directory_Entry
-                        'Message'        = 'Insufficient access rights to perform the operation'
+                        'Message'        = 'Insufficient access rights to perform the operation.'
                         'InnerException' = $_.Exception
                     }
                     $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
                     $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+                } catch [System.DirectoryServices.DirectoryServicesCOMException] {
+                    # This exception is thrown when a disabled account has an unsuitable password, or no password.
+                    # LDAP response here: https://ldapwiki.com/wiki/ERROR_PASSWORD_RESTRICTION
+                    # Microsoft Error Code: https://docs.microsoft.com/en-gb/windows/win32/debug/system-error-codes--1300-1699-
+                    if ($_.Exception.ExtendedError -eq 1325) {
+                        $Terminating_ErrorRecord_Parameters = @{
+                            'Exception'      = 'System.DirectoryServices.DirectoryServicesCOMException'
+                            'ID'             = 'DSS-{0}' -f $Function_Name
+                            'Category'       = 'SecurityError'
+                            'TargetObject'   = $Object_Directory_Entry
+                            'Message'        = 'Failed to enable account due to password not meeting requirements.'
+                            'InnerException' = $_.Exception
+                        }
+                        $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+                        $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+                    } else {
+                        throw
+                    }
                 }
             }
         } else {
