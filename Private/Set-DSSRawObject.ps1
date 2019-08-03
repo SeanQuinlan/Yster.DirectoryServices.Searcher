@@ -1,22 +1,29 @@
-function Remove-DSSRawObject {
+function Set-DSSRawObject {
     <#
     .SYNOPSIS
-        Removes a specific object from Active Directory.
+        Make a modification to a specific object from Active Directory.
     .DESCRIPTION
-        Queries Active Directory for a specific group object and then deletes it.
+        Queries Active Directory for a specific object and then performs a modification to it.
 
         This is not meant to be used as an interactive function; it is used as a worker function by most of the other higher-level functions.
     .EXAMPLE
-        Remove-DSSRawObject -ObjectSID 'S-1-5-21-3515480276-2049723633-1306762111-1103'
+        Set-DSSRawObject -SetType Remove -ObjectSID 'S-1-5-21-3515480276-2049723633-1306762111-1103'
 
-        Deletes the object with the above SID.
+        Removes (deletes) the object with the above SID.
     .NOTES
         References:
         https://docs.microsoft.com/en-us/powershell/module/addsadministration/remove-adobject
     #>
 
-    [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'High')]
+    [CmdletBinding(SupportsShouldProcess = $true)]
     param(
+        # The type of modification to make.
+        [Parameter(Mandatory = $true)]
+        [ValidateSet('Enable', 'Disable', 'Remove', 'Unlock')]
+        [Alias('Type')]
+        [String]
+        $SetType,
+
         # The SAMAccountName of the object.
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
@@ -103,20 +110,31 @@ function Remove-DSSRawObject {
             'OutputFormat' = 'DirectoryEntry'
         }
 
+        if ($SetType -eq 'Remove') {
+            $ShouldProcess_Setting = 'Remove'
+        } else {
+            $ShouldProcess_Setting = 'Set'
+        }
+
         Write-Verbose ('{0}|Calling Find-DSSRawObject to get DirectoryEntry' -f $Function_Name)
         $global:Object_Directory_Entry = Find-DSSRawObject @Common_Search_Parameters @Directory_Search_Parameters
         if ($Object_Directory_Entry) {
-            if ($PSCmdlet.ShouldProcess($Object_Directory_Entry.distinguishedname, 'Remove')) {
-                Write-Verbose ('{0}|Found object, attempting delete' -f $Function_Name)
+            if ($PSCmdlet.ShouldProcess($Object_Directory_Entry.distinguishedname, $ShouldProcess_Setting)) {
                 try {
-                    if ($Object_Directory_Entry.objectclass -contains 'Group') {
-                        Write-Verbose ('{0}|Object is a group, getting parent OU first' -f $Function_Name)
-                        $Group_Directory_Entry_Parent_OU = Get-DSSDirectoryEntry @Common_Search_Parameters -Path $Object_Directory_Entry.Parent
-                        $Group_Directory_Entry_Parent_OU.Delete('Group', ('CN={0}' -f $Object_Directory_Entry.cn.Value))
-                    } else {
+                    if ($SetType -eq 'Enable') {
+                        Write-Verbose ('{0}|Found object, attempting enable' -f $Function_Name)
 
+                    } elseif ($SetType -eq 'Remove') {
+                        Write-Verbose ('{0}|Found object, attempting delete' -f $Function_Name)
+                        if ($Object_Directory_Entry.objectclass -contains 'Group') {
+                            Write-Verbose ('{0}|Object is a group, getting parent OU first' -f $Function_Name)
+                            $Group_Directory_Entry_Parent_OU = Get-DSSDirectoryEntry @Common_Search_Parameters -Path $Object_Directory_Entry.Parent
+                            $Group_Directory_Entry_Parent_OU.Delete('Group', ('CN={0}' -f $Object_Directory_Entry.cn.Value))
+                        } else {
+                            $Object_Directory_Entry.DeleteTree()
+                        }
+                        Write-Verbose ('{0}|Delete successful' -f $Function_Name)
                     }
-                    Write-Verbose ('{0}|Delete successful' -f $Function_Name)
                 } catch [System.UnauthorizedAccessException] {
                     $Terminating_ErrorRecord_Parameters = @{
                         'Exception'      = 'System.UnauthorizedAccessException'
