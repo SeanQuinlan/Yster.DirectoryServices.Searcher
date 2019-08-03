@@ -17,7 +17,7 @@ function Remove-DSSGroup {
         https://docs.microsoft.com/en-us/powershell/module/addsadministration/remove-adgroup
     #>
 
-    [CmdletBinding(DefaultParameterSetName = 'SAM', SupportsShouldProcess = $true, ConfirmImpact = 'High')]
+    [CmdletBinding(DefaultParameterSetName = 'SAM', SupportsShouldProcess = $true)]
     param(
         # The SAMAccountName of the group.
         [Parameter(Mandatory = $true, ParameterSetName = 'SAM')]
@@ -70,8 +70,23 @@ function Remove-DSSGroup {
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
 
+    $Set_Parameters = @{
+        'SetType' = 'Remove'
+    }
+
+    # This will add the -Confirm parameter if ConfirmPreference is set high enough.
+    # The Set-DSSRawObject doesn't have a default ConfirmImpact set, so this passes the ConfirmImpact from this function if required.
+    if (-not $PSBoundParameters.ContainsKey('Confirm')) {
+        $ConfirmImpact = 'High'
+        if ([System.Management.Automation.ConfirmImpact]::$ConfirmImpact.Value__ -ge [System.Management.Automation.ConfirmImpact]::$ConfirmPreference.Value__) {
+            Write-Verbose ('{0}|Adding Confirm parameter' -f $Function_Name)
+            $Set_Parameters['Confirm'] = $True
+        }
+    }
+
     try {
-        Remove-DSSRawObject @PSBoundParameters
+        Write-Verbose ('{0}|Calling Set-DSSRawObject' -f $Function_Name)
+        Set-DSSRawObject @Set_Parameters @PSBoundParameters
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
             $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_
