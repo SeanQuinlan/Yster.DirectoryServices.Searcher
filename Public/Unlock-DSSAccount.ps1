@@ -13,7 +13,7 @@ function Unlock-DSSAccount {
         https://docs.microsoft.com/en-us/powershell/module/addsadministration/unlock-adaccount
     #>
 
-    [CmdletBinding(DefaultParameterSetName = 'SAM', SupportsShouldProcess = $true, ConfirmImpact = 'Medium')]
+    [CmdletBinding(DefaultParameterSetName = 'SAM', SupportsShouldProcess = $true)]
     param(
         # The SAMAccountName of the account.
         [Parameter(Mandatory = $true, ParameterSetName = 'SAM')]
