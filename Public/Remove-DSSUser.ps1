@@ -17,7 +17,7 @@ function Remove-DSSUser {
         https://docs.microsoft.com/en-us/powershell/module/addsadministration/remove-aduser
     #>
 
-    [CmdletBinding(DefaultParameterSetName = 'SAM', SupportsShouldProcess = $true, ConfirmImpact = 'High')]
+    [CmdletBinding(DefaultParameterSetName = 'SAM', SupportsShouldProcess = $true)]
     param(
         # The SAMAccountName of the user.
         [Parameter(Mandatory = $true, ParameterSetName = 'SAM')]
