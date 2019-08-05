@@ -86,7 +86,7 @@ function Remove-DSSUser {
 
     try {
         Write-Verbose ('{0}|Calling Set-DSSRawObject' -f $Function_Name)
-        Set-DSSRawObject -SetType 'Remove' @PSBoundParameters
+        Set-DSSRawObject @Set_Parameters @PSBoundParameters
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
             $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_
