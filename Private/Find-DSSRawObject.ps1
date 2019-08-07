@@ -575,7 +575,6 @@ function Find-DSSRawObject {
                                             }
                                         }
                                         'protectedfromaccidentaldeletion' {
-                                            New-Variable -scope global -name x -value ($Current_Searcher_Result_Value) -Force
                                             $AccidentalDeletion_Rights = 'DeleteTree, Delete'
                                             $AccidentalDeletion_Identity_Everyone_SID = New-Object -TypeName 'System.Security.Principal.SecurityIdentifier' -ArgumentList ([System.Security.Principal.WellKnownSidType]::WorldSid, $null)
                                             $AccidentalDeletion_Identity_Everyone = $AccidentalDeletion_Identity_Everyone_SID.Translate([System.Security.Principal.NTAccount]).Value
