@@ -462,152 +462,151 @@ function Find-DSSRawObject {
                             # STEP 2: Add the calculated property if the property is found on one of the Calculated Property lists.
                             #######################################################################################################
                             Write-Verbose ('{0}|Useful_Properties: Base property found: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
-                            $Useful_Calculated_Property_Name = $Useful_Calculated_Properties[$Current_Searcher_Result_Property]
+                            $Useful_Calculated_Property_Names = $Useful_Calculated_Properties[$Current_Searcher_Result_Property]
 
                             if ($Properties -contains $Current_Searcher_Result_Property) {
                                 Write-Verbose ('{0}|Useful_Properties: Base property specified directly: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
                                 $Result_Object[$Current_Searcher_Result_Property] = $Current_Searcher_Result_Value
                             }
-                            if ($Properties -contains $Useful_Calculated_Property_Name) {
-                                Write-Verbose ('{0}|Useful_Properties: Processing calculated property: {1}' -f $Function_Name, $Useful_Calculated_Property_Name)
+                            foreach ($Useful_Calculated_Property_Name in $Useful_Calculated_Property_Names) {
+                                if ($Properties -contains $Useful_Calculated_Property_Name) {
+                                    Write-Verbose ('{0}|Useful_Properties: Processing calculated property: {1}' -f $Function_Name, $Useful_Calculated_Property_Name)
 
-                                Switch -Regex ($Useful_Calculated_Property_Name) {
-                                    # Delegation properties
-                                    'principalsallowedtodelegatetoaccount' {
-                                        $Delegation_Principals = New-Object -TypeName 'System.Collections.Generic.List[PSObject]'
-                                        $Current_Searcher_Result_Value.Access | Where-Object { $_.'AccessControlType' -eq 'Allow' } | ForEach-Object {
-                                            # The computer object is stored as a System.Security.Principal.NTAccount object, with a default display of DOMAIN\COMPUTERNAME$.
-                                            # Convert this to a SID, which can then be looked up in Active Directory to find the DistinguishedName.
-                                            $Computer_Object = $_.'IdentityReference'
-                                            $Computer_SID = $Computer_Object.Translate([Security.Principal.SecurityIdentifier])
-                                            $Computer_Search_Parameters = @{ }
-                                            $Computer_Search_Parameters['ObjectSID'] = $Computer_SID
-                                            $Computer_Search_Result = (Get-DSSComputer @Common_Search_Parameters @Computer_Search_Parameters).'distinguishedname'
-                                            $Delegation_Principals.Add($Computer_Search_Result)
-                                        }
-                                        $Useful_Calculated_Property_Value = $Delegation_Principals
-                                    }
-
-                                    # Domain properties
-                                    'linkedgrouppolicyobjects' {
-                                        # Convert the "gplink" string property into an array of strings, selecting just the Group Policy DistinguishedName.
-                                        $Regex_GPLink = [System.Text.RegularExpressions.Regex]'\[LDAP://(.*?)\;\d\]'
-                                        $Useful_Calculated_Property_Value = $Regex_GPLink.Matches($Current_Searcher_Result_Value) | ForEach-Object { $_.Groups[1].Value }
-                                    }
-                                    'featurescope' {
-                                        $Useful_Calculated_Property_Value = $OptionalFeature_Scope_Table[$Current_Searcher_Result_Value.ToString()]
-                                    }
-                                    'requireddomainmode' {
-                                        $Useful_Calculated_Property_Value = $DomainMode_Table[$Current_Searcher_Result_Value.ToString()]
-                                    }
-                                    'requiredforestmode' {
-                                        $Useful_Calculated_Property_Value = $ForestMode_Table[$Current_Searcher_Result_Value.ToString()]
-                                    }
-
-                                    # Encryption properties
-                                    'compoundidentitysupported' {
-                                        $Compound_Identity_Value = $Additional_Encryption_Types.'Compound-Identity-Supported'
-                                        if (($Current_Searcher_Result_Value -band $Compound_Identity_Value) -eq $Compound_Identity_Value) {
-                                            $Useful_Calculated_Property_Value = $true
-                                        } else {
-                                            $Useful_Calculated_Property_Value = $false
-                                        }
-                                    }
-                                    'kerberosencryptiontype' {
-                                        $Useful_Calculated_Property_Value = [Enum]::Parse('ADKerberosEncryptionType', $Current_Searcher_Result_Value)
-                                    }
-
-                                    # Group properties
-                                    'groupscope' {
-                                        if (($Current_Searcher_Result_Value -bor 2) -eq $Current_Searcher_Result_Value) {
-                                            $Useful_Calculated_Property_Value = 'Global'
-                                        } elseif (($Current_Searcher_Result_Value -bor 4) -eq $Current_Searcher_Result_Value) {
-                                            $Useful_Calculated_Property_Value = 'Domain Local'
-                                        } elseif (($Current_Searcher_Result_Value -bor 8) -eq $Current_Searcher_Result_Value) {
-                                            $Useful_Calculated_Property_Value = 'Universal'
-                                        } else {
-                                            $Useful_Calculated_Property_Value = 'Unknown'
-                                        }
-                                    }
-                                    'groupcategory' {
-                                        if ($Current_Searcher_Result_Value -lt 0) {
-                                            $Useful_Calculated_Property_Value = 'Security'
-                                        } else {
-                                            $Useful_Calculated_Property_Value = 'Distribution'
-                                        }
-                                    }
-                                    'primarygroup' {
-                                        # Convert the PrimaryGroupID to a full ObjectSID property, by using the AccountDomainSid sub-property of the ObjectSID property of the user and appending the PrimaryGroupID.
-                                        $PrimaryGroup_SID = '{0}-{1}' -f $Result_Object['objectsid'].AccountDomainSid.Value, $Current_Searcher_Result_Value
-                                        $Group_Search_Parameters = @{ }
-                                        $Group_Search_Parameters['ObjectSID'] = $PrimaryGroup_SID
-                                        $Useful_Calculated_Property_Value = (Get-DSSGroup @Common_Search_Parameters @Group_Search_Parameters).'distinguishedname'
-                                    }
-
-                                    # Security properties
-                                    'cannotchangepassword' {
-                                        # This requires 2 Deny permissions to be set: the "Everyone" group and "NT AUTHORITY\SELF" user. Only if both are set to Deny, will "cannotchangepassword" be true.
-                                        # Adapted from: https://social.technet.microsoft.com/Forums/scriptcenter/en-US/e947d590-d183-46b9-9a7a-4e785638c6fb/how-can-i-get-a-list-of-active-directory-user-accounts-where-the-user-cannot-change-the-password?forum=ITCG
-                                        $ChangePassword_GUID = 'ab721a53-1e2f-11d0-9819-00aa0040529b'
-                                        $ChangePassword_Identity_Everyone_SID = New-Object -TypeName 'System.Security.Principal.SecurityIdentifier' -ArgumentList ([System.Security.Principal.WellKnownSidType]::WorldSid, $null) # Everyone
-                                        $ChangePassword_Identity_Everyone = $ChangePassword_Identity_Everyone_SID.Translate([System.Security.Principal.NTAccount]).Value
-                                        $ChangePassword_Identity_Self_SID = New-Object -TypeName 'System.Security.Principal.SecurityIdentifier' -ArgumentList ([System.Security.Principal.WellKnownSidType]::SelfSid, $null) # NT AUTHORITY\SELF
-                                        $ChangePassword_Identity_Self = $ChangePassword_Identity_Self_SID.Translate([System.Security.Principal.NTAccount]).Value
-                                        $ChangePassword_Rules = $Current_Searcher_Result_Value.Access | Where-Object { $_.ObjectType -eq $ChangePassword_GUID }
-                                        $null = $ChangePassword_Identity_Everyone_Correct = $ChangePassword_Identity_Self_Correct
-                                        foreach ($ChangePassword_Rule in $ChangePassword_Rules) {
-                                            if (($ChangePassword_Rule.IdentityReference -eq $ChangePassword_Identity_Everyone) -and ($ChangePassword_Rule.AccessControlType -eq 'Deny')) {
-                                                Write-Verbose ('{0}|Security: CannotChangePassword: Found correct permission for "Everyone" group: {1}' -f $Function_Name, $ChangePassword_Identity_Everyone)
-                                                $ChangePassword_Identity_Everyone_Correct = $true
+                                    Switch -Regex ($Useful_Calculated_Property_Name) {
+                                        # Delegation properties
+                                        'principalsallowedtodelegatetoaccount' {
+                                            $Delegation_Principals = New-Object -TypeName 'System.Collections.Generic.List[PSObject]'
+                                            $Current_Searcher_Result_Value.Access | Where-Object { $_.'AccessControlType' -eq 'Allow' } | ForEach-Object {
+                                                # The computer object is stored as a System.Security.Principal.NTAccount object, with a default display of DOMAIN\COMPUTERNAME$.
+                                                # Convert this to a SID, which can then be looked up in Active Directory to find the DistinguishedName.
+                                                $Computer_Object = $_.'IdentityReference'
+                                                $Computer_SID = $Computer_Object.Translate([Security.Principal.SecurityIdentifier])
+                                                $Computer_Search_Parameters = @{}
+                                                $Computer_Search_Parameters['ObjectSID'] = $Computer_SID
+                                                $Computer_Search_Result = (Get-DSSComputer @Common_Search_Parameters @Computer_Search_Parameters).'distinguishedname'
+                                                $Delegation_Principals.Add($Computer_Search_Result)
                                             }
-                                            if (($ChangePassword_Rule.IdentityReference -eq $ChangePassword_Identity_Self) -and ($ChangePassword_Rule.AccessControlType -eq 'Deny')) {
-                                                Write-Verbose ('{0}|Security: CannotChangePassword: Found correct permission for "Self" user: {1}' -f $Function_Name, $ChangePassword_Identity_Self)
-                                                $ChangePassword_Identity_Self_Correct = $true
+                                            $Useful_Calculated_Property_Value = $Delegation_Principals
+                                        }
+
+                                        # Domain properties
+                                        'linkedgrouppolicyobjects' {
+                                            # Convert the "gplink" string property into an array of strings, selecting just the Group Policy DistinguishedName.
+                                            $Regex_GPLink = [System.Text.RegularExpressions.Regex]'\[LDAP://(.*?)\;\d\]'
+                                            $Useful_Calculated_Property_Value = $Regex_GPLink.Matches($Current_Searcher_Result_Value) | ForEach-Object { $_.Groups[1].Value }
+                                        }
+                                        'featurescope' {
+                                            $Useful_Calculated_Property_Value = $OptionalFeature_Scope_Table[$Current_Searcher_Result_Value.ToString()]
+                                        }
+                                        'requireddomainmode' {
+                                            $Useful_Calculated_Property_Value = $DomainMode_Table[$Current_Searcher_Result_Value.ToString()]
+                                        }
+                                        'requiredforestmode' {
+                                            $Useful_Calculated_Property_Value = $ForestMode_Table[$Current_Searcher_Result_Value.ToString()]
+                                        }
+
+                                        # Encryption properties
+                                        'compoundidentitysupported' {
+                                            $Compound_Identity_Value = $Additional_Encryption_Types.'Compound-Identity-Supported'
+                                            if (($Current_Searcher_Result_Value -band $Compound_Identity_Value) -eq $Compound_Identity_Value) {
+                                                $Useful_Calculated_Property_Value = $true
+                                            } else {
+                                                $Useful_Calculated_Property_Value = $false
                                             }
                                         }
-                                        if ($ChangePassword_Identity_Everyone_Correct -and $ChangePassword_Identity_Self_Correct) {
-                                            Write-Verbose ('{0}|Security: CannotChangePassword: Both permissions correct, returning $true' -f $Function_Name)
-                                            $Useful_Calculated_Property_Value = $true
-                                        } else {
-                                            Write-Verbose ('{0}|Security: CannotChangePassword: Both permissions not correct, returning $false' -f $Function_Name)
-                                            $Useful_Calculated_Property_Value = $false
+                                        'kerberosencryptiontype' {
+                                            $Useful_Calculated_Property_Value = [Enum]::Parse('ADKerberosEncryptionType', $Current_Searcher_Result_Value)
                                         }
-                                    }
-                                    'protectedfromaccidentaldeletion' {
-                                        if ($Result_Object['objectclass'] -contains 'organizationalunit') {
-                                            $AccidentalDeletion_Rights = 'DeleteChild, DeleteTree, Delete'
-                                        } else {
+
+                                        # Group properties
+                                        'groupscope' {
+                                            if (($Current_Searcher_Result_Value -bor 2) -eq $Current_Searcher_Result_Value) {
+                                                $Useful_Calculated_Property_Value = 'Global'
+                                            } elseif (($Current_Searcher_Result_Value -bor 4) -eq $Current_Searcher_Result_Value) {
+                                                $Useful_Calculated_Property_Value = 'Domain Local'
+                                            } elseif (($Current_Searcher_Result_Value -bor 8) -eq $Current_Searcher_Result_Value) {
+                                                $Useful_Calculated_Property_Value = 'Universal'
+                                            } else {
+                                                $Useful_Calculated_Property_Value = 'Unknown'
+                                            }
+                                        }
+                                        'groupcategory' {
+                                            if ($Current_Searcher_Result_Value -lt 0) {
+                                                $Useful_Calculated_Property_Value = 'Security'
+                                            } else {
+                                                $Useful_Calculated_Property_Value = 'Distribution'
+                                            }
+                                        }
+                                        'primarygroup' {
+                                            # Convert the PrimaryGroupID to a full ObjectSID property, by using the AccountDomainSid sub-property of the ObjectSID property of the user and appending the PrimaryGroupID.
+                                            $PrimaryGroup_SID = '{0}-{1}' -f $Result_Object['objectsid'].AccountDomainSid.Value, $Current_Searcher_Result_Value
+                                            $Group_Search_Parameters = @{ }
+                                            $Group_Search_Parameters['ObjectSID'] = $PrimaryGroup_SID
+                                            $Useful_Calculated_Property_Value = (Get-DSSGroup @Common_Search_Parameters @Group_Search_Parameters).'distinguishedname'
+                                        }
+
+                                        # Security properties
+                                        'cannotchangepassword' {
+                                            # This requires 2 Deny permissions to be set: the "Everyone" group and "NT AUTHORITY\SELF" user. Only if both are set to Deny, will "cannotchangepassword" be true.
+                                            # Adapted from: https://social.technet.microsoft.com/Forums/scriptcenter/en-US/e947d590-d183-46b9-9a7a-4e785638c6fb/how-can-i-get-a-list-of-active-directory-user-accounts-where-the-user-cannot-change-the-password?forum=ITCG
+                                            $ChangePassword_GUID = 'ab721a53-1e2f-11d0-9819-00aa0040529b'
+                                            $ChangePassword_Identity_Everyone_SID = New-Object -TypeName 'System.Security.Principal.SecurityIdentifier' -ArgumentList ([System.Security.Principal.WellKnownSidType]::WorldSid, $null) # Everyone
+                                            $ChangePassword_Identity_Everyone = $ChangePassword_Identity_Everyone_SID.Translate([System.Security.Principal.NTAccount]).Value
+                                            $ChangePassword_Identity_Self_SID = New-Object -TypeName 'System.Security.Principal.SecurityIdentifier' -ArgumentList ([System.Security.Principal.WellKnownSidType]::SelfSid, $null) # NT AUTHORITY\SELF
+                                            $ChangePassword_Identity_Self = $ChangePassword_Identity_Self_SID.Translate([System.Security.Principal.NTAccount]).Value
+                                            $ChangePassword_Rules = $Current_Searcher_Result_Value.Access | Where-Object { $_.ObjectType -eq $ChangePassword_GUID }
+                                            $null = $ChangePassword_Identity_Everyone_Correct = $ChangePassword_Identity_Self_Correct
+                                            foreach ($ChangePassword_Rule in $ChangePassword_Rules) {
+                                                if (($ChangePassword_Rule.IdentityReference -eq $ChangePassword_Identity_Everyone) -and ($ChangePassword_Rule.AccessControlType -eq 'Deny')) {
+                                                    Write-Verbose ('{0}|Security: CannotChangePassword: Found correct permission for "Everyone" group: {1}' -f $Function_Name, $ChangePassword_Identity_Everyone)
+                                                    $ChangePassword_Identity_Everyone_Correct = $true
+                                                }
+                                                if (($ChangePassword_Rule.IdentityReference -eq $ChangePassword_Identity_Self) -and ($ChangePassword_Rule.AccessControlType -eq 'Deny')) {
+                                                    Write-Verbose ('{0}|Security: CannotChangePassword: Found correct permission for "Self" user: {1}' -f $Function_Name, $ChangePassword_Identity_Self)
+                                                    $ChangePassword_Identity_Self_Correct = $true
+                                                }
+                                            }
+                                            if ($ChangePassword_Identity_Everyone_Correct -and $ChangePassword_Identity_Self_Correct) {
+                                                Write-Verbose ('{0}|Security: CannotChangePassword: Both permissions correct, returning $true' -f $Function_Name)
+                                                $Useful_Calculated_Property_Value = $true
+                                            } else {
+                                                Write-Verbose ('{0}|Security: CannotChangePassword: Both permissions not correct, returning $false' -f $Function_Name)
+                                                $Useful_Calculated_Property_Value = $false
+                                            }
+                                        }
+                                        'protectedfromaccidentaldeletion' {
+                                            New-Variable -scope global -name x -value ($Current_Searcher_Result_Value) -Force
                                             $AccidentalDeletion_Rights = 'DeleteTree, Delete'
+                                            $AccidentalDeletion_Identity_Everyone_SID = New-Object -TypeName 'System.Security.Principal.SecurityIdentifier' -ArgumentList ([System.Security.Principal.WellKnownSidType]::WorldSid, $null)
+                                            $AccidentalDeletion_Identity_Everyone = $AccidentalDeletion_Identity_Everyone_SID.Translate([System.Security.Principal.NTAccount]).Value
+                                            $AccidentalDeletion_Rule = $Current_Searcher_Result_Value.Access | Where-Object { ($_.ActiveDirectoryRights -match $AccidentalDeletion_Rights) -and ($_.IdentityReference -eq $AccidentalDeletion_Identity_Everyone) }
+                                            if (($AccidentalDeletion_Rule.Count -eq 1) -and ($AccidentalDeletion_Rule.AccessControlType -eq 'Deny')) {
+                                                Write-Verbose ('{0}|Security: AccidentalDeletion correct: Permission: {1} | Group: {2} | Count: {3}' -f $Function_Name, $AccidentalDeletion_Rule.AccessControlType, $AccidentalDeletion_Identity_Everyone, $AccidentalDeletion_Rule.Count)
+                                                $Useful_Calculated_Property_Value = $true
+                                            } else {
+                                                Write-Verbose ('{0}|Security: AccidentalDeletion incorrect: Permission: {1} | Group: {2} | Count: {3}' -f $Function_Name, $AccidentalDeletion_Rule.AccessControlType, $AccidentalDeletion_Identity_Everyone, $AccidentalDeletion_Rule.Count)
+                                                $Useful_Calculated_Property_Value = $false
+                                            }
                                         }
-                                        $AccidentalDeletion_Identity_Everyone_SID = New-Object -TypeName 'System.Security.Principal.SecurityIdentifier' -ArgumentList ([System.Security.Principal.WellKnownSidType]::WorldSid, $null) # Everyone
-                                        $AccidentalDeletion_Identity_Everyone = $AccidentalDeletion_Identity_Everyone_SID.Translate([System.Security.Principal.NTAccount]).Value
-                                        $AccidentalDeletion_Rule = $Current_Searcher_Result_Value.Access | Where-Object { ($_.ActiveDirectoryRights -eq $AccidentalDeletion_Rights) -and ($_.IdentityReference -eq $AccidentalDeletion_Identity_Everyone) }
-                                        if (($AccidentalDeletion_Rule.Count -eq 1) -and ($AccidentalDeletion_Rule.AccessControlType -eq 'Deny')) {
-                                            Write-Verbose ('{0}|Security: AccidentalDeletion correct: Permission: {1} | Group: {2} | Count: {3}' -f $Function_Name, $AccidentalDeletion_Rule.AccessControlType, $AccidentalDeletion_Identity_Everyone, $AccidentalDeletion_Rule.Count)
-                                            $Useful_Calculated_Property_Value = $true
-                                        } else {
-                                            Write-Verbose ('{0}|Security: AccidentalDeletion incorrect: Permission: {1} | Group: {2} | Count: {3}' -f $Function_Name, $AccidentalDeletion_Rule.AccessControlType, $AccidentalDeletion_Identity_Everyone, $AccidentalDeletion_Rule.Count)
-                                            $Useful_Calculated_Property_Value = $false
+
+                                        # Time properties
+                                        'accountexpirationdate|lastbadpasswordattempt|lastlogondate|accountlockouttime|passwordlastset' {
+                                            if (($Current_Searcher_Result_Value -eq 0) -or ($Current_Searcher_Result_Value -gt [DateTime]::MaxValue.Ticks)) {
+                                                $Useful_Calculated_Property_Value = $null
+                                            } else {
+                                                $Useful_Calculated_Property_Value = [DateTime]::FromFileTime($Current_Searcher_Result_Value)
+                                            }
+                                        }
+
+                                        # TimeSpan properties
+                                        'lastlogonreplicationinterval' {
+                                            $Useful_Calculated_Property_Value = New-TimeSpan -Days $Current_Searcher_Result_Value
                                         }
                                     }
 
-                                    # Time properties
-                                    'accountexpirationdate|lastbadpasswordattempt|lastlogondate|accountlockouttime|passwordlastset' {
-                                        if (($Current_Searcher_Result_Value -eq 0) -or ($Current_Searcher_Result_Value -gt [DateTime]::MaxValue.Ticks)) {
-                                            $Useful_Calculated_Property_Value = $null
-                                        } else {
-                                            $Useful_Calculated_Property_Value = [DateTime]::FromFileTime($Current_Searcher_Result_Value)
-                                        }
-                                    }
-
-                                    # TimeSpan properties
-                                    'lastlogonreplicationinterval' {
-                                        $Useful_Calculated_Property_Value = New-TimeSpan -Days $Current_Searcher_Result_Value
-                                    }
+                                    Write-Verbose ('{0}|Useful_Properties: Returning calculated property: {1} = {2}' -f $Function_Name, $Useful_Calculated_Property_Name, $Useful_Calculated_Property_Value)
+                                    $Result_Object[$Useful_Calculated_Property_Name] = $Useful_Calculated_Property_Value
                                 }
-
-                                Write-Verbose ('{0}|Useful_Properties: Returning calculated property: {1} = {2}' -f $Function_Name, $Useful_Calculated_Property_Name, $Useful_Calculated_Property_Value)
-                                $Result_Object[$Useful_Calculated_Property_Name] = $Useful_Calculated_Property_Value
                             }
 
                         } elseif ($Useful_Calculated_SubProperties.GetEnumerator().Name -contains $Current_Searcher_Result_Property) {
