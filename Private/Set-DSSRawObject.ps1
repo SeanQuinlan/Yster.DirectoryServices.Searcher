@@ -52,6 +52,11 @@ function Set-DSSRawObject {
         [String]
         $ObjectGUID,
 
+        # Delete all child objects recursively.
+        [Parameter(Mandatory = $false)]
+        [Switch]
+        $Recursive,
+
         # The context to search - Domain or Forest.
         [Parameter(Mandatory = $false)]
         [ValidateSet('Domain', 'Forest')]
@@ -149,6 +154,23 @@ function Set-DSSRawObject {
                             Write-Verbose ('{0}|Object is a group, getting parent OU first' -f $Function_Name)
                             $Group_Directory_Entry_Parent_OU = Get-DSSDirectoryEntry @Common_Search_Parameters -Path $Object_Directory_Entry.Parent
                             $Group_Directory_Entry_Parent_OU.Delete('Group', ('CN={0}' -f $Object_Directory_Entry.cn.Value))
+                        } elseif ($Object_Directory_Entry.objectclass -contains 'OrganizationalUnit') {
+                            Write-Verbose ('{0}|Object is an OU, checking for child objects')
+                            if (([array]$Object_Directory_Entry.Children) -and (-not $Recursive)) {
+                                Write-Verbose ('{0}|Founds child objects and Recursive switch not present, unable to delete')
+                                $Terminating_ErrorRecord_Parameters = @{
+                                    'Exception'    = 'System.DirectoryServices.DirectoryServicesCOMException'
+                                    'ID'           = 'DSS-{0}' -f $Function_Name
+                                    'Category'     = 'InvalidOperation'
+                                    'TargetObject' = $Object_Directory_Entry
+                                    'Message'      = 'Failed to remove due to child objects existing.'
+                                }
+                                $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+                                $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+                            } else {
+                                Write-Verbose ('{0}|No child objects found, or Recursive switch passed, deleting')
+                                $Object_Directory_Entry.DeleteTree()
+                            }
                         } else {
                             $Object_Directory_Entry.DeleteTree()
                         }
