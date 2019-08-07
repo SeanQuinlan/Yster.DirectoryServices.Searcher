@@ -149,15 +149,28 @@ function Set-DSSRawObject {
                             Write-Verbose ('{0}|Account is already Disabled, doing nothing' -f $Function_Name)
                         }
                     } elseif ($SetType -eq 'Remove') {
-                        Write-Verbose ('{0}|Found object, attempting delete' -f $Function_Name)
+                        Write-Verbose ('{0}|Found object, checking for ProtectFromAccidentalDeletion' -f $Function_Name)
+                        $Check_Object = Get-DSSObject -DistinguishedName $Object_Directory_Entry.distinguishedname -Properties 'protectedfromaccidentaldeletion'
+                        if ($Check_Object.'protectedfromaccidentaldeletion') {
+                            $Terminating_ErrorRecord_Parameters = @{
+                                'Exception'    = 'System.UnauthorizedAccessException'
+                                'ID'           = 'DSS-{0}' -f $Function_Name
+                                'Category'     = 'SecurityError'
+                                'TargetObject' = $Object_Directory_Entry
+                                'Message'      = 'Object is Protected From Accidental Deletion. Remove protection before trying to delete this object.'
+                            }
+                            $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+                            $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+                        }
+                        Write-Verbose ('{0}|Attempting delete' -f $Function_Name)
                         if ($Object_Directory_Entry.objectclass -contains 'Group') {
                             Write-Verbose ('{0}|Object is a group, getting parent OU first' -f $Function_Name)
                             $Group_Directory_Entry_Parent_OU = Get-DSSDirectoryEntry @Common_Search_Parameters -Path $Object_Directory_Entry.Parent
                             $Group_Directory_Entry_Parent_OU.Delete('Group', ('CN={0}' -f $Object_Directory_Entry.cn.Value))
                         } elseif ($Object_Directory_Entry.objectclass -contains 'OrganizationalUnit') {
-                            Write-Verbose ('{0}|Object is an OU, checking for child objects')
+                            Write-Verbose ('{0}|Object is an OU, checking for child objects' -f $Function_Name)
                             if (([array]$Object_Directory_Entry.Children) -and (-not $Recursive)) {
-                                Write-Verbose ('{0}|Founds child objects and Recursive switch not present, unable to delete')
+                                Write-Verbose ('{0}|Found child objects and Recursive switch not present, unable to delete' -f $Function_Name)
                                 $Terminating_ErrorRecord_Parameters = @{
                                     'Exception'    = 'System.DirectoryServices.DirectoryServicesCOMException'
                                     'ID'           = 'DSS-{0}' -f $Function_Name
@@ -168,7 +181,7 @@ function Set-DSSRawObject {
                                 $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
                                 $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
                             } else {
-                                Write-Verbose ('{0}|No child objects found, or Recursive switch passed, deleting')
+                                Write-Verbose ('{0}|No child objects found, or Recursive switch passed, deleting' -f $Function_Name)
                                 $Object_Directory_Entry.DeleteTree()
                             }
                         } else {
@@ -191,7 +204,7 @@ function Set-DSSRawObject {
                     $Terminating_ErrorRecord_Parameters = @{
                         'Exception'      = 'System.UnauthorizedAccessException'
                         'ID'             = 'DSS-{0}' -f $Function_Name
-                        'Category'       = 'AuthenticationError'
+                        'Category'       = 'SecurityError'
                         'TargetObject'   = $Object_Directory_Entry
                         'Message'        = 'Insufficient access rights to perform the operation.'
                         'InnerException' = $_.Exception
