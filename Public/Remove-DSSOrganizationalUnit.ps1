@@ -5,9 +5,7 @@ function Remove-DSSOrganizationalUnit {
     .DESCRIPTION
         Queries Active Directory for a specific OU object and then deletes it, based on one of the following specified parameters:
             - DistinguishedName
-            - ObjectSID (SID)
             - ObjectGUID (GUID)
-            - SAMAccountName
     .EXAMPLE
         Remove-DSSOrganizationalUnit -DistinguishedName 'OU=Sales,OU=Depts,DC=contoso,DC=com'
 
