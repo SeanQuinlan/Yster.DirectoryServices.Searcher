@@ -15,7 +15,7 @@ function Remove-DSSOrganizationalUnit {
         https://docs.microsoft.com/en-us/powershell/module/addsadministration/remove-adorganizationalunit
     #>
 
-    [CmdletBinding(DefaultParameterSetName = 'SAM', SupportsShouldProcess = $true)]
+    [CmdletBinding(DefaultParameterSetName = 'DistinguishedName', SupportsShouldProcess = $true)]
     param(
         # The DistinguishedName of the organizational unit.
         [Parameter(Mandatory = $true, ParameterSetName = 'DistinguishedName')]
