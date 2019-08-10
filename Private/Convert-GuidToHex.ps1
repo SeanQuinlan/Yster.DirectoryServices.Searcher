@@ -22,9 +22,24 @@ function Convert-GuidToHex {
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
 
-    if ($Guid -isnot [System.Guid]) {
-        $Guid = [System.Guid]$Guid
+    # Check if the supplied GUID is actually a parseable GUID.
+    if ([System.Guid]::TryParse($Guid, [ref][System.Guid]::Empty)) {
+        if ($Guid -isnot [System.Guid]) {
+            $Guid = [System.Guid]$Guid
+        }
+        # Return the HEX value, with every byte escaped.
+        ($Guid.ToByteArray() | ForEach-Object { '\{0:X2}' -f $_ }) -join ''
+    } else {
+        $Terminating_ErrorRecord_Parameters = @{
+            'Exception'    = 'System.Management.Automation.PSInvalidCastException'
+            'ID'           = 'DSS-{0}' -f $Function_Name
+            'Category'     = 'InvalidOperation'
+            'TargetObject' = $Guid
+            'Message'      = ('Unable to parse GUID: {0}.' -f $Guid)
+        }
+        $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+        $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
     }
-    # Return the HEX value, with every byte escaped.
-    ($Guid.ToByteArray() | ForEach-Object { '\{0:X2}' -f $_ }) -join ''
+
+
 }
