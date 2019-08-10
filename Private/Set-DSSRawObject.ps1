@@ -5,7 +5,7 @@ function Set-DSSRawObject {
     .DESCRIPTION
         Queries Active Directory for a specific object and then performs a modification to it.
 
-        This is not meant to be used as an interactive function; it is used as a worker function by most of the other higher-level functions.
+        This is not meant to be used as an interactive function; it is used as a worker function by many of the other higher-level functions.
     .EXAMPLE
         Set-DSSRawObject -SetType Remove -ObjectSID 'S-1-5-21-3515480276-2049723633-1306762111-1103'
 
@@ -13,13 +13,15 @@ function Set-DSSRawObject {
     .NOTES
         References:
         https://docs.microsoft.com/en-us/powershell/module/addsadministration/remove-adobject
+        https://docs.microsoft.com/en-us/dotnet/api/system.directoryservices.directoryentry
+        https://docs.microsoft.com/en-us/windows/win32/api/iads/nf-iads-iadsgroup-remove
     #>
 
     [CmdletBinding(SupportsShouldProcess = $true)]
     param(
         # The type of modification to make.
         [Parameter(Mandatory = $true)]
-        [ValidateSet('Enable', 'Disable', 'Remove', 'Unlock')]
+        [ValidateSet('Enable', 'Disable', 'Remove', 'RemoveGroupMember', 'Unlock')]
         [Alias('Type')]
         [String]
         $SetType,
@@ -56,6 +58,13 @@ function Set-DSSRawObject {
         [Parameter(Mandatory = $false)]
         [Switch]
         $Recursive,
+
+        # A member or list of members to remove from the group.
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Alias('Member')]
+        [String[]]
+        $Members,
 
         # The context to search - Domain or Forest.
         [Parameter(Mandatory = $false)]
@@ -124,80 +133,152 @@ function Set-DSSRawObject {
         Write-Verbose ('{0}|Calling Find-DSSRawObject to get DirectoryEntry' -f $Function_Name)
         $global:Object_Directory_Entry = Find-DSSRawObject @Common_Search_Parameters @Directory_Search_Parameters
         if ($Object_Directory_Entry) {
+            if ($SetType -eq 'RemoveGroupMember') {
+                Write-Verbose ('{0}|Getting group members first' -f $Function_Name)
+                $global:Group_Members_To_Remove = New-Object -TypeName 'System.Collections.Generic.List[String]'
+                $Group_Member_Properties = @(
+                    'SAMAccountName'
+                    'DistinguishedName'
+                    'ObjectSID'
+                    'ObjectGUID'
+                )
+                foreach ($Group_Member in $Members) {
+                    $Group_Member_Path = $null
+                    foreach ($Group_Member_Property in $Group_Member_Properties) {
+                        if ($Group_Member_Property -eq 'ObjectGUID') {
+                            # Only proceed if the $Group_Member string is a valid GUID.
+                            if ([System.Guid]::TryParse($Group_Member, [ref][System.Guid]::Empty)) {
+                                $Group_Member = (Convert-GuidToHex -Guid $Group_Member)
+                            } else {
+                                break
+                            }
+                        }
+                        $Member_Search_Parameters = @{
+                            'OutputFormat' = 'DirectoryEntry'
+                            'LDAPFilter'   = ('({0}={1})' -f $Group_Member_Property, $Group_Member)
+                        }
+                        $Group_Member_Result = Find-DSSRawObject @Common_Search_Parameters @Member_Search_Parameters
+                        if ($Group_Member_Result.Count) {
+                            $Group_Member_Path = $Group_Member_Result.'adspath'
+                            Write-Verbose ('{0}|Found group member: {1}' -f $Function_Name, $Group_Member_Path)
+                            break
+                        }
+                    }
+                    if (-not $Group_Member_Path) {
+                        $Terminating_ErrorRecord_Parameters = @{
+                            'Exception'    = 'System.DirectoryServices.ActiveDirectory.ActiveDirectoryObjectNotFoundException'
+                            'ID'           = 'DSS-{0}' -f $Function_Name
+                            'Category'     = 'ObjectNotFound'
+                            'TargetObject' = $Object_Directory_Entry
+                            'Message'      = 'Cannot find object with Identity of "{0}"' -f $Group_Member
+                        }
+                        $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+                        $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+                    } else {
+                        $Group_Members_To_Remove.Add($Group_Member_Path)
+                    }
+                }
+            }
+
             if ($PSCmdlet.ShouldProcess($Object_Directory_Entry.distinguishedname, $ShouldProcess_Setting)) {
                 try {
-                    if ($SetType -eq 'Enable') {
-                        Write-Verbose ('{0}|Found object, attempting enable' -f $Function_Name)
-                        $UAC_AccountDisabled = '0x02'
-                        if (($Object_Directory_Entry.useraccountcontrol.Value -band $UAC_AccountDisabled) -eq $UAC_AccountDisabled) {
-                            Write-Verbose ('{0}|Account is Disabled, enabling' -f $Function_Name)
-                            $Object_Directory_Entry.useraccountcontrol.Value = $Object_Directory_Entry.useraccountcontrol.Value -bxor $UAC_AccountDisabled
-                            $Object_Directory_Entry.SetInfo()
-                            Write-Verbose ('{0}|Enable successful' -f $Function_Name)
-                        } else {
-                            Write-Verbose ('{0}|Account is already Enabled, doing nothing' -f $Function_Name)
-                        }
-                    } elseif ($SetType -eq 'Disable') {
-                        Write-Verbose ('{0}|Found object, attempting disable' -f $Function_Name)
-                        $UAC_AccountDisabled = '0x02'
-                        if (($Object_Directory_Entry.useraccountcontrol.Value -band $UAC_AccountDisabled) -ne $UAC_AccountDisabled) {
-                            Write-Verbose ('{0}|Account is Enabled, disabling' -f $Function_Name)
-                            $Object_Directory_Entry.useraccountcontrol.Value = $Object_Directory_Entry.useraccountcontrol.Value -bxor $UAC_AccountDisabled
-                            $Object_Directory_Entry.SetInfo()
-                            Write-Verbose ('{0}|Disable successful' -f $Function_Name)
-                        } else {
-                            Write-Verbose ('{0}|Account is already Disabled, doing nothing' -f $Function_Name)
-                        }
-                    } elseif ($SetType -eq 'Remove') {
-                        Write-Verbose ('{0}|Found object, checking for ProtectFromAccidentalDeletion' -f $Function_Name)
-                        $Check_Object = Get-DSSObject -DistinguishedName $Object_Directory_Entry.distinguishedname -Properties 'protectedfromaccidentaldeletion'
-                        if ($Check_Object.'protectedfromaccidentaldeletion') {
-                            $Terminating_ErrorRecord_Parameters = @{
-                                'Exception'    = 'System.UnauthorizedAccessException'
-                                'ID'           = 'DSS-{0}' -f $Function_Name
-                                'Category'     = 'SecurityError'
-                                'TargetObject' = $Object_Directory_Entry
-                                'Message'      = 'Object is Protected From Accidental Deletion. Remove protection before trying to delete this object.'
+                    switch ($SetType) {
+                        'Enable' {
+                            Write-Verbose ('{0}|Found object, attempting enable' -f $Function_Name)
+                            $UAC_AccountDisabled = '0x02'
+                            if (($Object_Directory_Entry.useraccountcontrol.Value -band $UAC_AccountDisabled) -eq $UAC_AccountDisabled) {
+                                Write-Verbose ('{0}|Account is Disabled, enabling' -f $Function_Name)
+                                $Object_Directory_Entry.useraccountcontrol.Value = $Object_Directory_Entry.useraccountcontrol.Value -bxor $UAC_AccountDisabled
+                                $Object_Directory_Entry.SetInfo()
+                                Write-Verbose ('{0}|Enable successful' -f $Function_Name)
+                            } else {
+                                Write-Verbose ('{0}|Account is already Enabled, doing nothing' -f $Function_Name)
                             }
-                            $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
-                            $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
                         }
-                        Write-Verbose ('{0}|Attempting delete' -f $Function_Name)
-                        if ($Object_Directory_Entry.objectclass -contains 'Group') {
-                            Write-Verbose ('{0}|Object is a group, getting parent OU first' -f $Function_Name)
-                            $Group_Directory_Entry_Parent_OU = Get-DSSDirectoryEntry @Common_Search_Parameters -Path $Object_Directory_Entry.Parent
-                            $Group_Directory_Entry_Parent_OU.Delete('Group', ('CN={0}' -f $Object_Directory_Entry.cn.Value))
-                        } elseif ($Object_Directory_Entry.objectclass -contains 'OrganizationalUnit') {
-                            Write-Verbose ('{0}|Object is an OU, checking for child objects' -f $Function_Name)
-                            if (([array]$Object_Directory_Entry.Children) -and (-not $Recursive)) {
-                                Write-Verbose ('{0}|Found child objects and Recursive switch not present, unable to delete' -f $Function_Name)
+
+                        'Disable' {
+                            Write-Verbose ('{0}|Found object, attempting disable' -f $Function_Name)
+                            $UAC_AccountDisabled = '0x02'
+                            if (($Object_Directory_Entry.useraccountcontrol.Value -band $UAC_AccountDisabled) -ne $UAC_AccountDisabled) {
+                                Write-Verbose ('{0}|Account is Enabled, disabling' -f $Function_Name)
+                                $Object_Directory_Entry.useraccountcontrol.Value = $Object_Directory_Entry.useraccountcontrol.Value -bxor $UAC_AccountDisabled
+                                $Object_Directory_Entry.SetInfo()
+                                Write-Verbose ('{0}|Disable successful' -f $Function_Name)
+                            } else {
+                                Write-Verbose ('{0}|Account is already Disabled, doing nothing' -f $Function_Name)
+                            }
+                        }
+
+                        'Remove' {
+                            Write-Verbose ('{0}|Found object, checking for ProtectFromAccidentalDeletion' -f $Function_Name)
+                            $Check_Object = Get-DSSObject -DistinguishedName $Object_Directory_Entry.distinguishedname -Properties 'protectedfromaccidentaldeletion'
+                            if ($Check_Object.'protectedfromaccidentaldeletion') {
                                 $Terminating_ErrorRecord_Parameters = @{
-                                    'Exception'    = 'System.DirectoryServices.DirectoryServicesCOMException'
+                                    'Exception'    = 'System.UnauthorizedAccessException'
                                     'ID'           = 'DSS-{0}' -f $Function_Name
-                                    'Category'     = 'InvalidOperation'
+                                    'Category'     = 'SecurityError'
                                     'TargetObject' = $Object_Directory_Entry
-                                    'Message'      = 'Failed to remove due to child objects existing.'
+                                    'Message'      = 'Object is Protected From Accidental Deletion. Remove protection before trying to delete this object.'
                                 }
                                 $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
                                 $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+                            }
+                            Write-Verbose ('{0}|Attempting delete' -f $Function_Name)
+                            if ($Object_Directory_Entry.objectclass -contains 'Group') {
+                                Write-Verbose ('{0}|Object is a group, getting parent OU first' -f $Function_Name)
+                                $Group_Directory_Entry_Parent_OU = Get-DSSDirectoryEntry @Common_Search_Parameters -Path $Object_Directory_Entry.Parent
+                                $Group_Directory_Entry_Parent_OU.Delete('Group', ('CN={0}' -f $Object_Directory_Entry.cn.Value))
+                            } elseif ($Object_Directory_Entry.objectclass -contains 'OrganizationalUnit') {
+                                Write-Verbose ('{0}|Object is an OU, checking for child objects' -f $Function_Name)
+                                if (([array]$Object_Directory_Entry.Children) -and (-not $Recursive)) {
+                                    Write-Verbose ('{0}|Found child objects and Recursive switch not present, unable to delete' -f $Function_Name)
+                                    $Terminating_ErrorRecord_Parameters = @{
+                                        'Exception'    = 'System.DirectoryServices.DirectoryServicesCOMException'
+                                        'ID'           = 'DSS-{0}' -f $Function_Name
+                                        'Category'     = 'InvalidOperation'
+                                        'TargetObject' = $Object_Directory_Entry
+                                        'Message'      = 'Failed to remove due to child objects existing.'
+                                    }
+                                    $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+                                    $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+                                } else {
+                                    Write-Verbose ('{0}|No child objects found, or Recursive switch passed, deleting' -f $Function_Name)
+                                    $Object_Directory_Entry.DeleteTree()
+                                }
                             } else {
-                                Write-Verbose ('{0}|No child objects found, or Recursive switch passed, deleting' -f $Function_Name)
                                 $Object_Directory_Entry.DeleteTree()
                             }
-                        } else {
-                            $Object_Directory_Entry.DeleteTree()
+                            Write-Verbose ('{0}|Delete successful' -f $Function_Name)
                         }
-                        Write-Verbose ('{0}|Delete successful' -f $Function_Name)
-                    } elseif ($SetType -eq 'Unlock') {
-                        Write-Verbose ('{0}|Found object, attempting unlock' -f $Function_Name)
-                        # Taken from jrv's answer here: https://social.technet.microsoft.com/Forums/lync/en-US/349c0b3e-f4d6-4a65-8218-60901488855e/getting-user-quotlockouttimequot-using-adsi-interface-or-other-method-not-using-module?forum=ITCG
-                        if ($Object_Directory_Entry.ConvertLargeIntegerToInt64($Object_Directory_Entry.lockouttime.Value) -gt 0) {
-                            Write-Verbose ('{0}|Account is Locked, unlocking' -f $Function_Name)
-                            $Object_Directory_Entry.lockouttime.Value = 0
-                            $Object_Directory_Entry.SetInfo()
-                            Write-Verbose ('{0}|Unlock successful' -f $Function_Name)
-                        } else {
-                            Write-Verbose ('{0}|Account is already Unlocked, doing nothing' -f $Function_Name)
+
+                        'RemoveGroupMember' {
+                            Write-Verbose ('{0}|Removing {1} group members' -f $Function_Name, $Group_Members_To_Remove.Count)
+                            foreach ($Remove_Member in $Group_Members_To_Remove) {
+                                # Remove-ADGroupMember does not return any output if any of the Members are not part of the group so we do the same here.
+                                try {
+                                    $Object_Directory_Entry.Remove($Remove_Member)
+                                } catch [System.DirectoryServices.DirectoryServicesCOMException] {
+                                    if ($_.Exception.Message -eq 'The server is unwilling to process the request. (Exception from HRESULT: 0x80072035)') {
+                                        Write-Verbose ('{0}|Not actually a group member: {1}' -f $Function_Name, $Remove_Member)
+                                    } else {
+                                        throw
+                                    }
+                                }
+                            }
+                            Write-Verbose ('{0}|Group Members removed successfully' -f $Function_Name)
+                        }
+
+                        'Unlock' {
+                            Write-Verbose ('{0}|Found object, attempting unlock' -f $Function_Name)
+                            # Taken from jrv's answer here: https://social.technet.microsoft.com/Forums/lync/en-US/349c0b3e-f4d6-4a65-8218-60901488855e/getting-user-quotlockouttimequot-using-adsi-interface-or-other-method-not-using-module?forum=ITCG
+                            if ($Object_Directory_Entry.ConvertLargeIntegerToInt64($Object_Directory_Entry.lockouttime.Value) -gt 0) {
+                                Write-Verbose ('{0}|Account is Locked, unlocking' -f $Function_Name)
+                                $Object_Directory_Entry.lockouttime.Value = 0
+                                $Object_Directory_Entry.SetInfo()
+                                Write-Verbose ('{0}|Unlock successful' -f $Function_Name)
+                            } else {
+                                Write-Verbose ('{0}|Account is already Unlocked, doing nothing' -f $Function_Name)
+                            }
                         }
                     }
                 } catch [System.UnauthorizedAccessException] {
