@@ -317,7 +317,7 @@ function Find-DSSRawObject {
             $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
         }
 
-        if ($Directory_Searcher_Results) {
+        if ($Directory_Searcher_Results.Count) {
             Write-Verbose ('{0}|Found {1} result(s)' -f $Function_Name, $Directory_Searcher_Results.Count)
             if ($OutputFormat -eq 'DirectoryEntry') {
                 Write-Verbose ('{0}|Returning {1}' -f $Function_Name, $OutputFormat)
