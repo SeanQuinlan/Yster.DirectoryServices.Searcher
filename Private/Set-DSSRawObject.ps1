@@ -15,6 +15,7 @@ function Set-DSSRawObject {
         https://docs.microsoft.com/en-us/powershell/module/addsadministration/remove-adobject
         https://docs.microsoft.com/en-us/dotnet/api/system.directoryservices.directoryentry
         https://docs.microsoft.com/en-us/windows/win32/api/iads/nf-iads-iadsgroup-remove
+        https://docs.microsoft.com/en-us/dotnet/api/system.management.automation.cmdlet.shouldprocess
     #>
 
     [CmdletBinding(SupportsShouldProcess = $true)]
@@ -124,66 +125,19 @@ function Set-DSSRawObject {
             'OutputFormat' = 'DirectoryEntry'
         }
 
-        if ($SetType -eq 'Remove') {
-            $ShouldProcess_Setting = 'Remove'
-        } else {
-            $ShouldProcess_Setting = 'Set'
-        }
+        $Confirm_Header = New-Object -TypeName 'System.Text.StringBuilder'
+        [void]$Confirm_Header.AppendLine('Confirm')
+        [void]$Confirm_Header.AppendLine('Are you sure you want to perform this action?')
 
         Write-Verbose ('{0}|Calling Find-DSSRawObject to get DirectoryEntry' -f $Function_Name)
         $global:Object_Directory_Entry = Find-DSSRawObject @Common_Search_Parameters @Directory_Search_Parameters
         if ($Object_Directory_Entry) {
-            if ($SetType -eq 'RemoveGroupMember') {
-                Write-Verbose ('{0}|Getting group members first' -f $Function_Name)
-                $global:Group_Members_To_Remove = New-Object -TypeName 'System.Collections.Generic.List[String]'
-                $Group_Member_Properties = @(
-                    'SAMAccountName'
-                    'DistinguishedName'
-                    'ObjectSID'
-                    'ObjectGUID'
-                )
-                foreach ($Group_Member in $Members) {
-                    $Group_Member_Path = $null
-                    foreach ($Group_Member_Property in $Group_Member_Properties) {
-                        if ($Group_Member_Property -eq 'ObjectGUID') {
-                            # Only proceed if the $Group_Member string is a valid GUID.
-                            if ([System.Guid]::TryParse($Group_Member, [ref][System.Guid]::Empty)) {
-                                $Group_Member = (Convert-GuidToHex -Guid $Group_Member)
-                            } else {
-                                break
-                            }
-                        }
-                        $Member_Search_Parameters = @{
-                            'OutputFormat' = 'DirectoryEntry'
-                            'LDAPFilter'   = ('({0}={1})' -f $Group_Member_Property, $Group_Member)
-                        }
-                        $Group_Member_Result = Find-DSSRawObject @Common_Search_Parameters @Member_Search_Parameters
-                        if ($Group_Member_Result.Count) {
-                            $Group_Member_Path = $Group_Member_Result.'adspath'
-                            Write-Verbose ('{0}|Found group member: {1}' -f $Function_Name, $Group_Member_Path)
-                            break
-                        }
-                    }
-                    if (-not $Group_Member_Path) {
-                        $Terminating_ErrorRecord_Parameters = @{
-                            'Exception'    = 'System.DirectoryServices.ActiveDirectory.ActiveDirectoryObjectNotFoundException'
-                            'ID'           = 'DSS-{0}' -f $Function_Name
-                            'Category'     = 'ObjectNotFound'
-                            'TargetObject' = $Object_Directory_Entry
-                            'Message'      = 'Cannot find object with Identity of "{0}"' -f $Group_Member
-                        }
-                        $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
-                        $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
-                    } else {
-                        $Group_Members_To_Remove.Add($Group_Member_Path)
-                    }
-                }
-            }
-
-            if ($PSCmdlet.ShouldProcess($Object_Directory_Entry.distinguishedname, $ShouldProcess_Setting)) {
-                try {
-                    switch ($SetType) {
-                        'Enable' {
+            try {
+                switch ($SetType) {
+                    'Enable' {
+                        $Whatif_Statement = 'Performing the operation "Enable" on target "{0}".' -f $($Object_Directory_Entry.'distinguishedname')
+                        $Confirm_Statement = $Whatif_Statement
+                        if ($PSCmdlet.ShouldProcess($Whatif_Statement, $Confirm_Statement, $Confirm_Header.ToString())) {
                             Write-Verbose ('{0}|Found object, attempting enable' -f $Function_Name)
                             $UAC_AccountDisabled = '0x02'
                             if (($Object_Directory_Entry.useraccountcontrol.Value -band $UAC_AccountDisabled) -eq $UAC_AccountDisabled) {
@@ -195,8 +149,12 @@ function Set-DSSRawObject {
                                 Write-Verbose ('{0}|Account is already Enabled, doing nothing' -f $Function_Name)
                             }
                         }
+                    }
 
-                        'Disable' {
+                    'Disable' {
+                        $Whatif_Statement = 'Performing the operation "Disable" on target "{0}".' -f $($Object_Directory_Entry.'distinguishedname')
+                        $Confirm_Statement = $Whatif_Statement
+                        if ($PSCmdlet.ShouldProcess($Whatif_Statement, $Confirm_Statement, $Confirm_Header.ToString())) {
                             Write-Verbose ('{0}|Found object, attempting disable' -f $Function_Name)
                             $UAC_AccountDisabled = '0x02'
                             if (($Object_Directory_Entry.useraccountcontrol.Value -band $UAC_AccountDisabled) -ne $UAC_AccountDisabled) {
@@ -208,8 +166,12 @@ function Set-DSSRawObject {
                                 Write-Verbose ('{0}|Account is already Disabled, doing nothing' -f $Function_Name)
                             }
                         }
+                    }
 
-                        'Remove' {
+                    'Remove' {
+                        $Whatif_Statement = 'Performing the operation "Remove" on target "{0}".' -f $($Object_Directory_Entry.'distinguishedname')
+                        $Confirm_Statement = $Whatif_Statement
+                        if ($PSCmdlet.ShouldProcess($Whatif_Statement, $Confirm_Statement, $Confirm_Header.ToString())) {
                             Write-Verbose ('{0}|Found object, checking for ProtectFromAccidentalDeletion' -f $Function_Name)
                             $Check_Object = Get-DSSObject -DistinguishedName $Object_Directory_Entry.distinguishedname -Properties 'protectedfromaccidentaldeletion'
                             if ($Check_Object.'protectedfromaccidentaldeletion') {
@@ -250,16 +212,73 @@ function Set-DSSRawObject {
                             }
                             Write-Verbose ('{0}|Delete successful' -f $Function_Name)
                         }
+                    }
 
-                        'RemoveGroupMember' {
+                    'RemoveGroupMember' {
+                        Write-Verbose ('{0}|Getting group members first' -f $Function_Name)
+                        $global:Group_Members_To_Remove = New-Object -TypeName 'System.Collections.Generic.List[PSObject]'
+                        $Group_Member_Properties = @(
+                            'SAMAccountName'
+                            'DistinguishedName'
+                            'ObjectSID'
+                            'ObjectGUID'
+                        )
+                        foreach ($Group_Member in $Members) {
+                            $Group_Member_To_Remove = $null
+                            foreach ($Group_Member_Property in $Group_Member_Properties) {
+                                if ($Group_Member_Property -eq 'ObjectGUID') {
+                                    # Only proceed if the $Group_Member string is a valid GUID.
+                                    if ([System.Guid]::TryParse($Group_Member, [ref][System.Guid]::Empty)) {
+                                        $Group_Member = (Convert-GuidToHex -Guid $Group_Member)
+                                    } else {
+                                        break
+                                    }
+                                }
+                                $Member_Search_Parameters = @{
+                                    'OutputFormat' = 'DirectoryEntry'
+                                    'LDAPFilter'   = ('({0}={1})' -f $Group_Member_Property, $Group_Member)
+                                }
+                                $Group_Member_Result = Find-DSSRawObject @Common_Search_Parameters @Member_Search_Parameters
+                                if ($Group_Member_Result.Count) {
+                                    $Group_Member_To_Remove = @{
+                                        'Path' = $Group_Member_Result.'adspath'
+                                        'Name' = $($Group_Member_Result.'distinguishedname')
+                                    }
+                                    Write-Verbose ('{0}|Found group member: {1}' -f $Function_Name, $Group_Member_To_Remove['Name'])
+                                    break
+                                }
+                            }
+                            if (-not $Group_Member_To_Remove) {
+                                $Terminating_ErrorRecord_Parameters = @{
+                                    'Exception'    = 'System.DirectoryServices.ActiveDirectory.ActiveDirectoryObjectNotFoundException'
+                                    'ID'           = 'DSS-{0}' -f $Function_Name
+                                    'Category'     = 'ObjectNotFound'
+                                    'TargetObject' = $Object_Directory_Entry
+                                    'Message'      = 'Cannot find object with Identity of "{0}"' -f $Group_Member
+                                }
+                                $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+                                $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+                            } else {
+                                $Group_Members_To_Remove.Add($Group_Member_To_Remove)
+                            }
+                        }
+
+                        $Remove_GroupMember_ShouldProcess = New-Object -TypeName 'System.Text.StringBuilder'
+                        $Group_Members_To_Remove.GetEnumerator() | ForEach-Object {
+                            [void]$Remove_GroupMember_ShouldProcess.AppendLine(('Remove group member "{0}" from target: "{1}".' -f $_['Name'], $($Object_Directory_Entry.'distinguishedname')))
+                        }
+                        $Whatif_Statement = $Remove_GroupMember_ShouldProcess.ToString().Trim()
+                        $Confirm_Statement = $Whatif_Statement
+
+                        if ($PSCmdlet.ShouldProcess($Whatif_Statement, $Confirm_Statement, $Confirm_Header.ToString())) {
                             Write-Verbose ('{0}|Removing {1} group members' -f $Function_Name, $Group_Members_To_Remove.Count)
                             foreach ($Remove_Member in $Group_Members_To_Remove) {
                                 # Remove-ADGroupMember does not return any output if any of the Members are not part of the group so we do the same here.
                                 try {
-                                    $Object_Directory_Entry.Remove($Remove_Member)
+                                    $Object_Directory_Entry.Remove($Remove_Member['Path'])
                                 } catch [System.DirectoryServices.DirectoryServicesCOMException] {
                                     if ($_.Exception.Message -eq 'The server is unwilling to process the request. (Exception from HRESULT: 0x80072035)') {
-                                        Write-Verbose ('{0}|Not actually a group member: {1}' -f $Function_Name, $Remove_Member)
+                                        Write-Verbose ('{0}|Not actually a group member: {1}' -f $Function_Name, $Remove_Member['Name'])
                                     } else {
                                         throw
                                     }
@@ -267,8 +286,12 @@ function Set-DSSRawObject {
                             }
                             Write-Verbose ('{0}|Group Members removed successfully' -f $Function_Name)
                         }
+                    }
 
-                        'Unlock' {
+                    'Unlock' {
+                        $Whatif_Statement = 'Performing the operation "Unlock" on target "{0}".' -f $($Object_Directory_Entry.'distinguishedname')
+                        $Confirm_Statement = $Whatif_Statement
+                        if ($PSCmdlet.ShouldProcess($Whatif_Statement, $Confirm_Statement, $Confirm_Header.ToString())) {
                             Write-Verbose ('{0}|Found object, attempting unlock' -f $Function_Name)
                             # Taken from jrv's answer here: https://social.technet.microsoft.com/Forums/lync/en-US/349c0b3e-f4d6-4a65-8218-60901488855e/getting-user-quotlockouttimequot-using-adsi-interface-or-other-method-not-using-module?forum=ITCG
                             if ($Object_Directory_Entry.ConvertLargeIntegerToInt64($Object_Directory_Entry.lockouttime.Value) -gt 0) {
@@ -281,35 +304,35 @@ function Set-DSSRawObject {
                             }
                         }
                     }
-                } catch [System.UnauthorizedAccessException] {
+                }
+            } catch [System.UnauthorizedAccessException] {
+                $Terminating_ErrorRecord_Parameters = @{
+                    'Exception'      = 'System.UnauthorizedAccessException'
+                    'ID'             = 'DSS-{0}' -f $Function_Name
+                    'Category'       = 'SecurityError'
+                    'TargetObject'   = $Object_Directory_Entry
+                    'Message'        = 'Insufficient access rights to perform the operation.'
+                    'InnerException' = $_.Exception
+                }
+                $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+                $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+            } catch [System.DirectoryServices.DirectoryServicesCOMException] {
+                # This exception is thrown when a disabled account has an unsuitable password, or no password.
+                # LDAP response here: https://ldapwiki.com/wiki/ERROR_PASSWORD_RESTRICTION
+                # Microsoft Error Code: https://docs.microsoft.com/en-gb/windows/win32/debug/system-error-codes--1300-1699-
+                if ($_.Exception.ExtendedError -eq 1325) {
                     $Terminating_ErrorRecord_Parameters = @{
-                        'Exception'      = 'System.UnauthorizedAccessException'
+                        'Exception'      = 'System.DirectoryServices.DirectoryServicesCOMException'
                         'ID'             = 'DSS-{0}' -f $Function_Name
                         'Category'       = 'SecurityError'
                         'TargetObject'   = $Object_Directory_Entry
-                        'Message'        = 'Insufficient access rights to perform the operation.'
+                        'Message'        = 'Failed to enable account due to password not meeting requirements.'
                         'InnerException' = $_.Exception
                     }
                     $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
                     $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
-                } catch [System.DirectoryServices.DirectoryServicesCOMException] {
-                    # This exception is thrown when a disabled account has an unsuitable password, or no password.
-                    # LDAP response here: https://ldapwiki.com/wiki/ERROR_PASSWORD_RESTRICTION
-                    # Microsoft Error Code: https://docs.microsoft.com/en-gb/windows/win32/debug/system-error-codes--1300-1699-
-                    if ($_.Exception.ExtendedError -eq 1325) {
-                        $Terminating_ErrorRecord_Parameters = @{
-                            'Exception'      = 'System.DirectoryServices.DirectoryServicesCOMException'
-                            'ID'             = 'DSS-{0}' -f $Function_Name
-                            'Category'       = 'SecurityError'
-                            'TargetObject'   = $Object_Directory_Entry
-                            'Message'        = 'Failed to enable account due to password not meeting requirements.'
-                            'InnerException' = $_.Exception
-                        }
-                        $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
-                        $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
-                    } else {
-                        throw
-                    }
+                } else {
+                    throw
                 }
             }
         } else {
