@@ -9,9 +9,8 @@
     "editor.insertSpaces": true, // Default: true
     // When enabled, will trim trailing whitespace when you save a file.
     "files.trimTrailingWhitespace": true, // Default: false
-	"files.trimFinalNewlines": true,
-	"files.insertFinalNewline": true,
-
+    "files.trimFinalNewlines": true,
+    "files.insertFinalNewline": true,
     // Does not reformat one-line code blocks, such as "if (...) {...} else {...}".
     "powershell.codeFormatting.ignoreOneLineBlock": false, // Default: True
     // Adds a newline (line break) after a closing brace.
