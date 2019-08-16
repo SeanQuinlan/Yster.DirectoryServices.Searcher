@@ -22,7 +22,7 @@ function Set-DSSRawObject {
     param(
         # The type of modification to make.
         [Parameter(Mandatory = $true)]
-        [ValidateSet('Enable', 'Disable', 'Remove', 'RemoveGroupMember', 'RemovePrincipalGroupMembership', 'Unlock')]
+        [ValidateSet('AddGroupMember', 'Enable', 'Disable', 'Remove', 'RemoveGroupMember', 'RemovePrincipalGroupMembership', 'Unlock')]
         [Alias('Type')]
         [String]
         $SetType,
@@ -107,26 +107,26 @@ function Set-DSSRawObject {
             $Common_Search_Parameters['Credential'] = $Credential
         }
 
-        if (($SetType -eq 'RemoveGroupMember') -or ($SetType -eq 'RemovePrincipalGroupMembership')) {
+        if ($SetType -match 'GroupMember') {
             Write-Verbose ('{0}|Getting GroupMembers or PrincipalGroups first' -f $Function_Name)
-            $global:To_Remove = New-Object -TypeName 'System.Collections.Generic.List[PSObject]'
-            $Member_Properties = @(
+            $global:GroupMember_Objects = New-Object -TypeName 'System.Collections.Generic.List[PSObject]'
+            $GroupMember_Properties = @(
                 'SAMAccountName'
                 'DistinguishedName'
                 'ObjectSID'
                 'ObjectGUID'
             )
 
-            if ($SetType -eq 'RemoveGroupMember') {
-                $Member_Set = $Members
-            } elseif ($SetType -eq 'RemovePrincipalGroupMembership') {
+            if ($SetType -match 'PrincipalGroupMembership') {
                 $Member_Set = $MemberOf
+            } else {
+                $Member_Set = $Members
             }
 
             foreach ($Member_Object in $Member_Set) {
-                $Member_To_Remove = $null
-                foreach ($Member_Property in $Member_Properties) {
-                    if ($Member_Property -eq 'ObjectGUID') {
+                $Member_To_AddRemove = $null
+                foreach ($GroupMember_Property in $GroupMember_Properties) {
+                    if ($GroupMember_Property -eq 'ObjectGUID') {
                         # Only proceed if the $Member_Object string is a valid GUID.
                         if ([System.Guid]::TryParse($Member_Object, [ref][System.Guid]::Empty)) {
                             $Member_Object = (Convert-GuidToHex -Guid $Member_Object)
@@ -136,22 +136,22 @@ function Set-DSSRawObject {
                     }
                     $Member_Search_Parameters = @{
                         'OutputFormat' = 'DirectoryEntry'
-                        'LDAPFilter'   = ('({0}={1})' -f $Member_Property, $Member_Object)
+                        'LDAPFilter'   = ('({0}={1})' -f $GroupMember_Property, $Member_Object)
                     }
                     $Member_Object_Result = Find-DSSRawObject @Common_Search_Parameters @Member_Search_Parameters
                     if ($Member_Object_Result.Count) {
-                        $Member_To_Remove = @{
+                        $Member_To_AddRemove = @{
                             'Path' = $Member_Object_Result.'adspath'
                             'Name' = $($Member_Object_Result.'distinguishedname')
                         }
-                        if ($SetType -eq 'RemovePrincipalGroupMembership') {
-                            $Member_To_Remove['Object'] = $Member_Object_Result
+                        if ($SetType -match 'PrincipalGroupMembership') {
+                            $Member_To_AddRemove['Object'] = $Member_Object_Result
                         }
-                        Write-Verbose ('{0}|Found group member: {1}' -f $Function_Name, $Member_To_Remove['Name'])
+                        Write-Verbose ('{0}|Found member: {1}' -f $Function_Name, $Member_To_AddRemove['Name'])
                         break
                     }
                 }
-                if (-not $Member_To_Remove) {
+                if (-not $Member_To_AddRemove) {
                     $Terminating_ErrorRecord_Parameters = @{
                         'Exception'    = 'System.DirectoryServices.ActiveDirectory.ActiveDirectoryObjectNotFoundException'
                         'ID'           = 'DSS-{0}' -f $Function_Name
@@ -162,7 +162,7 @@ function Set-DSSRawObject {
                     $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
                     $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
                 } else {
-                    $To_Remove.Add($Member_To_Remove)
+                    $GroupMember_Objects.Add($Member_To_AddRemove)
                 }
             }
         }
@@ -199,7 +199,7 @@ function Set-DSSRawObject {
         $global:Object_Directory_Entry = Find-DSSRawObject @Common_Search_Parameters @Directory_Search_Parameters
         if ($Object_Directory_Entry) {
             try {
-                switch ($SetType) {
+                switch -Regex ($SetType) {
                     'Enable' {
                         $Whatif_Statement = 'Performing the operation "Enable" on target "{0}".' -f $($Object_Directory_Entry.'distinguishedname')
                         $Confirm_Statement = $Whatif_Statement
@@ -234,7 +234,54 @@ function Set-DSSRawObject {
                         }
                     }
 
-                    'Remove' {
+                    'GroupMember' {
+                        $GroupMember_ShouldProcess = New-Object -TypeName 'System.Text.StringBuilder'
+                        $GroupMember_Objects.GetEnumerator() | ForEach-Object {
+                            if ($SetType -eq 'AddGroupMember') {
+                                $ShouldProcess_Line = 'Add group member "{0}" to target: "{1}".' -f $_['Name'], $($Object_Directory_Entry.'distinguishedname')
+                            } elseif ($SetType -eq 'RemoveGroupMember') {
+                                $ShouldProcess_Line = 'Remove group member "{0}" from target: "{1}".' -f $_['Name'], $($Object_Directory_Entry.'distinguishedname')
+                            } elseif ($SetType -eq 'RemovePrincipalGroupMembership') {
+                                $ShouldProcess_Line = 'Remove target "{0}" from group: "{1}".' -f $($Object_Directory_Entry.'distinguishedname'), $_['Name']
+                            }
+                            [void]$GroupMember_ShouldProcess.AppendLine($ShouldProcess_Line)
+                        }
+                        $Whatif_Statement = $GroupMember_ShouldProcess.ToString().Trim()
+                        $Confirm_Statement = $Whatif_Statement
+
+                        if ($PSCmdlet.ShouldProcess($Whatif_Statement, $Confirm_Statement, $Confirm_Header.ToString())) {
+                            # The Microsoft Add/Remove cmdlets do not return any output if the group members to remove are not currently members, or if the group members to add are already members.
+                            # So just do the same here (suppress the specific error that is returned).
+                            foreach ($GroupMember_Object in $GroupMember_Objects) {
+                                try {
+                                    if ($SetType -eq 'AddGroupMember') {
+                                        $Object_Directory_Entry.Add($GroupMember_Object['Path'])
+                                    } elseif ($SetType -eq 'RemoveGroupMember') {
+                                        $Object_Directory_Entry.Remove($GroupMember_Object['Path'])
+                                    } elseif ($SetType -eq 'RemovePrincipalGroupMembership') {
+                                        $GroupMember_Object['Object'].Remove($Object_Directory_Entry.'adspath')
+                                    }
+                                } catch [System.DirectoryServices.DirectoryServicesCOMException] {
+                                    if ($_.Exception.Message -eq 'The server is unwilling to process the request. (Exception from HRESULT: 0x80072035)') {
+                                        if ($SetType -eq 'RemoveGroupMember') {
+                                            Write-Verbose ('{0}|Not actually a group member: {1}' -f $Function_Name, $GroupMember_Object['Name'])
+                                        } elseif ($SetType -eq 'RemovePrincipalGroupMembership') {
+                                            Write-Verbose ('{0}|Not actually member of group: {1}' -f $Function_Name, $GroupMember_Object['Name'])
+                                        }
+                                    } elseif ($_.Exception.Message -eq 'The object already exists. (Exception from HRESULT: 0x80071392)') {
+                                        if ($SetType -eq 'AddGroupMember') {
+                                            Write-Verbose ('{0}|Already a group member: {1}' -f $Function_Name, $GroupMember_Object['Name'])
+                                        }
+                                    } else {
+                                        throw
+                                    }
+                                }
+                            }
+                            Write-Verbose ('{0}|Group membership set successfully' -f $Function_Name)
+                        }
+                    }
+
+                    'Remove$' {
                         $Whatif_Statement = 'Performing the operation "Remove" on target "{0}".' -f $($Object_Directory_Entry.'distinguishedname')
                         $Confirm_Statement = $Whatif_Statement
                         if ($PSCmdlet.ShouldProcess($Whatif_Statement, $Confirm_Statement, $Confirm_Header.ToString())) {
@@ -277,58 +324,6 @@ function Set-DSSRawObject {
                                 $Object_Directory_Entry.DeleteTree()
                             }
                             Write-Verbose ('{0}|Delete successful' -f $Function_Name)
-                        }
-                    }
-
-                    'RemoveGroupMember' {
-                        $Remove_GroupMember_ShouldProcess = New-Object -TypeName 'System.Text.StringBuilder'
-                        $To_Remove.GetEnumerator() | ForEach-Object {
-                            [void]$Remove_GroupMember_ShouldProcess.AppendLine(('Remove group member "{0}" from target: "{1}".' -f $_['Name'], $($Object_Directory_Entry.'distinguishedname')))
-                        }
-                        $Whatif_Statement = $Remove_GroupMember_ShouldProcess.ToString().Trim()
-                        $Confirm_Statement = $Whatif_Statement
-
-                        if ($PSCmdlet.ShouldProcess($Whatif_Statement, $Confirm_Statement, $Confirm_Header.ToString())) {
-                            Write-Verbose ('{0}|Removing {1} group members' -f $Function_Name, $To_Remove.Count)
-                            foreach ($Remove_Member in $To_Remove) {
-                                # Remove-ADGroupMember does not return any output if any of the Members are not part of the group so we do the same here.
-                                try {
-                                    $Object_Directory_Entry.Remove($Remove_Member['Path'])
-                                } catch [System.DirectoryServices.DirectoryServicesCOMException] {
-                                    if ($_.Exception.Message -eq 'The server is unwilling to process the request. (Exception from HRESULT: 0x80072035)') {
-                                        Write-Verbose ('{0}|Not actually a group member: {1}' -f $Function_Name, $Remove_Member['Name'])
-                                    } else {
-                                        throw
-                                    }
-                                }
-                            }
-                            Write-Verbose ('{0}|Group Members removed successfully' -f $Function_Name)
-                        }
-                    }
-
-                    'RemovePrincipalGroupMembership' {
-                        $Remove_PrincipalGroupMembership_ShouldProcess = New-Object -TypeName 'System.Text.StringBuilder'
-                        $To_Remove.GetEnumerator() | ForEach-Object {
-                            [void]$Remove_PrincipalGroupMembership_ShouldProcess.AppendLine(('Remove target "{0}" from group: "{1}".' -f $($Object_Directory_Entry.'distinguishedname'), $_['Name']))
-                        }
-                        $Whatif_Statement = $Remove_PrincipalGroupMembership_ShouldProcess.ToString().Trim()
-                        $Confirm_Statement = $Whatif_Statement
-
-                        if ($PSCmdlet.ShouldProcess($Whatif_Statement, $Confirm_Statement, $Confirm_Header.ToString())) {
-                            Write-Verbose ('{0}|Removing from {1} groups' -f $Function_Name, $To_Remove.Count)
-                            foreach ($Remove_Member in $To_Remove) {
-                                # Remove-ADPrincipalGroupMembership does not return any output if the identity is not already a member of the group, so just do the same.
-                                try {
-                                    $Remove_Member['Object'].Remove($Object_Directory_Entry.'adspath')
-                                } catch [System.DirectoryServices.DirectoryServicesCOMException] {
-                                    if ($_.Exception.Message -eq 'The server is unwilling to process the request. (Exception from HRESULT: 0x80072035)') {
-                                        Write-Verbose ('{0}|Not actually member of group: {1}' -f $Function_Name, $Remove_Member['Name'])
-                                    } else {
-                                        throw
-                                    }
-                                }
-                            }
-                            Write-Verbose ('{0}|Object removed from groups successfully' -f $Function_Name)
                         }
                     }
 
