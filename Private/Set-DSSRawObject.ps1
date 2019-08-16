@@ -22,7 +22,7 @@ function Set-DSSRawObject {
     param(
         # The type of modification to make.
         [Parameter(Mandatory = $true)]
-        [ValidateSet('AddGroupMember', 'Enable', 'Disable', 'Remove', 'RemoveGroupMember', 'RemovePrincipalGroupMembership', 'Unlock')]
+        [ValidateSet('AddGroupMember', 'AddPrincipalGroupMembership', 'Enable', 'Disable', 'Remove', 'RemoveGroupMember', 'RemovePrincipalGroupMembership', 'Unlock')]
         [Alias('Type')]
         [String]
         $SetType,
@@ -239,6 +239,8 @@ function Set-DSSRawObject {
                         $GroupMember_Objects.GetEnumerator() | ForEach-Object {
                             if ($SetType -eq 'AddGroupMember') {
                                 $ShouldProcess_Line = 'Add group member "{0}" to target: "{1}".' -f $_['Name'], $($Object_Directory_Entry.'distinguishedname')
+                            } elseif ($SetType -eq 'AddPrincipalGroupMembership') {
+                                $ShouldProcess_Line = 'Add target "{0}" to group: "{1}".' -f $($Object_Directory_Entry.'distinguishedname'), $_['Name']
                             } elseif ($SetType -eq 'RemoveGroupMember') {
                                 $ShouldProcess_Line = 'Remove group member "{0}" from target: "{1}".' -f $_['Name'], $($Object_Directory_Entry.'distinguishedname')
                             } elseif ($SetType -eq 'RemovePrincipalGroupMembership') {
@@ -256,6 +258,8 @@ function Set-DSSRawObject {
                                 try {
                                     if ($SetType -eq 'AddGroupMember') {
                                         $Object_Directory_Entry.Add($GroupMember_Object['Path'])
+                                    } elseif ($SetType -eq 'AddPrincipalGroupMembership') {
+                                        $GroupMember_Object['Object'].Add($Object_Directory_Entry.'adspath')
                                     } elseif ($SetType -eq 'RemoveGroupMember') {
                                         $Object_Directory_Entry.Remove($GroupMember_Object['Path'])
                                     } elseif ($SetType -eq 'RemovePrincipalGroupMembership') {
@@ -271,6 +275,8 @@ function Set-DSSRawObject {
                                     } elseif ($_.Exception.Message -eq 'The object already exists. (Exception from HRESULT: 0x80071392)') {
                                         if ($SetType -eq 'AddGroupMember') {
                                             Write-Verbose ('{0}|Already a group member: {1}' -f $Function_Name, $GroupMember_Object['Name'])
+                                        } elseif ($SetType -eq 'AddPrincipalGroupMembership') {
+                                            Write-Verbose ('{0}|Already a member of group: {1}' -f $Function_Name, $GroupMember_Object['Name'])
                                         }
                                     } else {
                                         throw
