@@ -9,9 +9,9 @@ function Remove-DSSGroupMember {
             - ObjectGUID (GUID)
             - SAMAccountName
     .EXAMPLE
-        Remove-DSSGroupMember -ObjectSID 'S-1-5-21-3515480276-2049723633-1306762111-1103' -Members xyz
+        Remove-DSSGroupMember -ObjectSID 'S-1-5-21-3515480276-2049723633-1306762111-1103' -Members 'Jsmith','PJones','RWalters'
 
-        Deletes the group with the above SID.
+        Removes the above 3 users from group with the specified SID.
     .NOTES
         References:
         https://docs.microsoft.com/en-us/powershell/module/addsadministration/remove-adgroupmember
