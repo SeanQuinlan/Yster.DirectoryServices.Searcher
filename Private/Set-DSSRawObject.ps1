@@ -22,7 +22,7 @@ function Set-DSSRawObject {
     param(
         # The type of modification to make.
         [Parameter(Mandatory = $true)]
-        [ValidateSet('Enable', 'Disable', 'Remove', 'RemoveGroupMember', 'Unlock')]
+        [ValidateSet('Enable', 'Disable', 'Remove', 'RemoveGroupMember', 'RemovePrincipalGroupMembership', 'Unlock')]
         [Alias('Type')]
         [String]
         $SetType,
@@ -67,6 +67,12 @@ function Set-DSSRawObject {
         [String[]]
         $Members,
 
+        # A group or list of groups to remove the object from.
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [String[]]
+        $MemberOf,
+
         # The context to search - Domain or Forest.
         [Parameter(Mandatory = $false)]
         [ValidateSet('Domain', 'Forest')]
@@ -99,6 +105,66 @@ function Set-DSSRawObject {
         }
         if ($PSBoundParameters.ContainsKey('Credential')) {
             $Common_Search_Parameters['Credential'] = $Credential
+        }
+
+        if (($SetType -eq 'RemoveGroupMember') -or ($SetType -eq 'RemovePrincipalGroupMembership')) {
+            Write-Verbose ('{0}|Getting GroupMembers or PrincipalGroups first' -f $Function_Name)
+            $global:To_Remove = New-Object -TypeName 'System.Collections.Generic.List[PSObject]'
+            $Member_Properties = @(
+                'SAMAccountName'
+                'DistinguishedName'
+                'ObjectSID'
+                'ObjectGUID'
+            )
+
+            if ($SetType -eq 'RemoveGroupMember') {
+                $Member_Set = $Members
+            } elseif ($SetType -eq 'RemovePrincipalGroupMembership') {
+                $Member_Set = $MemberOf
+            }
+
+            foreach ($Member_Object in $Member_Set) {
+                $Member_To_Remove = $null
+                foreach ($Member_Property in $Member_Properties) {
+                    if ($Member_Property -eq 'ObjectGUID') {
+                        # Only proceed if the $Member_Object string is a valid GUID.
+                        if ([System.Guid]::TryParse($Member_Object, [ref][System.Guid]::Empty)) {
+                            $Member_Object = (Convert-GuidToHex -Guid $Member_Object)
+                        } else {
+                            break
+                        }
+                    }
+                    $Member_Search_Parameters = @{
+                        'OutputFormat' = 'DirectoryEntry'
+                        'LDAPFilter'   = ('({0}={1})' -f $Member_Property, $Member_Object)
+                    }
+                    $Member_Object_Result = Find-DSSRawObject @Common_Search_Parameters @Member_Search_Parameters
+                    if ($Member_Object_Result.Count) {
+                        $Member_To_Remove = @{
+                            'Path' = $Member_Object_Result.'adspath'
+                            'Name' = $($Member_Object_Result.'distinguishedname')
+                        }
+                        if ($SetType -eq 'RemovePrincipalGroupMembership') {
+                            $Member_To_Remove['Object'] = $Member_Object_Result
+                        }
+                        Write-Verbose ('{0}|Found group member: {1}' -f $Function_Name, $Member_To_Remove['Name'])
+                        break
+                    }
+                }
+                if (-not $Member_To_Remove) {
+                    $Terminating_ErrorRecord_Parameters = @{
+                        'Exception'    = 'System.DirectoryServices.ActiveDirectory.ActiveDirectoryObjectNotFoundException'
+                        'ID'           = 'DSS-{0}' -f $Function_Name
+                        'Category'     = 'ObjectNotFound'
+                        'TargetObject' = $Object_Directory_Entry
+                        'Message'      = 'Cannot find object with Identity of "{0}"' -f $Member_Object
+                    }
+                    $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+                    $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+                } else {
+                    $To_Remove.Add($Member_To_Remove)
+                }
+            }
         }
 
         if ($PSBoundParameters.ContainsKey('SAMAccountName')) {
@@ -215,64 +281,16 @@ function Set-DSSRawObject {
                     }
 
                     'RemoveGroupMember' {
-                        Write-Verbose ('{0}|Getting group members first' -f $Function_Name)
-                        $global:Group_Members_To_Remove = New-Object -TypeName 'System.Collections.Generic.List[PSObject]'
-                        $Group_Member_Properties = @(
-                            'SAMAccountName'
-                            'DistinguishedName'
-                            'ObjectSID'
-                            'ObjectGUID'
-                        )
-                        foreach ($Group_Member in $Members) {
-                            $Group_Member_To_Remove = $null
-                            foreach ($Group_Member_Property in $Group_Member_Properties) {
-                                if ($Group_Member_Property -eq 'ObjectGUID') {
-                                    # Only proceed if the $Group_Member string is a valid GUID.
-                                    if ([System.Guid]::TryParse($Group_Member, [ref][System.Guid]::Empty)) {
-                                        $Group_Member = (Convert-GuidToHex -Guid $Group_Member)
-                                    } else {
-                                        break
-                                    }
-                                }
-                                $Member_Search_Parameters = @{
-                                    'OutputFormat' = 'DirectoryEntry'
-                                    'LDAPFilter'   = ('({0}={1})' -f $Group_Member_Property, $Group_Member)
-                                }
-                                $Group_Member_Result = Find-DSSRawObject @Common_Search_Parameters @Member_Search_Parameters
-                                if ($Group_Member_Result.Count) {
-                                    $Group_Member_To_Remove = @{
-                                        'Path' = $Group_Member_Result.'adspath'
-                                        'Name' = $($Group_Member_Result.'distinguishedname')
-                                    }
-                                    Write-Verbose ('{0}|Found group member: {1}' -f $Function_Name, $Group_Member_To_Remove['Name'])
-                                    break
-                                }
-                            }
-                            if (-not $Group_Member_To_Remove) {
-                                $Terminating_ErrorRecord_Parameters = @{
-                                    'Exception'    = 'System.DirectoryServices.ActiveDirectory.ActiveDirectoryObjectNotFoundException'
-                                    'ID'           = 'DSS-{0}' -f $Function_Name
-                                    'Category'     = 'ObjectNotFound'
-                                    'TargetObject' = $Object_Directory_Entry
-                                    'Message'      = 'Cannot find object with Identity of "{0}"' -f $Group_Member
-                                }
-                                $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
-                                $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
-                            } else {
-                                $Group_Members_To_Remove.Add($Group_Member_To_Remove)
-                            }
-                        }
-
                         $Remove_GroupMember_ShouldProcess = New-Object -TypeName 'System.Text.StringBuilder'
-                        $Group_Members_To_Remove.GetEnumerator() | ForEach-Object {
+                        $To_Remove.GetEnumerator() | ForEach-Object {
                             [void]$Remove_GroupMember_ShouldProcess.AppendLine(('Remove group member "{0}" from target: "{1}".' -f $_['Name'], $($Object_Directory_Entry.'distinguishedname')))
                         }
                         $Whatif_Statement = $Remove_GroupMember_ShouldProcess.ToString().Trim()
                         $Confirm_Statement = $Whatif_Statement
 
                         if ($PSCmdlet.ShouldProcess($Whatif_Statement, $Confirm_Statement, $Confirm_Header.ToString())) {
-                            Write-Verbose ('{0}|Removing {1} group members' -f $Function_Name, $Group_Members_To_Remove.Count)
-                            foreach ($Remove_Member in $Group_Members_To_Remove) {
+                            Write-Verbose ('{0}|Removing {1} group members' -f $Function_Name, $To_Remove.Count)
+                            foreach ($Remove_Member in $To_Remove) {
                                 # Remove-ADGroupMember does not return any output if any of the Members are not part of the group so we do the same here.
                                 try {
                                     $Object_Directory_Entry.Remove($Remove_Member['Path'])
@@ -285,6 +303,32 @@ function Set-DSSRawObject {
                                 }
                             }
                             Write-Verbose ('{0}|Group Members removed successfully' -f $Function_Name)
+                        }
+                    }
+
+                    'RemovePrincipalGroupMembership' {
+                        $Remove_PrincipalGroupMembership_ShouldProcess = New-Object -TypeName 'System.Text.StringBuilder'
+                        $To_Remove.GetEnumerator() | ForEach-Object {
+                            [void]$Remove_PrincipalGroupMembership_ShouldProcess.AppendLine(('Remove target "{0}" from group: "{1}".' -f $($Object_Directory_Entry.'distinguishedname'), $_['Name']))
+                        }
+                        $Whatif_Statement = $Remove_PrincipalGroupMembership_ShouldProcess.ToString().Trim()
+                        $Confirm_Statement = $Whatif_Statement
+
+                        if ($PSCmdlet.ShouldProcess($Whatif_Statement, $Confirm_Statement, $Confirm_Header.ToString())) {
+                            Write-Verbose ('{0}|Removing from {1} groups' -f $Function_Name, $To_Remove.Count)
+                            foreach ($Remove_Member in $To_Remove) {
+                                # Remove-ADPrincipalGroupMembership does not return any output if the identity is not already a member of the group, so just do the same.
+                                try {
+                                    $Remove_Member['Object'].Remove($Object_Directory_Entry.'adspath')
+                                } catch [System.DirectoryServices.DirectoryServicesCOMException] {
+                                    if ($_.Exception.Message -eq 'The server is unwilling to process the request. (Exception from HRESULT: 0x80072035)') {
+                                        Write-Verbose ('{0}|Not actually member of group: {1}' -f $Function_Name, $Remove_Member['Name'])
+                                    } else {
+                                        throw
+                                    }
+                                }
+                            }
+                            Write-Verbose ('{0}|Object removed from groups successfully' -f $Function_Name)
                         }
                     }
 
