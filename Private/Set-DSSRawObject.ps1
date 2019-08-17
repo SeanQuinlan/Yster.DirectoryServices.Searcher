@@ -22,7 +22,16 @@ function Set-DSSRawObject {
     param(
         # The type of modification to make.
         [Parameter(Mandatory = $true)]
-        [ValidateSet('AddGroupMember', 'AddPrincipalGroupMembership', 'Enable', 'Disable', 'Remove', 'RemoveGroupMember', 'RemovePrincipalGroupMembership', 'Unlock')]
+        [ValidateSet(
+            'AddGroupMember',
+            'AddPrincipalGroupMembership',
+            'Enable',
+            'Disable',
+            'Remove',
+            'RemoveGroupMember',
+            'RemovePrincipalGroupMembership',
+            'Unlock'
+        )]
         [Alias('Type')]
         [String]
         $SetType,
