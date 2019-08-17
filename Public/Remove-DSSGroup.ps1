@@ -71,7 +71,7 @@ function Remove-DSSGroup {
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
 
     $Set_Parameters = @{
-        'SetType' = 'Remove'
+        'SetType' = 'RemoveObject'
     }
 
     # This will add the -Confirm parameter if ConfirmPreference is set high enough.

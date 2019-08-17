@@ -77,7 +77,7 @@ function Remove-DSSComputer {
     }
 
     $Set_Parameters = @{
-        'SetType' = 'Remove'
+        'SetType' = 'RemoveObject'
     }
 
     # This will add the -Confirm parameter if ConfirmPreference is set high enough.

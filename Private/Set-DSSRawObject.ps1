@@ -27,7 +27,7 @@ function Set-DSSRawObject {
             'AddPrincipalGroupMembership',
             'Enable',
             'Disable',
-            'Remove',
+            'RemoveObject',
             'RemoveGroupMember',
             'RemovePrincipalGroupMembership',
             'Unlock'
@@ -296,7 +296,7 @@ function Set-DSSRawObject {
                         }
                     }
 
-                    'Remove$' {
+                    'RemoveObject' {
                         $Whatif_Statement = 'Performing the operation "Remove" on target "{0}".' -f $($Object_Directory_Entry.'distinguishedname')
                         $Confirm_Statement = $Whatif_Statement
                         if ($PSCmdlet.ShouldProcess($Whatif_Statement, $Confirm_Statement, $Confirm_Header.ToString())) {
