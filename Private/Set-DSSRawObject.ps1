@@ -3,11 +3,12 @@ function Set-DSSRawObject {
     .SYNOPSIS
         Make a modification to a specific object from Active Directory.
     .DESCRIPTION
-        Queries Active Directory for a specific object and then performs a modification to it.
+        Performs the required modification to the object that is passed in via the $Object parameter.
 
         This is not meant to be used as an interactive function; it is used as a worker function by many of the other higher-level functions.
     .EXAMPLE
-        Set-DSSRawObject -SetType Remove -ObjectSID 'S-1-5-21-3515480276-2049723633-1306762111-1103'
+        $FindObject = Find-DSSRawObject -LDAPFilter '(objectsid=S-1-5-21-3515480276-2049723633-1306762111-1103)' -OutputFormat 'DirectoryEntry'
+        Set-DSSRawObject -SetType Remove -Object $FindObject
 
         Removes (deletes) the object with the above SID.
     .NOTES
