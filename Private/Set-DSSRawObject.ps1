@@ -414,14 +414,18 @@ function Set-DSSRawObject {
                     $Confirm_Statement = $Whatif_Statement
                     if ($PSCmdlet.ShouldProcess($Whatif_Statement, $Confirm_Statement, $Confirm_Header.ToString())) {
                         Write-Verbose ('{0}|Found object, attempting unlock' -f $Function_Name)
-                        # Taken from jrv's answer here: https://social.technet.microsoft.com/Forums/lync/en-US/349c0b3e-f4d6-4a65-8218-60901488855e/getting-user-quotlockouttimequot-using-adsi-interface-or-other-method-not-using-module?forum=ITCG
-                        if ($Object.ConvertLargeIntegerToInt64($Object.lockouttime.Value) -gt 0) {
-                            Write-Verbose ('{0}|Account is Locked, unlocking' -f $Function_Name)
-                            $Object.lockouttime.Value = 0
-                            $Object.SetInfo()
-                            Write-Verbose ('{0}|Unlock successful' -f $Function_Name)
+                        if ($Object.lockouttime.Value) {
+                            # Taken from jrv's answer here: https://social.technet.microsoft.com/Forums/lync/en-US/349c0b3e-f4d6-4a65-8218-60901488855e/getting-user-quotlockouttimequot-using-adsi-interface-or-other-method-not-using-module?forum=ITCG
+                            if ($Object.ConvertLargeIntegerToInt64($Object.lockouttime.Value) -gt 0) {
+                                Write-Verbose ('{0}|Account is Locked, unlocking' -f $Function_Name)
+                                $Object.lockouttime.Value = 0
+                                $Object.SetInfo()
+                                Write-Verbose ('{0}|Unlock successful' -f $Function_Name)
+                            } else {
+                                Write-Verbose ('{0}|Account is already Unlocked, doing nothing' -f $Function_Name)
+                            }
                         } else {
-                            Write-Verbose ('{0}|Account is already Unlocked, doing nothing' -f $Function_Name)
+                            Write-Verbose ('{0}|Account has never been logged in, doing nothing' -f $Function_Name)
                         }
                     }
                 }
