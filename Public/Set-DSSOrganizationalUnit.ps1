@@ -122,13 +122,13 @@ function Set-DSSOrganizationalUnit {
             }
 
             if ($Set_Parameter_Valid -eq $true) {
-                $Set_Parameters['SetType'] = 'Set'
+                $Set_Parameters['Action'] = 'Set'
                 $Set_Parameters['Object'] = $Object_Directory_Entry
                 Write-Verbose ('{0}|Calling Set-DSSRawObject' -f $Function_Name)
                 Set-DSSRawObject @$Common_Search_Parameters @Set_Parameters @Confirm_Parameters
 
             } else {
-                Write-Verbose ('{0}|No Set paramaters provided, so doing nothing' -f $Function_Name)
+                Write-Verbose ('{0}|No Set parameters provided, so doing nothing' -f $Function_Name)
             }
         } else {
             $Terminating_ErrorRecord_Parameters = @{

@@ -113,11 +113,11 @@ function Disable-DSSAccount {
             'OutputFormat' = 'DirectoryEntry'
         }
 
-        $global:Object_Directory_Entry = Find-DSSRawObject @Common_Search_Parameters @Directory_Search_Parameters
+        $Object_Directory_Entry = Find-DSSRawObject @Common_Search_Parameters @Directory_Search_Parameters
         if ($Object_Directory_Entry) {
             $Set_Parameters = @{
-                'SetType' = 'Disable'
-                'Object'  = $Object_Directory_Entry
+                'Action' = 'Disable'
+                'Object' = $Object_Directory_Entry
             }
             Write-Verbose ('{0}|Calling Set-DSSRawObject' -f $Function_Name)
             Set-DSSRawObject @$Common_Search_Parameters @Set_Parameters @Confirm_Parameters

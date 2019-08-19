@@ -116,8 +116,8 @@ function Enable-DSSAccount {
         $Object_Directory_Entry = Find-DSSRawObject @Common_Search_Parameters @Directory_Search_Parameters
         if ($Object_Directory_Entry) {
             $Set_Parameters = @{
-                'SetType' = 'Enable'
-                'Object'  = $Object_Directory_Entry
+                'Action' = 'Enable'
+                'Object' = $Object_Directory_Entry
             }
             Write-Verbose ('{0}|Calling Set-DSSRawObject' -f $Function_Name)
             Set-DSSRawObject @$Common_Search_Parameters @Set_Parameters @Confirm_Parameters
