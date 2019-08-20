@@ -139,7 +139,7 @@ function Add-DSSPrincipalGroupMembership {
                 'ID'           = 'DSS-{0}' -f $Function_Name
                 'Category'     = 'ObjectNotFound'
                 'TargetObject' = $Object_Directory_Entry
-                'Message'      = 'Cannot find Group with {0} of "{1}"' -f $Directory_Search_Type, $Directory_Search_Value
+                'Message'      = 'Cannot find Object with {0} of "{1}"' -f $Directory_Search_Type, $Directory_Search_Value
             }
             $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
             $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
