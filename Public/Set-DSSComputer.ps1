@@ -13,6 +13,9 @@ function Set-DSSComputer {
         Set-DSSComputer -DistinguishedName 'CN=APPSRV01,DC=Servers,DC=contoso,DC=com' -Replace @{Description='Application Server 01'}
 
         Sets the Description attribute of the APPSRV01 computer object, replacing any value that is already there.
+    .NOTES
+        References:
+        https://docs.microsoft.com/en-us/powershell/module/addsadministration/set-adcomputer
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'DistinguishedName', SupportsShouldProcess = $true)]
