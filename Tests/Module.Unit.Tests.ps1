@@ -32,15 +32,23 @@ Describe ('{0} Function Validation' -f $Module_Name) -Tags 'Module' {
 
             # Inspired from: https://lazywinadmin.com/2016/08/powershellpester-make-sure-your.html
             $Function_ParamBlock = $Function_AST.ParamBlock.Extent.Text.Split("`n").Trim()
-            $Function_ParameterNames = $Function_AST.ParamBlock.Parameters.Name.VariablePath.UserPath | Where-Object {
+            $Function_ParameterNames = $Function_AST.ParamBlock.Parameters.Name.VariablePath.UserPath
+            $Function_ParameterBlocks = $Function_ParameterNames | Where-Object {
                 $Function_AST.ParamBlock.Extent.Text -match ('{0}.*,' -f $_) # Only match those with a comma after the parameter (ie. exclude the last parameter).
             }
-            foreach ($ParameterName in $Function_ParameterNames) {
+            foreach ($ParameterName in $Function_ParameterBlocks) {
                 # Select-String's LineNumber properties start from 1 since they are designed to be output to the console.
                 # This is useful because it effectively gets the line "after" the match, which is the line we want to check is a blank line.
                 $Function_Param_LineNumber = $Function_ParamBlock | Select-String ('{0}.*,$' -f $ParameterName) | Select-Object -ExpandProperty LineNumber
                 It ('Parameter is followed by a blank line: {0}' -f $ParameterName) {
                     [String]::IsNullOrWhiteSpace($Function_ParamBlock[$Function_Param_LineNumber]) | Should Be $true
+                }
+            }
+
+            # Any function ending in Object should not have SAMAccountName or ObjectSID parameters.
+            if ($Function -match 'Object$') {
+                It 'Does not have ObjectSID or SAMAccountName parameters' {
+                    ($Function_ParameterNames -notcontains 'ObjectSID') -and ($Function_ParameterNames -notcontains 'SAMAccountName') | Should Be $true
                 }
             }
         }
