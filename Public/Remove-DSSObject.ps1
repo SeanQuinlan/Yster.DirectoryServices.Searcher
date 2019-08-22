@@ -85,11 +85,11 @@ function Remove-DSSObject {
         }
 
         if ($PSBoundParameters.ContainsKey('DistinguishedName')) {
-            $LDAPFilter = '(distinguishedname={1})' -f $DistinguishedName
+            $LDAPFilter = '(distinguishedname={0})' -f $DistinguishedName
             $Directory_Search_Type = 'DistinguishedName'
             $Directory_Search_Value = $DistinguishedName
         } else {
-            $LDAPFilter = '(objectguid={1})' -f $ObjectGUID
+            $LDAPFilter = '(objectguid={0})' -f $ObjectGUID
             $Directory_Search_Type = 'ObjectGUID'
             $Directory_Search_Value = $ObjectGUID
         }
