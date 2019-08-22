@@ -45,8 +45,8 @@ Describe ('{0} Function Validation' -f $Module_Name) -Tags 'Module' {
                 }
             }
 
-            # Any function ending in Object should not have SAMAccountName or ObjectSID parameters.
-            if ($Function -match 'Object$') {
+            # Any function ending in Object or OrganizationalUnit should not have SAMAccountName or ObjectSID parameters.
+            if ($Function -match 'Object$|OrganizationalUnit$') {
                 It 'Does not have ObjectSID or SAMAccountName parameters' {
                     ($Function_ParameterNames -notcontains 'ObjectSID') -and ($Function_ParameterNames -notcontains 'SAMAccountName') | Should Be $true
                 }
