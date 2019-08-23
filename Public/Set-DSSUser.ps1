@@ -48,29 +48,94 @@ function Set-DSSUser {
         [String]
         $SAMAccountName,
 
-        # The values to remove from an existing property.
+        # A property name and a value or set of values that will be removed from an existing multi-property value.
+        # Multiple values for the same property can be separated by commas.
+        # Multiple properties can also be specified by separating them with semi-colons.
+        # See below for some examples:
+        #
+        # -Remove @{othertelephone='000-1111-2222'}
+        # -Remove @{url='www.contoso.com','sales.contoso.com','intranet.contoso.com'}
+        #
+        # If specifying the Add, Clear, Remove and Replace parameters together, they are processed in this order:
+        # ..Remove
+        # ..Add
+        # ..Replace
+        # ..Clear
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         [HashTable]
         $Remove,
 
-        # The values to add to an existing property.
+        # A property name and a value or set of values that will be added to the existing property values.
+        # Multiple values for the same property can be separated by commas.
+        # Multiple properties can also be specified by separating them with semi-colons.
+        # See below for some examples:
+        #
+        # -Add @{othertelephone='000-1111-2222'}
+        # -Add @{url='www.contoso.com','sales.contoso.com','intranet.contoso.com'}
+        #
+        # If specifying the Add, Clear, Remove and Replace parameters together, they are processed in this order:
+        # ..Remove
+        # ..Add
+        # ..Replace
+        # ..Clear
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         [HashTable]
         $Add,
 
-        # Values to use to replace the existing property.
+        # A property name and a value or set of values that will be used to replace the existing property values.
+        # Multiple values for the same property can be separated by commas.
+        # Multiple properties can also be specified by separating them with semi-colons.
+        # See below for some examples:
+        #
+        # -Replace @{Description='Senior Manager'}
+        # -Replace @{otherTelephone='000-0000-0000','111-1111-1111'}
+        # -Replace @{givenname='John'; sn='Smith'; displayname='Smith, John'}
+        #
+        # If specifying the Add, Clear, Remove and Replace parameters together, they are processed in this order:
+        # ..Remove
+        # ..Add
+        # ..Replace
+        # ..Clear
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         [HashTable]
         $Replace,
 
-        # An array of properties to clear.
+        # A property or an array of properties to clear.
+        # See below for some examples:
+        #
+        # -Clear Description
+        # -Clear initials,givenname,displayname
+        #
+        # If specifying the Add, Clear, Remove and Replace parameters together, they are processed in this order:
+        # ..Remove
+        # ..Add
+        # ..Replace
+        # ..Clear
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         [Array]
         $Clear,
+
+        # The value that will be set as the Company of the user.
+        # An example of using this property is:
+        #
+        # -Company 'Contoso, Inc'
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $Company,
+
+        # The value that will be set as the Description of the user.
+        # An example of using this property is:
+        #
+        # -Description 'Joe Smith'
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $Description,
 
         # The context to search - Domain or Forest.
         [Parameter(Mandatory = $false)]
@@ -101,17 +166,11 @@ function Set-DSSUser {
         }
         if ($PSBoundParameters.ContainsKey('Server')) {
             $Common_Search_Parameters['Server'] = $Server
+            [void]$PSBoundParameters.Remove('Server')
         }
         if ($PSBoundParameters.ContainsKey('Credential')) {
             $Common_Search_Parameters['Credential'] = $Credential
-        }
-
-        $Confirm_Parameters = @{}
-        if ($PSBoundParameters.ContainsKey('Confirm')) {
-            $Confirm_Parameters['Confirm'] = $Confirm
-        }
-        if ($PSBoundParameters.ContainsKey('WhatIf')) {
-            $Confirm_Parameters['WhatIf'] = $WhatIf
+            [void]$PSBoundParameters.Remove('Credential')
         }
 
         $Default_LDAPFilter = '(objectclass=user)'
@@ -119,18 +178,22 @@ function Set-DSSUser {
             $LDAPFilter = '(&{0}(samaccountname={1}))' -f $Default_LDAPFilter, $SAMAccountName
             $Directory_Search_Type = 'SAMAccountName'
             $Directory_Search_Value = $SAMAccountName
+            [void]$PSBoundParameters.Remove('SAMAccountName')
         } elseif ($PSBoundParameters.ContainsKey('DistinguishedName')) {
             $LDAPFilter = '(&{0}(distinguishedname={1}))' -f $Default_LDAPFilter, $DistinguishedName
             $Directory_Search_Type = 'DistinguishedName'
             $Directory_Search_Value = $DistinguishedName
+            [void]$PSBoundParameters.Remove('DistinguishedName')
         } elseif ($PSBoundParameters.ContainsKey('ObjectSID')) {
             $LDAPFilter = '(&{0}(objectsid={1}))' -f $Default_LDAPFilter, $ObjectSID
             $Directory_Search_Type = 'ObjectSID'
             $Directory_Search_Value = $ObjectSID
+            [void]$PSBoundParameters.Remove('ObjectSID')
         } else {
             $LDAPFilter = '(&{0}(objectguid={1}))' -f $Default_LDAPFilter, $ObjectGUID
             $Directory_Search_Type = 'ObjectGUID'
             $Directory_Search_Value = $ObjectGUID
+            [void]$PSBoundParameters.Remove('ObjectGUID')
         }
         $Directory_Search_Parameters = @{
             'LDAPFilter'   = $LDAPFilter
@@ -143,17 +206,50 @@ function Set-DSSUser {
             $Set_Parameters = @{}
             foreach ($Set_Choice in $Set_Choices) {
                 if ($PSBoundParameters.ContainsKey($Set_Choice)) {
-                    $Set_Parameters[$Set_Choice] = (Get-Variable -Name $Set_Choice -ValueOnly)
-                    $Set_Parameter_Valid = $true
+                    $Current_Value = Get-Variable -Name $Set_Choice -ValueOnly
+                    if ($Set_Choice -eq 'Clear') {
+                        $Current_Value | ForEach-Object {
+                            if ($PSBoundParameters[$_]) {
+                                $Conflicting_Parameter = $_
+                            }
+                        }
+                    } else {
+                        $Current_Value.GetEnumerator() | ForEach-Object {
+                            if ($PSBoundParameters[$_.Name]) {
+                                $Conflicting_Parameter = $_.Name
+                            }
+                        }
+                    }
+                    if ($Conflicting_Parameter) {
+                        $Terminating_ErrorRecord_Parameters = @{
+                            'Exception'    = 'System.ArgumentException'
+                            'ID'           = 'DSS-{0}' -f $Function_Name
+                            'Category'     = 'InvalidArgument'
+                            'TargetObject' = $Object_Directory_Entry
+                            'Message'      = 'Cannot specify attribute "{0}" as a direct parameter and via the Add/Remove/Replace/Clear parameters as well' -f $Conflicting_Parameter
+                        }
+                        $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+                        $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+                    } else {
+                        $Set_Parameters[$Set_Choice] = $Current_Value
+                        [void]$PSBoundParameters.Remove($Set_Choice)
+                    }
                 }
             }
 
-            if ($Set_Parameter_Valid -eq $true) {
+            foreach ($Parameter_Key in $PSBoundParameters.Keys) {
+                if ($All_CommonParameters -notcontains $Parameter_Key) {
+                    $Set_Parameters['Replace'] += @{
+                        $Parameter_Key = $PSBoundParameters[$Parameter_Key]
+                    }
+                }
+            }
+
+            if ($Set_Parameters.Count) {
                 $Set_Parameters['Action'] = 'Set'
                 $Set_Parameters['Object'] = $Object_Directory_Entry
                 Write-Verbose ('{0}|Calling Set-DSSRawObject' -f $Function_Name)
-                Set-DSSRawObject @$Common_Search_Parameters @Set_Parameters @Confirm_Parameters
-
+                Set-DSSRawObject @$Common_Search_Parameters @Set_Parameters
             } else {
                 Write-Verbose ('{0}|No Set parameters provided, so doing nothing' -f $Function_Name)
             }
