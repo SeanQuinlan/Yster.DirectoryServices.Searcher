@@ -105,46 +105,6 @@ function Find-DSSRawObject {
         'objectsid'
     )
 
-    # The AD Cmdlets add a number of "user-friendly" property names which are simply aliases of the existing LDAP properties.
-    # - LDAP properties first, AD alias(es) second.
-    $Microsoft_Alias_Properties = @{
-        'badpwdcount'                  = 'badlogoncount'
-        'distinguishedname'            = 'computerobjectdn'
-        'c'                            = 'country'
-        'dnshostname'                  = 'hostname'
-        'facsimiletelephonenumber'     = 'fax'
-        'isdeleted'                    = 'deleted'
-        'l'                            = 'city'
-        'mail'                         = 'emailaddress'
-        'maxpwdage'                    = 'maxpasswordage'
-        'member'                       = 'members'
-        'minpwdage'                    = 'minpasswordage'
-        'minpwdlength'                 = 'minpasswordlength'
-        'mobile'                       = 'mobilephone'
-        'msds-alloweddnssuffixes'      = 'alloweddnssuffixes'
-        'msds-assignedauthnpolicy'     = 'authenticationpolicy'
-        'msds-assignedauthnpolicysilo' = 'authenticationpolicysilo'
-        'msds-hostserviceaccount'      = 'serviceaccount'
-        'msds-optionalfeatureguid'     = 'featureguid'
-        'msds-spnsuffixes'             = 'spnsuffixes'
-        'o'                            = 'organization'
-        'objectsid'                    = @('sid', 'domainsid')
-        'office'                       = 'physicaldeliveryofficename'
-        'postofficebox'                = 'pobox'
-        'pwdhistorylength'             = 'passwordhistorycount'
-        'serviceprincipalname'         = 'serviceprincipalnames'
-        'sn'                           = 'surname'
-        'st'                           = 'state'
-        'street'                       = 'streetaddress'
-        'subrefs'                      = 'subordinatereferences'
-        'telephonenumber'              = 'officephone'
-        'usercertificate'              = 'certificates'
-        'userworkstations'             = 'logonworkstations'
-        'whenchanged'                  = @('modified', 'modifytimestamp')
-        'whencreated'                  = @('created', 'createtimestamp')
-        'wwwhomepage'                  = 'homepage'
-    }
-
     # The Get-AD* cmdlets also add a number of other useful properties based on calculations of other properties.
     # Like creating a datetime object from an integer property.
     $Useful_Calculated_Properties = @{
