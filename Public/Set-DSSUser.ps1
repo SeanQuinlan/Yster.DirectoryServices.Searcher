@@ -174,6 +174,16 @@ function Set-DSSUser {
         [String]
         $HomeDrive,
 
+        # The value that will be set as the HomePage of the user.
+        # An example of using this property is:
+        #
+        # -HomePage 'intranet.contoso.com/jsmith'
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Alias('wwwHomePage')]
+        [String]
+        $HomePage,
+
         # A property name and a value or set of values that will be used to replace the existing property values.
         # Multiple values for the same property can be separated by commas.
         # Multiple properties can also be specified by separating them with semi-colons.
@@ -256,27 +266,67 @@ function Set-DSSUser {
             'OutputFormat' = 'DirectoryEntry'
         }
 
-        $global:Object_Directory_Entry = Find-DSSRawObject @Common_Search_Parameters @Directory_Search_Parameters
+        $Object_Directory_Entry = Find-DSSRawObject @Common_Search_Parameters @Directory_Search_Parameters
         if ($Object_Directory_Entry) {
             $Set_Choices = @('Remove', 'Add', 'Replace', 'Clear')
-            $Set_Parameters = @{}
+            $global:Set_Parameters = @{}
+
+            # Add any other bound parameters, excluding the ones in $All_CommonParameters and in the $Set_Choices above.
+            foreach ($Parameter_Key in $PSBoundParameters.Keys) {
+                if (($All_CommonParameters + $Set_Choices) -notcontains $Parameter_Key) {
+                    if ($Microsoft_Alias_Properties.Values -contains $Parameter_Key) {
+                        $Parameter_Name = ($Microsoft_Alias_Properties.GetEnumerator() | Where-Object { $_.Value -eq $Parameter_Key }).'Name'
+                    } else {
+                        $Parameter_Name = $Parameter_Key
+                    }
+                    $Set_Parameters['Replace'] += @{
+                        $Parameter_Name = $PSBoundParameters[$Parameter_Key]
+                    }
+                }
+            }
+
             foreach ($Set_Choice in $Set_Choices) {
                 if ($PSBoundParameters.ContainsKey($Set_Choice)) {
-                    $Current_Value = Get-Variable -Name $Set_Choice -ValueOnly
+                    $Set_Choice_Values = Get-Variable -Name $Set_Choice -ValueOnly
+
                     if ($Set_Choice -eq 'Clear') {
-                        $Current_Value | ForEach-Object {
-                            if ($PSBoundParameters[$_]) {
-                                $Conflicting_Parameter = $_
+                        $New_Set_Choice_Values = New-Object -TypeName 'System.Collections.Generic.List[Object]'
+                        foreach ($Current_Value in $Set_Choice_Values) {
+                            if ($Microsoft_Alias_Properties.Values -contains $Current_Value) {
+                                $LDAP_Property = ($Microsoft_Alias_Properties.GetEnumerator() | Where-Object { $_.Value -eq $Current_Value }).'Name'
+                                $Property_To_Add = $LDAP_Property
+                            } else {
+                                $Property_To_Add = $Current_Value
                             }
+                            if ($Set_Parameters['Replace'].Keys -contains $Property_To_Add) {
+                                $Conflicting_Parameter = $Property_To_Add
+                            }
+                            $New_Set_Choice_Values.Add($Property_To_Add)
                         }
                     } else {
-                        $Current_Value.GetEnumerator() | ForEach-Object {
-                            if ($PSBoundParameters[$_.Name]) {
-                                $Conflicting_Parameter = $_.Name
+                        $New_Set_Choice_Values = @{}
+                        foreach ($Current_Value in $Set_Choice_Values.GetEnumerator()) {
+                            if ($Microsoft_Alias_Properties.Values -contains $Current_Value.Name) {
+                                $LDAP_Property = ($Microsoft_Alias_Properties.GetEnumerator() | Where-Object { $_.Value -eq $Current_Value.Name }).'Name'
+                                $Property_To_Add = @{
+                                    $LDAP_Property = $Current_Value.Value
+                                }
+                            } else {
+                                $Property_To_Add = @{
+                                    $Current_Value.Name = $Current_Value.Value
+                                }
                             }
+                            if ($Set_Parameters['Replace'].Keys -contains $Property_To_Add.Keys) {
+                                $Conflicting_Parameter = $($Property_To_Add.Keys)
+                            }
+                            $New_Set_Choice_Values += $Property_To_Add
                         }
                     }
                     if ($Conflicting_Parameter) {
+                        # Get the Microsoft Alias property as well (if there is one), to make the error message better.
+                        if ($Microsoft_Alias_Properties.Keys -contains $Conflicting_Parameter) {
+                            $Conflicting_Parameter = ($Conflicting_Parameter, ($Microsoft_Alias_Properties[$Conflicting_Parameter])) -join '/'
+                        }
                         $Terminating_ErrorRecord_Parameters = @{
                             'Exception'    = 'System.ArgumentException'
                             'ID'           = 'DSS-{0}' -f $Function_Name
@@ -287,17 +337,8 @@ function Set-DSSUser {
                         $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
                         $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
                     } else {
-                        $Set_Parameters[$Set_Choice] = $Current_Value
+                        $Set_Parameters[$Set_Choice] = $Set_Choice_Values
                         [void]$PSBoundParameters.Remove($Set_Choice)
-                    }
-                }
-            }
-
-            # Add any other bound parameters, excluding the ones in $All_CommonParameters.
-            foreach ($Parameter_Key in $PSBoundParameters.Keys) {
-                if ($All_CommonParameters -notcontains $Parameter_Key) {
-                    $Set_Parameters['Replace'] += @{
-                        $Parameter_Key = $PSBoundParameters[$Parameter_Key]
                     }
                 }
             }
