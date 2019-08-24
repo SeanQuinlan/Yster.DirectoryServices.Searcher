@@ -84,25 +84,6 @@ function Set-DSSUser {
         [HashTable]
         $Add,
 
-        # A property name and a value or set of values that will be used to replace the existing property values.
-        # Multiple values for the same property can be separated by commas.
-        # Multiple properties can also be specified by separating them with semi-colons.
-        # See below for some examples:
-        #
-        # -Replace @{Description='Senior Manager'}
-        # -Replace @{otherTelephone='000-0000-0000','111-1111-1111'}
-        # -Replace @{givenname='John'; sn='Smith'; displayname='Smith, John'}
-        #
-        # If specifying the Add, Clear, Remove and Replace parameters together, they are processed in this order:
-        # ..Remove
-        # ..Add
-        # ..Replace
-        # ..Clear
-        [Parameter(Mandatory = $false)]
-        [ValidateNotNullOrEmpty()]
-        [HashTable]
-        $Replace,
-
         # A property or an array of properties to clear.
         # See below for some examples:
         #
@@ -136,6 +117,81 @@ function Set-DSSUser {
         [ValidateNotNullOrEmpty()]
         [String]
         $Description,
+
+        # The value that will be set as the Division of the user.
+        # An example of using this property is:
+        #
+        # -Division 'Marketing'
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $Division,
+
+        # The value that will be set as the EmployeeID of the user.
+        # An example of using this property is:
+        #
+        # -EmployeeID 'JSMITH41'
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $EmployeeID,
+
+        # The value that will be set as the EmployeeNumber of the user.
+        # An example of using this property is:
+        #
+        # -EmployeeNumber '10380010'
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $EmployeeNumber,
+
+        # The value that will be set as the GivenName of the user.
+        # An example of using this property is:
+        #
+        # -GivenName 'John'
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Alias('FirstName')]
+        [String]
+        $GivenName,
+
+        # The value that will be set as the HomeDirectory of the user. This should be a local path or a UNC path with with a server and share specified.
+        # An example of using this property is:
+        #
+        # -HomeDirectory 'D:\Profiles\HomeDir'
+        # -HomeDirectory '\\fileserver01\home\jsmith'
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $HomeDirectory,
+
+        # The value that will be set as the HomeDrive of the user. This must be set to a drive letter, followed by a colon.
+        # An example of using this property is:
+        #
+        # -HomeDrive 'H:'
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $HomeDrive,
+
+        # A property name and a value or set of values that will be used to replace the existing property values.
+        # Multiple values for the same property can be separated by commas.
+        # Multiple properties can also be specified by separating them with semi-colons.
+        # See below for some examples:
+        #
+        # -Replace @{Description='Senior Manager'}
+        # -Replace @{otherTelephone='000-0000-0000','111-1111-1111'}
+        # -Replace @{givenname='John'; sn='Smith'; displayname='Smith, John'}
+        #
+        # If specifying the Add, Clear, Remove and Replace parameters together, they are processed in this order:
+        # ..Remove
+        # ..Add
+        # ..Replace
+        # ..Clear
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [HashTable]
+        $Replace,
 
         # The context to search - Domain or Forest.
         [Parameter(Mandatory = $false)]
@@ -237,6 +293,7 @@ function Set-DSSUser {
                 }
             }
 
+            # Add any other bound parameters, excluding the ones in $All_CommonParameters.
             foreach ($Parameter_Key in $PSBoundParameters.Keys) {
                 if ($All_CommonParameters -notcontains $Parameter_Key) {
                     $Set_Parameters['Replace'] += @{
@@ -246,6 +303,28 @@ function Set-DSSUser {
             }
 
             if ($Set_Parameters.Count) {
+                # Perform some additional validation on the supplied values. This needs to be done here in order to validate the values passed in via Add/Replace/Remove hashtables.
+                foreach ($Choice in @('Replace', 'Add')) {
+                    if ($Set_Parameters[$Choice]) {
+                        $Set_Parameters_To_Validate += $Set_Parameters[$Choice].GetEnumerator()
+                    }
+                }
+                foreach ($Parameter in $Set_Parameters_To_Validate) {
+                    if ($Parameter.Name -eq 'HomeDrive') {
+                        if ($Parameter.Value -notmatch '^[A-Z]{1}:') {
+                            $Terminating_ErrorRecord_Parameters = @{
+                                'Exception'    = 'System.ArgumentException'
+                                'ID'           = 'DSS-{0}' -f $Function_Name
+                                'Category'     = 'InvalidArgument'
+                                'TargetObject' = $Parameter
+                                'Message'      = 'HomeDrive value must be a single letter followed by a colon.'
+                            }
+                            $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+                            $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+                        }
+                    }
+                }
+
                 $Set_Parameters['Action'] = 'Set'
                 $Set_Parameters['Object'] = $Object_Directory_Entry
                 Write-Verbose ('{0}|Calling Set-DSSRawObject' -f $Function_Name)
