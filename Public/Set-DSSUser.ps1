@@ -180,9 +180,104 @@ function Set-DSSUser {
         # -HomePage 'intranet.contoso.com/jsmith'
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
-        [Alias('wwwHomePage')]
+        [Alias('WWWHomePage')]
         [String]
         $HomePage,
+
+        # The value that will be set as the HomePhone of the user.
+        # An example of using this property is:
+        #
+        # -HomePhone '000-000-1111'
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $HomePhone,
+
+        # The value that will be set as the Middle Initial(s) of the user.
+        # An example of using this property is:
+        #
+        # -Initials 'AJ'
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $Initials,
+
+        # The value that will be set as the MobilePhone of the user.
+        # An example of using this property is:
+        #
+        # -MobilePhone '0000 111 1111'
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Alias('Mobile')]
+        [String]
+        $MobilePhone,
+
+        # The value that will be set as the Office of the user.
+        # An example of using this property is:
+        #
+        # -Office 'San Francisco'
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Alias('PhysicalDeliveryOfficeName')]
+        [String]
+        $Office,
+
+        # The value that will be set as the OfficePhone of the user.
+        # An example of using this property is:
+        #
+        # -OfficePhone '(000) 000 1111'
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $OfficePhone,
+
+        # The value that will be set as the Organization of the user.
+        # An example of using this property is:
+        #
+        # -Organization 'Contoso'
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $Organization,
+
+        # The value that will be set as the OtherName of the user. This sets the LDAP property middleName, which is what this property is used for.
+        # An example of using this property is:
+        #
+        # -OtherName 'Richard'
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Alias('MiddleName')]
+        [String]
+        $OtherName,
+
+        # The value that will be set as the POBox of the user.
+        # An example of using this property is:
+        #
+        # -POBox '111'
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Alias('PostOfficeBox')]
+        [String]
+        $POBox,
+
+        # The value that will be set as the PostalCode of the user.
+        # An example of using this property is:
+        #
+        # -PostalCode '12345'
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $PostalCode,
+
+        # The value that will be set as the ProfilePath of the user. This should be a local path or a UNC path with with a server and share specified.
+        # An example of using this property is:
+        #
+        # -ProfilePath 'D:\Profiles\JSmith'
+        # -ProfilePath '\\fileserver01\profiles$\jsmith'
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $ProfilePath,
 
         # A property name and a value or set of values that will be used to replace the existing property values.
         # Multiple values for the same property can be separated by commas.
