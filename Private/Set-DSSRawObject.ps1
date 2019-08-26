@@ -112,14 +112,12 @@ function Set-DSSRawObject {
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
 
     try {
-        $Common_Search_Parameters = @{
-            'Context' = $Context
-        }
-        if ($PSBoundParameters.ContainsKey('Server')) {
-            $Common_Search_Parameters['Server'] = $Server
-        }
-        if ($PSBoundParameters.ContainsKey('Credential')) {
-            $Common_Search_Parameters['Credential'] = $Credential
+        $Common_Parameters = @('Context', 'Server', 'Credential')
+        $Common_Search_Parameters = @{}
+        foreach ($Parameter in $Common_Parameters) {
+            if ($PSBoundParameters.ContainsKey($Parameter)) {
+                $Common_Search_Parameters[$Parameter] = Get-Variable -Name $Parameter -ValueOnly
+            }
         }
 
         if ($Action -match 'GroupMember') {
@@ -465,6 +463,19 @@ function Set-DSSRawObject {
                     'Category'       = 'InvalidData'
                     'TargetObject'   = $Object
                     'Message'        = 'Multiple values were specified for an attribute that can have only one value.'
+                    'InnerException' = $_.Exception
+                }
+                $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+                $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+            } elseif ($_.Exception.ExtendedError -eq 8311) {
+                # This exception is thrown when you attempt to clear a property that cannot be cleared, or you attempt to set a value with the incorrect type (eg. int into a string value).
+                # Microsoft Error Code: https://docs.microsoft.com/en-gb/windows/win32/debug/system-error-codes--8200-8999-
+                $Terminating_ErrorRecord_Parameters = @{
+                    'Exception'      = 'System.DirectoryServices.DirectoryServicesCOMException'
+                    'ID'             = 'DSS-{0}' -f $Function_Name
+                    'Category'       = 'InvalidData'
+                    'TargetObject'   = $Object
+                    'Message'        = $_.Exception.Message
                     'InnerException' = $_.Exception
                 }
                 $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
