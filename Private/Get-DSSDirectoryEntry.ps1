@@ -32,7 +32,7 @@ function Get-DSSDirectoryEntry {
         $Path,
 
         # The context to search - Domain or Forest.
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory = $false)]
         [ValidateSet('Domain', 'Forest')]
         [String]
         $Context = 'Domain',
