@@ -48,23 +48,16 @@ function Set-DSSUser {
         [String]
         $SAMAccountName,
 
-        # A property name and a value or set of values that will be removed from an existing multi-property value.
-        # Multiple values for the same property can be separated by commas.
-        # Multiple properties can also be specified by separating them with semi-colons.
-        # See below for some examples:
+        # A date and time value that specifies when the account expires.
+        # If no time is specified, then the time will be set to 00:00:00 on the supplied date.
+        # An example of using this property is:
         #
-        # -Remove @{othertelephone='000-1111-2222'}
-        # -Remove @{url='www.contoso.com','sales.contoso.com','intranet.contoso.com'}
-        #
-        # If specifying the Add, Clear, Remove and Replace parameters together, they are processed in this order:
-        # ..Remove
-        # ..Add
-        # ..Replace
-        # ..Clear
+        # -AccountExpirationDate '25/12/1999'
+        # -AccountExpirationDate '25/12/1999 17:30:00'
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
-        [HashTable]
-        $Remove,
+        [Object]
+        $AccountExpirationDate,
 
         # A property name and a value or set of values that will be added to the existing property values.
         # Multiple values for the same property can be separated by commas.
@@ -108,6 +101,29 @@ function Set-DSSUser {
         [ValidateNotNullOrEmpty()]
         [String]
         $Company,
+
+        # The directory context to search - Domain or Forest. By default this will search within the domain only.
+        # If you want to search the entire directory, specify "Forest" for this parameter and the search will be performed on a Global Catalog server, targetting the entire forest.
+        [Parameter(Mandatory = $false)]
+        [ValidateSet('Domain', 'Forest')]
+        [String]
+        $Context = 'Domain',
+
+        # The credential to use for access to perform the required action.
+        # This credential can be provided in the form of a username, DOMAIN\username or as a PowerShell credential object.
+        # In the case of a username or DOMAIN\username, you will be prompted to supply the password.
+        # Some examples of using this are:
+        #
+        # -Credential jsmith
+        # -Credential 'CONTOSO\jsmith'
+        #
+        # $Creds = Get-Credential
+        # -Credential $Creds
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNull()]
+        [System.Management.Automation.PSCredential]
+        [System.Management.Automation.Credential()]
+        $Credential = [System.Management.Automation.PSCredential]::Empty,
 
         # The value that will be set as the Description of the user.
         # An example of using this property is:
@@ -279,6 +295,24 @@ function Set-DSSUser {
         [String]
         $ProfilePath,
 
+        # A property name and a value or set of values that will be removed from an existing multi-property value.
+        # Multiple values for the same property can be separated by commas.
+        # Multiple properties can also be specified by separating them with semi-colons.
+        # See below for some examples:
+        #
+        # -Remove @{othertelephone='000-1111-2222'}
+        # -Remove @{url='www.contoso.com','sales.contoso.com','intranet.contoso.com'}
+        #
+        # If specifying the Add, Clear, Remove and Replace parameters together, they are processed in this order:
+        # ..Remove
+        # ..Add
+        # ..Replace
+        # ..Clear
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [HashTable]
+        $Remove,
+
         # A property name and a value or set of values that will be used to replace the existing property values.
         # Multiple values for the same property can be separated by commas.
         # Multiple properties can also be specified by separating them with semi-colons.
@@ -298,24 +332,75 @@ function Set-DSSUser {
         [HashTable]
         $Replace,
 
-        # The context to search - Domain or Forest.
+        # The value that will be set as the ScriptPath of the user. This is the value of the user's log on script.
+        # This should be a local path to a file or a UNC path with with a server, share and file path specified.
+        # An example of using this property is:
+        #
+        # -ScriptPath 'D:\Scripts\logon.bat'
+        # -ScriptPath '\\dc01.contoso.com\netlogon\logon.bat'
         [Parameter(Mandatory = $false)]
-        [ValidateSet('Domain', 'Forest')]
+        [ValidateNotNullOrEmpty()]
         [String]
-        $Context = 'Domain',
+        $ScriptPath,
 
-        # The server to connect to.
+        # The server or domain to connect to.
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         [String]
         $Server,
 
-        # The credential to use for access.
+        # The value that will be set as the State of the user.
+        # An example of using this property is:
+        #
+        # -State 'California'
         [Parameter(Mandatory = $false)]
-        [ValidateNotNull()]
-        [System.Management.Automation.PSCredential]
-        [System.Management.Automation.Credential()]
-        $Credential = [System.Management.Automation.PSCredential]::Empty
+        [ValidateNotNullOrEmpty()]
+        [Alias('St')]
+        [String]
+        $State,
+
+        # The value that will be set as the StreetAddress of the user.
+        # To add a value that displays as multiple lines in any output, separate each line with a carriage return and newline (`r`n).
+        # Note that the characters before the "r" and "n" are backticks (grave accents) and not regular quotes (apostrophes).
+        # Additionally, in order for PowerShell to parse the carriage return and newline, the string needs to be within double quotes and not single quotes.
+        # Some examples of using this property are:
+        #
+        # -StreetAddress '1 Main St'
+        # -StreetAddress "First Line`r`nSecond Line"
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $StreetAddress,
+
+        # The value that will be set as the Surname of the user.
+        # An example of using this property is:
+        #
+        # -Surname 'Smith'
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Alias('LastName', 'Sn')]
+        [String]
+        $Surname,
+
+        # The value that will be set as the Title of the user. This is the value that appears as "Job Title" in the GUI.
+        # An example of using this property is:
+        #
+        # -Title 'Manager'
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Alias('JobTitle')]
+        [String]
+        $Title,
+
+        # The value that will be set as the UserPrincipalName of the user.
+        # An example of using this property is:
+        #
+        # -UserPrincipalName 'jsmith@contoso.com'
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Alias('UPN')]
+        [String]
+        $UserPrincipalName
     )
 
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
