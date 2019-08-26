@@ -44,6 +44,42 @@ $Microsoft_Alias_Properties = @{
     'wwwhomepage'                  = 'homepage'
 }
 
+# The Microsoft AD cmdlets also add a number of other useful properties based on calculations of other properties.
+# Like creating a datetime object from an integer property.
+# - LDAP property first, Microsoft alias(es) second.
+$Useful_Calculated_Properties = @{
+    # Delegation properties
+    'msds-allowedtoactonbehalfofotheridentity' = 'principalsallowedtodelegatetoaccount'
+
+    # Domain properties
+    'gplink'                                   = 'linkedgrouppolicyobjects'
+    'msds-optionalfeatureflags'                = 'featurescope'
+    'msds-requireddomainbehaviorversion'       = 'requireddomainmode'
+    'msds-requiredforestbehaviorversion'       = 'requiredforestmode'
+
+    # Encryption properties
+    'msds-supportedencryptiontypes'            = @('compoundidentitysupported', 'kerberosencryptiontype')
+
+    # Group properties
+    'grouptype'                                = @('groupcategory', 'groupscope')
+    'primarygroupid'                           = 'primarygroup'
+
+    # Security properties
+    'ntsecuritydescriptor'                     = @('cannotchangepassword', 'protectedfromaccidentaldeletion')
+
+    # Time properties (convert to FileTime)
+    'accountexpires'                           = 'accountexpirationdate'
+    'badpasswordtime'                          = 'lastbadpasswordattempt'
+    'lastlogontimestamp'                       = 'lastlogondate'
+    'lockouttime'                              = 'accountlockouttime'
+    'pwdlastset'                               = 'passwordlastset'
+
+    # Properties which are returned as TimeSpan objects, based on an integer stored in Active Directory.
+    'msds-logontimesyncinterval'               = 'lastlogonreplicationinterval'
+}
+
+$Combined_Calculated_Properties = $Microsoft_Alias_Properties + $Useful_Calculated_Properties
+
 # An Enum to determine KerberosEncryptionType.
 # Taken from https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-kile/6cfc7b50-11ed-4b4d-846d-6f08f0812919
 Add-Type -TypeDefinition @"

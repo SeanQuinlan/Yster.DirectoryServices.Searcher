@@ -105,41 +105,7 @@ function Find-DSSRawObject {
         'objectsid'
     )
 
-    # The Get-AD* cmdlets also add a number of other useful properties based on calculations of other properties.
-    # Like creating a datetime object from an integer property.
-    # - LDAP property first, Microsoft alias(es) second.
-    $Useful_Calculated_Properties = @{
-        # Delegation properties
-        'msds-allowedtoactonbehalfofotheridentity' = 'principalsallowedtodelegatetoaccount'
-
-        # Domain properties
-        'gplink'                                   = 'linkedgrouppolicyobjects'
-        'msds-optionalfeatureflags'                = 'featurescope'
-        'msds-requireddomainbehaviorversion'       = 'requireddomainmode'
-        'msds-requiredforestbehaviorversion'       = 'requiredforestmode'
-
-        # Encryption properties
-        'msds-supportedencryptiontypes'            = @('compoundidentitysupported', 'kerberosencryptiontype')
-
-        # Group properties
-        'grouptype'                                = @('groupcategory', 'groupscope')
-        'primarygroupid'                           = 'primarygroup'
-
-        # Security properties
-        'ntsecuritydescriptor'                     = @('cannotchangepassword', 'protectedfromaccidentaldeletion')
-
-        # Time properties (Note: add to regex match in later switch statement)
-        'accountexpires'                           = 'accountexpirationdate'
-        'badpasswordtime'                          = 'lastbadpasswordattempt'
-        'lastlogontimestamp'                       = 'lastlogondate'
-        'lockouttime'                              = 'accountlockouttime'
-        'pwdlastset'                               = 'passwordlastset'
-
-        # Properties which are returned as TimeSpan objects, based on an integer stored in Active Directory.
-        'msds-logontimesyncinterval'               = 'lastlogonreplicationinterval'
-    }
-
-    # Like the $Useful_Calculated_Properties above, these are also calculated based on another property, but require some additional calculation on the sub-property as well.
+    # Like $Useful_Calculated_Properties, these are also calculated based on another property, but require some additional calculation on the sub-property as well.
     $Useful_Calculated_SubProperties = @{
         # A number of properties returned by the AD Cmdlets are calculated based on flags to one of the UserAccountControl LDAP properties.
         # The list of flags and their corresponding values are taken from here:
@@ -204,20 +170,12 @@ function Find-DSSRawObject {
     $Paging_Regex = '\;range=(\d+)-(.*)'
 
     try {
-        $Common_Search_Parameters = @{
-            'Context' = $Context
-        }
-        if ($PSBoundParameters.ContainsKey('SearchBase')) {
-            Write-Verbose ('{0}|Using SearchBase: {1}' -f $Function_Name, $SearchBase)
-            $Common_Search_Parameters['SearchBase'] = $SearchBase
-        }
-        if ($PSBoundParameters.ContainsKey('Server')) {
-            Write-Verbose ('{0}|Using Server: {1}' -f $Function_Name, $Server)
-            $Common_Search_Parameters['Server'] = $Server
-        }
-        if ($PSBoundParameters.ContainsKey('Credential')) {
-            Write-Verbose ('{0}|Using custom Credential' -f $Function_Name)
-            $Common_Search_Parameters['Credential'] = $Credential
+        $Common_Parameters = @('Context', 'Server', 'Credential', 'SearchBase')
+        $Common_Search_Parameters = @{}
+        foreach ($Parameter in $Common_Parameters) {
+            if ($PSBoundParameters.ContainsKey($Parameter)) {
+                $Common_Search_Parameters[$Parameter] = Get-Variable -Name $Parameter -ValueOnly
+            }
         }
         $Directory_Entry = Get-DSSDirectoryEntry @Common_Search_Parameters
 
@@ -244,7 +202,6 @@ function Find-DSSRawObject {
         foreach ($Property in $Properties) {
             $Properties_To_Add.Add($Property)
 
-            $Combined_Calculated_Properties = $Microsoft_Alias_Properties + $Useful_Calculated_Properties
             foreach ($Combined_Calculated_Property in $Combined_Calculated_Properties.GetEnumerator()) {
                 if (($Combined_Calculated_Property.Value -contains $Property) -and ($Properties_To_Add -notcontains $Combined_Calculated_Property.Name)) {
                     Write-Verbose ('{0}|Adding calculated property: {1}' -f $Function_Name, $Combined_Calculated_Property.Name)
