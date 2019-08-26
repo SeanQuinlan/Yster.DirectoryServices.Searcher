@@ -322,39 +322,24 @@ function Set-DSSUser {
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
 
     try {
-        $Common_Search_Parameters = @{
-            'Context' = $Context
-        }
-        if ($PSBoundParameters.ContainsKey('Server')) {
-            $Common_Search_Parameters['Server'] = $Server
-            [void]$PSBoundParameters.Remove('Server')
-        }
-        if ($PSBoundParameters.ContainsKey('Credential')) {
-            $Common_Search_Parameters['Credential'] = $Credential
-            [void]$PSBoundParameters.Remove('Credential')
+        $Common_Parameters = @('Context', 'Server', 'Credential')
+        $Common_Search_Parameters = @{}
+        foreach ($Parameter in $Common_Parameters) {
+            if ($PSBoundParameters.ContainsKey($Parameter)) {
+                $Common_Search_Parameters[$Parameter] = Get-Variable -Name $Parameter -ValueOnly
+                [void]$PSBoundParameters.Remove($Parameter)
+            }
         }
 
         $Default_LDAPFilter = '(objectclass=user)'
-        if ($PSBoundParameters.ContainsKey('SAMAccountName')) {
-            $LDAPFilter = '(&{0}(samaccountname={1}))' -f $Default_LDAPFilter, $SAMAccountName
-            $Directory_Search_Type = 'SAMAccountName'
-            $Directory_Search_Value = $SAMAccountName
-            [void]$PSBoundParameters.Remove('SAMAccountName')
-        } elseif ($PSBoundParameters.ContainsKey('DistinguishedName')) {
-            $LDAPFilter = '(&{0}(distinguishedname={1}))' -f $Default_LDAPFilter, $DistinguishedName
-            $Directory_Search_Type = 'DistinguishedName'
-            $Directory_Search_Value = $DistinguishedName
-            [void]$PSBoundParameters.Remove('DistinguishedName')
-        } elseif ($PSBoundParameters.ContainsKey('ObjectSID')) {
-            $LDAPFilter = '(&{0}(objectsid={1}))' -f $Default_LDAPFilter, $ObjectSID
-            $Directory_Search_Type = 'ObjectSID'
-            $Directory_Search_Value = $ObjectSID
-            [void]$PSBoundParameters.Remove('ObjectSID')
-        } else {
-            $LDAPFilter = '(&{0}(objectguid={1}))' -f $Default_LDAPFilter, $ObjectGUID
-            $Directory_Search_Type = 'ObjectGUID'
-            $Directory_Search_Value = $ObjectGUID
-            [void]$PSBoundParameters.Remove('ObjectGUID')
+        $Identity_Parameters = @('SAMAccountName', 'DistinguishedName', 'ObjectSID', 'ObjectGUID')
+        foreach ($Parameter in $Identity_Parameters) {
+            if ($PSBoundParameters.ContainsKey($Parameter)) {
+                $Directory_Search_Type = $Parameter
+                $Directory_Search_Value = Get-Variable -Name $Parameter -ValueOnly
+                $LDAPFilter = '(&{0}({1}={2}))' -f $Default_LDAPFilter, $Directory_Search_Type, $Directory_Search_Value
+                [void]$PSBoundParameters.Remove($Parameter)
+            }
         }
         $Directory_Search_Parameters = @{
             'LDAPFilter'   = $LDAPFilter
@@ -363,104 +348,9 @@ function Set-DSSUser {
 
         $Object_Directory_Entry = Find-DSSRawObject @Common_Search_Parameters @Directory_Search_Parameters
         if ($Object_Directory_Entry) {
-            $Set_Choices = @('Remove', 'Add', 'Replace', 'Clear')
-            $global:Set_Parameters = @{}
-
-            # Add any other bound parameters, excluding the ones in $All_CommonParameters and in the $Set_Choices above.
-            foreach ($Parameter_Key in $PSBoundParameters.Keys) {
-                if (($All_CommonParameters + $Set_Choices) -notcontains $Parameter_Key) {
-                    if ($Microsoft_Alias_Properties.Values -contains $Parameter_Key) {
-                        $Parameter_Name = ($Microsoft_Alias_Properties.GetEnumerator() | Where-Object { $_.Value -eq $Parameter_Key }).'Name'
-                    } else {
-                        $Parameter_Name = $Parameter_Key
-                    }
-                    $Set_Parameters['Replace'] += @{
-                        $Parameter_Name = $PSBoundParameters[$Parameter_Key]
-                    }
-                }
-            }
-
-            foreach ($Set_Choice in $Set_Choices) {
-                if ($PSBoundParameters.ContainsKey($Set_Choice)) {
-                    $Set_Choice_Values = Get-Variable -Name $Set_Choice -ValueOnly
-
-                    if ($Set_Choice -eq 'Clear') {
-                        $New_Set_Choice_Values = New-Object -TypeName 'System.Collections.Generic.List[Object]'
-                        foreach ($Current_Value in $Set_Choice_Values) {
-                            if ($Microsoft_Alias_Properties.Values -contains $Current_Value) {
-                                $LDAP_Property = ($Microsoft_Alias_Properties.GetEnumerator() | Where-Object { $_.Value -eq $Current_Value }).'Name'
-                                $Property_To_Add = $LDAP_Property
-                            } else {
-                                $Property_To_Add = $Current_Value
-                            }
-                            if ($Set_Parameters['Replace'].Keys -contains $Property_To_Add) {
-                                $Conflicting_Parameter = $Property_To_Add
-                            }
-                            $New_Set_Choice_Values.Add($Property_To_Add)
-                        }
-                    } else {
-                        $New_Set_Choice_Values = @{}
-                        foreach ($Current_Value in $Set_Choice_Values.GetEnumerator()) {
-                            if ($Microsoft_Alias_Properties.Values -contains $Current_Value.Name) {
-                                $LDAP_Property = ($Microsoft_Alias_Properties.GetEnumerator() | Where-Object { $_.Value -eq $Current_Value.Name }).'Name'
-                                $Property_To_Add = @{
-                                    $LDAP_Property = $Current_Value.Value
-                                }
-                            } else {
-                                $Property_To_Add = @{
-                                    $Current_Value.Name = $Current_Value.Value
-                                }
-                            }
-                            if ($Set_Parameters['Replace'].Keys -contains $Property_To_Add.Keys) {
-                                $Conflicting_Parameter = $($Property_To_Add.Keys)
-                            }
-                            $New_Set_Choice_Values += $Property_To_Add
-                        }
-                    }
-                    if ($Conflicting_Parameter) {
-                        # Get the Microsoft Alias property as well (if there is one), to make the error message better.
-                        if ($Microsoft_Alias_Properties.Keys -contains $Conflicting_Parameter) {
-                            $Conflicting_Parameter = ($Conflicting_Parameter, ($Microsoft_Alias_Properties[$Conflicting_Parameter])) -join '/'
-                        }
-                        $Terminating_ErrorRecord_Parameters = @{
-                            'Exception'    = 'System.ArgumentException'
-                            'ID'           = 'DSS-{0}' -f $Function_Name
-                            'Category'     = 'InvalidArgument'
-                            'TargetObject' = $Object_Directory_Entry
-                            'Message'      = 'Cannot specify attribute "{0}" as a direct parameter and via the Add/Remove/Replace/Clear parameters as well' -f $Conflicting_Parameter
-                        }
-                        $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
-                        $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
-                    } else {
-                        $Set_Parameters[$Set_Choice] = $Set_Choice_Values
-                        [void]$PSBoundParameters.Remove($Set_Choice)
-                    }
-                }
-            }
+            $Set_Parameters = Confirm-DSSObjectParameters -BoundParameters $PSBoundParameters
 
             if ($Set_Parameters.Count) {
-                # Perform some additional validation on the supplied values. This needs to be done here in order to validate the values passed in via Add/Replace/Remove hashtables.
-                foreach ($Choice in @('Replace', 'Add')) {
-                    if ($Set_Parameters[$Choice]) {
-                        $Set_Parameters_To_Validate += $Set_Parameters[$Choice].GetEnumerator()
-                    }
-                }
-                foreach ($Parameter in $Set_Parameters_To_Validate) {
-                    if ($Parameter.Name -eq 'HomeDrive') {
-                        if ($Parameter.Value -notmatch '^[A-Z]{1}:') {
-                            $Terminating_ErrorRecord_Parameters = @{
-                                'Exception'    = 'System.ArgumentException'
-                                'ID'           = 'DSS-{0}' -f $Function_Name
-                                'Category'     = 'InvalidArgument'
-                                'TargetObject' = $Parameter
-                                'Message'      = 'HomeDrive value must be a single letter followed by a colon.'
-                            }
-                            $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
-                            $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
-                        }
-                    }
-                }
-
                 $Set_Parameters['Action'] = 'Set'
                 $Set_Parameters['Object'] = $Object_Directory_Entry
                 Write-Verbose ('{0}|Calling Set-DSSRawObject' -f $Function_Name)
@@ -474,7 +364,7 @@ function Set-DSSUser {
                 'ID'           = 'DSS-{0}' -f $Function_Name
                 'Category'     = 'ObjectNotFound'
                 'TargetObject' = $Object_Directory_Entry
-                'Message'      = 'Cannot find User with {0} of "{1}"' -f $Directory_Search_Type, $Directory_Search_Value
+                'Message'      = 'Cannot find {0} with {1} of "{2}"' -f ($Function_Name -replace '[GS]et-DSS'), $Directory_Search_Type, $Directory_Search_Value
             }
             $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
             $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
