@@ -37,6 +37,7 @@ function Confirm-DSSObjectParameters {
                 } else {
                     $Parameter_Name = $Parameter_Key
                 }
+                Write-Verbose ('{0}|Adding bound parameter: {1} - {2}' -f $Function_Name, $Parameter_Name, $BoundParameters[$Parameter_Key])
                 $Set_Parameters['Replace'] += @{
                     $Parameter_Name = $BoundParameters[$Parameter_Key]
                 }
@@ -95,8 +96,8 @@ function Confirm-DSSObjectParameters {
                     $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
                     $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
                 } else {
-                    $Set_Parameters[$Set_Choice] = $Set_Choice_Values
-                    [void]$BoundParameters.Remove($Set_Choice)
+                    Write-Verbose ('{0}|Adding "{1}" with values: {2}' -f $Function_Name, $Set_Choice, ($Set_Choice_Values -join ' '))
+                    $Set_Parameters[$Set_Choice] += $Set_Choice_Values
                 }
             }
         }
