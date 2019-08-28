@@ -191,10 +191,11 @@ function Set-DSSRawObject {
                     $Confirm_Statement = $Whatif_Statement
                     if ($PSCmdlet.ShouldProcess($Whatif_Statement, $Confirm_Statement, $Confirm_Header.ToString())) {
                         Write-Verbose ('{0}|Found object, attempting enable' -f $Function_Name)
-                        $UAC_AccountDisabled = '0x02'
-                        if (($Object.useraccountcontrol.Value -band $UAC_AccountDisabled) -eq $UAC_AccountDisabled) {
+                        $UAC_AccountDisabledFlag = '0x02'
+                        $UAC_Current_Value = $Object.InvokeGet('useraccountcontrol')
+                        if (($UAC_Current_Value -band $UAC_AccountDisabledFlag) -eq $UAC_AccountDisabledFlag) {
                             Write-Verbose ('{0}|Account is Disabled, enabling' -f $Function_Name)
-                            $Object.useraccountcontrol.Value = $Object.useraccountcontrol.Value -bxor $UAC_AccountDisabled
+                            $Object.Put('useraccountcontrol', ($UAC_Current_Value -bxor $UAC_AccountDisabledFlag))
                             $Object.SetInfo()
                             Write-Verbose ('{0}|Enable successful' -f $Function_Name)
                         } else {
@@ -208,10 +209,11 @@ function Set-DSSRawObject {
                     $Confirm_Statement = $Whatif_Statement
                     if ($PSCmdlet.ShouldProcess($Whatif_Statement, $Confirm_Statement, $Confirm_Header.ToString())) {
                         Write-Verbose ('{0}|Found object, attempting disable' -f $Function_Name)
-                        $UAC_AccountDisabled = '0x02'
-                        if (($Object.useraccountcontrol.Value -band $UAC_AccountDisabled) -ne $UAC_AccountDisabled) {
+                        $UAC_AccountDisabledFlag = '0x02'
+                        $UAC_Current_Value = $Object.InvokeGet('useraccountcontrol')
+                        if (($UAC_Current_Value -band $UAC_AccountDisabledFlag) -ne $UAC_AccountDisabledFlag) {
                             Write-Verbose ('{0}|Account is Enabled, disabling' -f $Function_Name)
-                            $Object.useraccountcontrol.Value = $Object.useraccountcontrol.Value -bxor $UAC_AccountDisabled
+                            $Object.Put('useraccountcontrol', ($UAC_Current_Value -bxor $UAC_AccountDisabledFlag))
                             $Object.SetInfo()
                             Write-Verbose ('{0}|Disable successful' -f $Function_Name)
                         } else {
@@ -305,21 +307,25 @@ function Set-DSSRawObject {
                         }
                     }
 
+                    $Calculated_SubProperties_List = $Useful_Calculated_SubProperties.GetEnumerator() | ForEach-Object { $_.Value.GetEnumerator().Name }
+
                     # Check that all properties are valid before attempting to modify any of them.
                     foreach ($Property in $Set_AllProperties) {
-                        try {
-                            $null = $Object.InvokeGet($Property)
-                        } catch {
-                            $Terminating_ErrorRecord_Parameters = @{
-                                'Exception'      = 'System.ArgumentException'
-                                'ID'             = 'DSS-{0}' -f $Function_Name
-                                'Category'       = 'InvalidArgument'
-                                'TargetObject'   = $Object
-                                'Message'        = 'The specified LDAP attribute does not exist: {0}' -f $Property
-                                'InnerException' = $_.Exception
+                        if ($Calculated_SubProperties_List -notcontains $Property) {
+                            try {
+                                $null = $Object.InvokeGet($Property)
+                            } catch {
+                                $Terminating_ErrorRecord_Parameters = @{
+                                    'Exception'      = 'System.ArgumentException'
+                                    'ID'             = 'DSS-{0}' -f $Function_Name
+                                    'Category'       = 'InvalidArgument'
+                                    'TargetObject'   = $Object
+                                    'Message'        = 'The specified LDAP attribute does not exist: {0}' -f $Property
+                                    'InnerException' = $_.Exception
+                                }
+                                $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+                                $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
                             }
-                            $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
-                            $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
                         }
                     }
 
@@ -345,8 +351,25 @@ function Set-DSSRawObject {
                         }
                         if ($Replace) {
                             $Replace.GetEnumerator() | ForEach-Object {
-                                Write-Verbose ('{0}|Replace: "{1}" with "{2}"' -f $Function_Name, $_.Name, ($_.Value -join ','))
-                                $Object.PutEx($ADS_PROPERTY_UPDATE, $_.Name, @($_.Value))
+                                if ($Calculated_SubProperties_List -contains $_.Name) {
+                                    $Property = $_.Name
+                                    $Parent_SubProperty = $Useful_Calculated_SubProperties.GetEnumerator() | Where-Object { $_.Value.GetEnumerator().Name -eq $Property }
+                                    $SubProperty_Name = $Parent_SubProperty.Name
+                                    $SubProperty_Flag = $Parent_SubProperty.Value.$Property
+                                    $Current_Property = $Object.InvokeGet($SubProperty_Name)
+                                    $SubProperty_Check = ($Current_Property -band $SubProperty_Flag) -eq $SubProperty_Flag
+                                    if ((($_.Value -eq $true) -and -not $SubProperty_Check) -or (($_.Value -eq $false) -and $SubProperty_Check)) {
+                                        $Updated_Property = $Current_Property -bxor $SubProperty_Flag
+                                        Write-Verbose ('{0}|Setting "{1}" to: {2}' -f $Function_Name, $Property, $_.Value)
+                                        Write-Verbose ('{0}| - Changing "{1}" from {2} to {3}' -f $Function_Name, $SubProperty_Name, $Current_Property, $Updated_Property)
+                                        $Object.Put($SubProperty_Name, $Updated_Property)
+                                    } else {
+                                        Write-Verbose ('{0}|Property already set correctly: {1}' -f $Function_Name, $SubProperty_Name)
+                                    }
+                                } else {
+                                    Write-Verbose ('{0}|Replace: "{1}" with "{2}"' -f $Function_Name, $_.Name, ($_.Value -join ','))
+                                    $Object.PutEx($ADS_PROPERTY_UPDATE, $_.Name, @($_.Value))
+                                }
                             }
                         }
                         if ($Clear) {
