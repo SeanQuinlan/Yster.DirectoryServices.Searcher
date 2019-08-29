@@ -69,16 +69,6 @@ function Set-DSSUser {
         [Boolean]
         $AccountNotDelegated,
 
-        # Indicates whether reversible password encryption is allowed for the account.
-        # This sets the AllowReversiblePasswordEncryption flag of the UserAccountControl attribute of the user.
-        # An example of using this property is:
-        #
-        # -AllowReversiblePasswordEncryption $true
-        [Parameter(Mandatory = $false)]
-        [ValidateNotNullOrEmpty()]
-        [Boolean]
-        $AllowReversiblePasswordEncryption,
-
         # A property name and a value or set of values that will be added to the existing property values.
         # Multiple values for the same property can be separated by commas.
         # Multiple properties can also be specified by separating them with semi-colons.
@@ -96,6 +86,16 @@ function Set-DSSUser {
         [ValidateNotNullOrEmpty()]
         [HashTable]
         $Add,
+
+        # Indicates whether reversible password encryption is allowed for the account.
+        # This sets the AllowReversiblePasswordEncryption flag of the UserAccountControl attribute of the user.
+        # An example of using this property is:
+        #
+        # -AllowReversiblePasswordEncryption $true
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Boolean]
+        $AllowReversiblePasswordEncryption,
 
         # A property or an array of properties to clear.
         # See below for some examples:
@@ -145,6 +145,15 @@ function Set-DSSUser {
         [System.Management.Automation.Credential()]
         $Credential = [System.Management.Automation.PSCredential]::Empty,
 
+        # The value that will be set as the Department of the user.
+        # An example of using this property is:
+        #
+        # -Department 'Engineering'
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $Department,
+
         # The value that will be set as the Description of the user.
         # An example of using this property is:
         #
@@ -154,6 +163,15 @@ function Set-DSSUser {
         [String]
         $Description,
 
+        # The value that will be set as the DisplayName of the user.
+        # An example of using this property is:
+        #
+        # -DisplayName 'Smith, John'
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $DisplayName,
+
         # The value that will be set as the Division of the user.
         # An example of using this property is:
         #
@@ -162,6 +180,17 @@ function Set-DSSUser {
         [ValidateNotNullOrEmpty()]
         [String]
         $Division,
+
+
+        # The value that will be set as the EmailAddress of the user.
+        # An example of using this property is:
+        #
+        # -EmailAddress 'jsmith@contoso.com'
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Alias('Mail')]
+        [String]
+        $EmailAddress,
 
         # The value that will be set as the EmployeeID of the user.
         # An example of using this property is:
@@ -180,6 +209,16 @@ function Set-DSSUser {
         [ValidateNotNullOrEmpty()]
         [String]
         $EmployeeNumber,
+
+        # The value that will be set as the Fax number of the user.
+        # An example of using this property is:
+        #
+        # -Fax '000-1111 2222'
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Alias('FacsimileTelephoneNumber')]
+        [String]
+        $Fax,
 
         # The value that will be set as the GivenName of the user.
         # An example of using this property is:
@@ -412,6 +451,15 @@ function Set-DSSUser {
         [String]
         $Title,
 
+        # Specifies whether an account is trusted for Kerberos delegation.
+        # An example of using this property is:
+        #
+        # -TrustedForDelegation $true
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Boolean]
+        $TrustedForDelegation,
+
         # The value that will be set as the UserPrincipalName of the user.
         # An example of using this property is:
         #
@@ -422,6 +470,32 @@ function Set-DSSUser {
         [String]
         $UserPrincipalName
     )
+
+    # parameters to add:
+    # ------------------
+    # AuthenticationPolicy
+    # AuthenticationPolicySilo
+    # AuthType
+    # CannotChangePassword
+    # Certificates
+    # ChangePasswordAtLogon
+    # City
+    # CompoundIdentitySupported
+    # Country
+    # Enabled
+    # Instance
+    # KerberosEncryptionType
+    # LogonWorkstations
+    # Manager
+    # Partition
+    # PassThru
+    # PasswordNeverExpires
+    # PasswordNotRequired
+    # PrincipalsAllowedToDelegateToAccount
+    # ServicePrincipalNames
+    # SmartcardLogonRequired
+    # TrustedForDelegation
+
 
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
