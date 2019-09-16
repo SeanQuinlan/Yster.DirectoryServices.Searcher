@@ -97,6 +97,15 @@ function Set-DSSUser {
         [Boolean]
         $AllowReversiblePasswordEncryption,
 
+        # The value that will be set as the City of the user.
+        # An example of using this property is:
+        #
+        # -City 'San Francisco'
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $City,
+
         # A property or an array of properties to clear.
         # See below for some examples:
         #
@@ -325,6 +334,26 @@ function Set-DSSUser {
         [String]
         $OtherName,
 
+        # Specifies that the account password does not expire.
+        # This sets the PasswordNeverExpires flag of the UserAccountControl attribute of the user.
+        # An example of using this property is:
+        #
+        # -PasswordNeverExpires $true
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Boolean]
+        $PasswordNeverExpires,
+
+        # Specifies whether the user account requires a password.
+        # This sets the PasswordNotRequired flag of the UserAccountControl attribute of the user.
+        # An example of using this property is:
+        #
+        # -PasswordNotRequired $true
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Boolean]
+        $PasswordNotRequired,
+
         # The value that will be set as the POBox of the user.
         # An example of using this property is:
         #
@@ -408,6 +437,16 @@ function Set-DSSUser {
         [String]
         $Server,
 
+        # Specifies whether the user requires a smart card for logon.
+        # This sets the SmartcardLogonRequired flag of the UserAccountControl attribute of the user.
+        # An example of using this property is:
+        #
+        # -SmartcardLogonRequired $true
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Boolean]
+        $SmartcardLogonRequired,
+
         # The value that will be set as the State of the user.
         # An example of using this property is:
         #
@@ -452,6 +491,7 @@ function Set-DSSUser {
         $Title,
 
         # Specifies whether an account is trusted for Kerberos delegation.
+        # This sets the TrustedForDelegation flag of the UserAccountControl attribute of the user.
         # An example of using this property is:
         #
         # -TrustedForDelegation $true
@@ -479,7 +519,6 @@ function Set-DSSUser {
     # CannotChangePassword
     # Certificates
     # ChangePasswordAtLogon
-    # City
     # CompoundIdentitySupported
     # Country
     # Enabled
@@ -489,13 +528,8 @@ function Set-DSSUser {
     # Manager
     # Partition
     # PassThru
-    # PasswordNeverExpires
-    # PasswordNotRequired
     # PrincipalsAllowedToDelegateToAccount
     # ServicePrincipalNames
-    # SmartcardLogonRequired
-    # TrustedForDelegation
-
 
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
