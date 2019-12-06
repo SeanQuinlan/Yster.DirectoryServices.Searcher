@@ -109,11 +109,18 @@ function Set-DSSRawObject {
     )
 
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
-    $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
+    $PSBoundParameters.GetEnumerator() | ForEach-Object {
+        if ($_.Value -is [hashtable]) {
+            $Value = ($_.Value.GetEnumerator() | ForEach-Object { '{0} = {1}' -f $_.Name, $_.Value }) -join ' ; '
+        } else {
+            $Value = $_.Value -join ' '
+        }
+        Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, $Value)
+    }
 
     try {
         $Common_Parameters = @('Context', 'Server', 'Credential')
-        $Common_Search_Parameters = @{}
+        $Common_Search_Parameters = @{ }
         foreach ($Parameter in $Common_Parameters) {
             if ($PSBoundParameters.ContainsKey($Parameter)) {
                 $Common_Search_Parameters[$Parameter] = Get-Variable -Name $Parameter -ValueOnly
@@ -345,7 +352,7 @@ function Set-DSSRawObject {
                         }
                         if ($Add) {
                             $Add.GetEnumerator() | ForEach-Object {
-                                Write-Verbose ('{0}|Add: "{1}" to "{2}"' -f $Function_Name, ($_.Value -join ','), $_.Name)
+                                Write-Verbose ('{0}|Add: "{1}" added to "{2}"' -f $Function_Name, ($_.Value -join ','), $_.Name)
                                 $Object.PutEx($ADS_PROPERTY_APPEND, $_.Name, @($_.Value))
                             }
                         }
@@ -357,7 +364,12 @@ function Set-DSSRawObject {
                                     $SubProperty_Name = $Parent_SubProperty.Name
                                     $SubProperty_Flag = $Parent_SubProperty.Value.$Property
                                     $Current_Property = $Object.InvokeGet($SubProperty_Name)
-                                    $SubProperty_Check = ($Current_Property -band $SubProperty_Flag) -eq $SubProperty_Flag
+                                    # If the property name is "Enabled", then reverse the flag check, as the flag on UserAccountControl is actually a "Disabled" flag.
+                                    if ($Property -eq 'Enabled') {
+                                        $SubProperty_Check = ($Current_Property -band $SubProperty_Flag) -ne $SubProperty_Flag
+                                    } else {
+                                        $SubProperty_Check = ($Current_Property -band $SubProperty_Flag) -eq $SubProperty_Flag
+                                    }
                                     if ((($_.Value -eq $true) -and -not $SubProperty_Check) -or (($_.Value -eq $false) -and $SubProperty_Check)) {
                                         $Updated_Property = $Current_Property -bxor $SubProperty_Flag
                                         Write-Verbose ('{0}|Setting "{1}" to: {2}' -f $Function_Name, $Property, $_.Value)
@@ -366,6 +378,7 @@ function Set-DSSRawObject {
                                     } else {
                                         Write-Verbose ('{0}|Property already set correctly: {1}' -f $Function_Name, $SubProperty_Name)
                                     }
+
                                 } else {
                                     Write-Verbose ('{0}|Replace: "{1}" with "{2}"' -f $Function_Name, $_.Name, ($_.Value -join ','))
                                     $Object.PutEx($ADS_PROPERTY_UPDATE, $_.Name, @($_.Value))
@@ -378,9 +391,9 @@ function Set-DSSRawObject {
                                 $Object.PutEx($ADS_PROPERTY_CLEAR, $_, @())
                             }
                         }
-                        Write-Verbose ('{0}|Setting properties on object' -f $Function_Name)
+                        Write-Verbose ('{0}|Applying properties on object' -f $Function_Name)
                         $Object.SetInfo()
-                        Write-Verbose ('{0}|Properties set successfully' -f $Function_Name)
+                        Write-Verbose ('{0}|Properties applied successfully' -f $Function_Name)
                     }
                 }
 

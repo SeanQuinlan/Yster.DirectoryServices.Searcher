@@ -190,7 +190,6 @@ function Set-DSSUser {
         [String]
         $Division,
 
-
         # The value that will be set as the EmailAddress of the user.
         # An example of using this property is:
         #
@@ -218,6 +217,16 @@ function Set-DSSUser {
         [ValidateNotNullOrEmpty()]
         [String]
         $EmployeeNumber,
+
+        # Specifies whether an account is enabled.
+        # This sets the Enabled flag of the UserAccountControl attribute of the user.
+        # An example of using this property is:
+        #
+        # -Enabled $false
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Boolean]
+        $Enabled,
 
         # The value that will be set as the Fax number of the user.
         # An example of using this property is:
@@ -536,7 +545,7 @@ function Set-DSSUser {
 
     try {
         $Common_Parameters = @('Context', 'Server', 'Credential')
-        $Common_Search_Parameters = @{}
+        $Common_Search_Parameters = @{ }
         foreach ($Parameter in $Common_Parameters) {
             if ($PSBoundParameters.ContainsKey($Parameter)) {
                 $Common_Search_Parameters[$Parameter] = Get-Variable -Name $Parameter -ValueOnly
