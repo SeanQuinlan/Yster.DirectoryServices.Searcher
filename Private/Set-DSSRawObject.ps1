@@ -360,7 +360,6 @@ function Set-DSSRawObject {
                             foreach ($Property in $Replace.GetEnumerator()) {
                                 if ($Calculated_SubProperties_List -contains $Property.Name) {
                                     Write-Verbose ('{0}|Checking property: {1}' -f $Function_Name, $Property.Name)
-                                    #$Property = $_.Name
                                     $Parent_SubProperty = $Useful_Calculated_SubProperties.GetEnumerator() | Where-Object { $_.Value.GetEnumerator().Name -eq $Property.Name }
                                     $SubProperty_Name = $Parent_SubProperty.Name
                                     $SubProperty_Flag = $Parent_SubProperty.Value.$($Property.Name)
@@ -381,8 +380,13 @@ function Set-DSSRawObject {
                                     }
 
                                 } else {
-                                    Write-Verbose ('{0}|Replace: "{1}" with "{2}"' -f $Function_Name, $Property.Name, ($Property.Value -join ','))
-                                    $Object.PutEx($ADS_PROPERTY_UPDATE, $Property.Name, @($Property.Value))
+                                    $Current_Property = $Object.InvokeGet($Property.Name)
+                                    if ($Current_Property -ne $Property.Value) {
+                                        Write-Verbose ('{0}|Replace: "{1}" with "{2}"' -f $Function_Name, $Property.Name, ($Property.Value -join ','))
+                                        $Object.PutEx($ADS_PROPERTY_UPDATE, $Property.Name, @($Property.Value))
+                                    } else {
+                                        Write-Verbose ('{0}|Property already set correctly: {1}' -f $Function_Name, $Property.Name)
+                                    }
                                 }
                             }
                         }
