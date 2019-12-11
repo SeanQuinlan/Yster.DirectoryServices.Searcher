@@ -345,34 +345,35 @@ function Set-DSSRawObject {
                         $ADS_PROPERTY_DELETE = 4
 
                         if ($Remove) {
-                            $Remove.GetEnumerator() | ForEach-Object {
-                                Write-Verbose ('{0}|Remove: "{1}" removed from "{2}"' -f $Function_Name, ($_.Value -join ','), $_.Name)
-                                $Object.PutEx($ADS_PROPERTY_DELETE, $_.Name, @($_.Value))
+                            foreach ($Property in $Remove.GetEnumerator()) {
+                                Write-Verbose ('{0}|Remove: "{1}" removed from "{2}"' -f $Function_Name, ($Property.Value -join ','), $Property.Name)
+                                $Object.PutEx($ADS_PROPERTY_DELETE, $Property.Name, @($Property.Value))
                             }
                         }
                         if ($Add) {
-                            $Add.GetEnumerator() | ForEach-Object {
-                                Write-Verbose ('{0}|Add: "{1}" added to "{2}"' -f $Function_Name, ($_.Value -join ','), $_.Name)
-                                $Object.PutEx($ADS_PROPERTY_APPEND, $_.Name, @($_.Value))
+                            foreach ($Property in $Add.GetEnumerator()) {
+                                Write-Verbose ('{0}|Add: "{1}" added to "{2}"' -f $Function_Name, ($Property.Value -join ','), $Property.Name)
+                                $Object.PutEx($ADS_PROPERTY_APPEND, $Property.Name, @($Property.Value))
                             }
                         }
                         if ($Replace) {
-                            $Replace.GetEnumerator() | ForEach-Object {
-                                if ($Calculated_SubProperties_List -contains $_.Name) {
-                                    $Property = $_.Name
-                                    $Parent_SubProperty = $Useful_Calculated_SubProperties.GetEnumerator() | Where-Object { $_.Value.GetEnumerator().Name -eq $Property }
+                            foreach ($Property in $Replace.GetEnumerator()) {
+                                if ($Calculated_SubProperties_List -contains $Property.Name) {
+                                    Write-Verbose ('{0}|Checking property: {1}' -f $Function_Name, $Property.Name)
+                                    #$Property = $_.Name
+                                    $Parent_SubProperty = $Useful_Calculated_SubProperties.GetEnumerator() | Where-Object { $_.Value.GetEnumerator().Name -eq $Property.Name }
                                     $SubProperty_Name = $Parent_SubProperty.Name
-                                    $SubProperty_Flag = $Parent_SubProperty.Value.$Property
+                                    $SubProperty_Flag = $Parent_SubProperty.Value.$($Property.Name)
                                     $Current_Property = $Object.InvokeGet($SubProperty_Name)
                                     # If the property name is "Enabled", then reverse the flag check, as the flag on UserAccountControl is actually a "Disabled" flag.
-                                    if ($Property -eq 'Enabled') {
+                                    if ($Property.Name -eq 'Enabled') {
                                         $SubProperty_Check = ($Current_Property -band $SubProperty_Flag) -ne $SubProperty_Flag
                                     } else {
                                         $SubProperty_Check = ($Current_Property -band $SubProperty_Flag) -eq $SubProperty_Flag
                                     }
-                                    if ((($_.Value -eq $true) -and -not $SubProperty_Check) -or (($_.Value -eq $false) -and $SubProperty_Check)) {
+                                    if ((($Property.Value -eq $true) -and -not $SubProperty_Check) -or (($Property.Value -eq $false) -and $SubProperty_Check)) {
                                         $Updated_Property = $Current_Property -bxor $SubProperty_Flag
-                                        Write-Verbose ('{0}|Setting "{1}" to: {2}' -f $Function_Name, $Property, $_.Value)
+                                        Write-Verbose ('{0}|Setting "{1}" to: {2}' -f $Function_Name, $Property.Name, $Property.Value)
                                         Write-Verbose ('{0}| - Changing "{1}" from {2} to {3}' -f $Function_Name, $SubProperty_Name, $Current_Property, $Updated_Property)
                                         $Object.Put($SubProperty_Name, $Updated_Property)
                                     } else {
@@ -380,15 +381,15 @@ function Set-DSSRawObject {
                                     }
 
                                 } else {
-                                    Write-Verbose ('{0}|Replace: "{1}" with "{2}"' -f $Function_Name, $_.Name, ($_.Value -join ','))
-                                    $Object.PutEx($ADS_PROPERTY_UPDATE, $_.Name, @($_.Value))
+                                    Write-Verbose ('{0}|Replace: "{1}" with "{2}"' -f $Function_Name, $Property.Name, ($Property.Value -join ','))
+                                    $Object.PutEx($ADS_PROPERTY_UPDATE, $Property.Name, @($Property.Value))
                                 }
                             }
                         }
                         if ($Clear) {
-                            $Clear | ForEach-Object {
-                                Write-Verbose ('{0}|Clear property: {1}' -f $Function_Name, $_)
-                                $Object.PutEx($ADS_PROPERTY_CLEAR, $_, @())
+                            foreach ($Property in $Clear) {
+                                Write-Verbose ('{0}|Clear property: {1}' -f $Function_Name, $Property)
+                                $Object.PutEx($ADS_PROPERTY_CLEAR, $Property, @())
                             }
                         }
                         Write-Verbose ('{0}|Applying properties on object' -f $Function_Name)
