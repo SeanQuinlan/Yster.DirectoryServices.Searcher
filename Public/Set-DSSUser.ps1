@@ -50,7 +50,7 @@ function Set-DSSUser {
 
         # A date and time value that specifies when the account expires.
         # If no time is specified, then the time will be set to 00:00:00 on the supplied date.
-        # An example of using this property is:
+        # Some examples of using this property are:
         #
         # -AccountExpirationDate '25/12/1999'
         # -AccountExpirationDate '25/12/1999 17:30:00'
@@ -150,7 +150,7 @@ function Set-DSSUser {
         # The credential to use for access to perform the required action.
         # This credential can be provided in the form of a username, DOMAIN\username or as a PowerShell credential object.
         # In the case of a username or DOMAIN\username, you will be prompted to supply the password.
-        # Some examples of using this are:
+        # Some examples of using this property are:
         #
         # -Credential jsmith
         # -Credential 'CONTOSO\jsmith'
@@ -258,7 +258,7 @@ function Set-DSSUser {
         $GivenName,
 
         # The value that will be set as the HomeDirectory of the user. This should be a local path or a UNC path with with a server and share specified.
-        # An example of using this property is:
+        # Some examples of using this property are:
         #
         # -HomeDirectory 'D:\Profiles\HomeDir'
         # -HomeDirectory '\\fileserver01\home\jsmith'
@@ -303,6 +303,16 @@ function Set-DSSUser {
         [ValidateNotNullOrEmpty()]
         [String]
         $Initials,
+
+        # Specifies the computers that the user can log onto. More than one computer can be specified by supplying a string with the names separated by commas.
+        # Some examples of using this property are:
+        #
+        # -LogonWorkstations "WS001"
+        # -LogonWorkstations "WS001,WS002,WS003"
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $LogonWorkstations,
 
         # The value that will be set as the MobilePhone of the user.
         # An example of using this property is:
@@ -392,7 +402,7 @@ function Set-DSSUser {
         $PostalCode,
 
         # The value that will be set as the ProfilePath of the user. This should be a local path or a UNC path with with a server and share specified.
-        # An example of using this property is:
+        # Some examples of using this property are:
         #
         # -ProfilePath 'D:\Profiles\JSmith'
         # -ProfilePath '\\fileserver01\profiles$\jsmith'
@@ -440,7 +450,7 @@ function Set-DSSUser {
 
         # The value that will be set as the ScriptPath of the user. This is the value of the user's log on script.
         # This should be a local path to a file or a UNC path with with a server, share and file path specified.
-        # An example of using this property is:
+        # Some examples of using this property are:
         #
         # -ScriptPath 'D:\Scripts\logon.bat'
         # -ScriptPath '\\dc01.contoso.com\netlogon\logon.bat'
@@ -540,7 +550,6 @@ function Set-DSSUser {
     # Country
     # Instance
     # KerberosEncryptionType
-    # LogonWorkstations
     # Manager
     # Partition
     # PassThru
