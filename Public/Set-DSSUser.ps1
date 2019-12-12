@@ -97,6 +97,15 @@ function Set-DSSUser {
         [Boolean]
         $AllowReversiblePasswordEncryption,
 
+        # Specifies whether an account is required to change it's password when next logging on.
+        # An example of using this property is:
+        #
+        # -ChangePasswordAtLogon $true
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Boolean]
+        $ChangePasswordAtLogon,
+
         # The value that will be set as the City of the user.
         # An example of using this property is:
         #
@@ -527,10 +536,8 @@ function Set-DSSUser {
     # AuthType
     # CannotChangePassword
     # Certificates
-    # ChangePasswordAtLogon
     # CompoundIdentitySupported
     # Country
-    # Enabled
     # Instance
     # KerberosEncryptionType
     # LogonWorkstations

@@ -283,6 +283,29 @@ function Set-DSSRawObject {
                 }
 
                 'Set' {
+                    $Calculated_SubProperties_List = $Useful_Calculated_SubProperties.GetEnumerator() | ForEach-Object { $_.Value.GetEnumerator().Name }
+                    $Calculated_SubProperties_List_Full = $Calculated_SubProperties_List + $Set_Alias_Properties.Values
+
+                    # Check that all properties are valid before attempting to modify any of them.
+                    foreach ($Property in $Set_AllProperties) {
+                        if ($Calculated_SubProperties_List_Full -notcontains $Property) {
+                            try {
+                                $null = $Object.InvokeGet($Property)
+                            } catch {
+                                $Terminating_ErrorRecord_Parameters = @{
+                                    'Exception'      = 'System.ArgumentException'
+                                    'ID'             = 'DSS-{0}' -f $Function_Name
+                                    'Category'       = 'InvalidArgument'
+                                    'TargetObject'   = $Object
+                                    'Message'        = 'The specified LDAP attribute does not exist: {0}' -f $Property
+                                    'InnerException' = $_.Exception
+                                }
+                                $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+                                $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+                            }
+                        }
+                    }
+
                     $Set_ShouldProcess = New-Object -TypeName 'System.Text.StringBuilder'
                     $Set_AllProperties = New-Object -TypeName 'System.Collections.Generic.List[String]'
                     if ($Remove) {
@@ -314,28 +337,6 @@ function Set-DSSRawObject {
                         }
                     }
 
-                    $Calculated_SubProperties_List = $Useful_Calculated_SubProperties.GetEnumerator() | ForEach-Object { $_.Value.GetEnumerator().Name }
-
-                    # Check that all properties are valid before attempting to modify any of them.
-                    foreach ($Property in $Set_AllProperties) {
-                        if ($Calculated_SubProperties_List -notcontains $Property) {
-                            try {
-                                $null = $Object.InvokeGet($Property)
-                            } catch {
-                                $Terminating_ErrorRecord_Parameters = @{
-                                    'Exception'      = 'System.ArgumentException'
-                                    'ID'             = 'DSS-{0}' -f $Function_Name
-                                    'Category'       = 'InvalidArgument'
-                                    'TargetObject'   = $Object
-                                    'Message'        = 'The specified LDAP attribute does not exist: {0}' -f $Property
-                                    'InnerException' = $_.Exception
-                                }
-                                $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
-                                $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
-                            }
-                        }
-                    }
-
                     $Whatif_Statement = $Set_ShouldProcess.ToString().Trim()
                     $Confirm_Statement = $Whatif_Statement
                     if ($PSCmdlet.ShouldProcess($Whatif_Statement, $Confirm_Statement, $Confirm_Header.ToString())) {
@@ -358,34 +359,55 @@ function Set-DSSRawObject {
                         }
                         if ($Replace) {
                             foreach ($Property in $Replace.GetEnumerator()) {
+                                Write-Verbose ('{0}|Checking property: {1}' -f $Function_Name, $Property.Name)
                                 if ($Calculated_SubProperties_List -contains $Property.Name) {
-                                    Write-Verbose ('{0}|Checking property: {1}' -f $Function_Name, $Property.Name)
                                     $Parent_SubProperty = $Useful_Calculated_SubProperties.GetEnumerator() | Where-Object { $_.Value.GetEnumerator().Name -eq $Property.Name }
                                     $SubProperty_Name = $Parent_SubProperty.Name
                                     $SubProperty_Flag = $Parent_SubProperty.Value.$($Property.Name)
-                                    $Current_Property = $Object.InvokeGet($SubProperty_Name)
+                                    $Current_Property_Value = $Object.InvokeGet($SubProperty_Name)
                                     # If the property name is "Enabled", then reverse the flag check, as the flag on UserAccountControl is actually a "Disabled" flag.
                                     if ($Property.Name -eq 'Enabled') {
-                                        $SubProperty_Check = ($Current_Property -band $SubProperty_Flag) -ne $SubProperty_Flag
+                                        $SubProperty_Check = ($Current_Property_Value -band $SubProperty_Flag) -ne $SubProperty_Flag
                                     } else {
-                                        $SubProperty_Check = ($Current_Property -band $SubProperty_Flag) -eq $SubProperty_Flag
+                                        $SubProperty_Check = ($Current_Property_Value -band $SubProperty_Flag) -eq $SubProperty_Flag
                                     }
                                     if ((($Property.Value -eq $true) -and -not $SubProperty_Check) -or (($Property.Value -eq $false) -and $SubProperty_Check)) {
-                                        $Updated_Property = $Current_Property -bxor $SubProperty_Flag
+                                        $Updated_Property = $Current_Property_Value -bxor $SubProperty_Flag
                                         Write-Verbose ('{0}|Setting "{1}" to: {2}' -f $Function_Name, $Property.Name, $Property.Value)
-                                        Write-Verbose ('{0}| - Changing "{1}" from {2} to {3}' -f $Function_Name, $SubProperty_Name, $Current_Property, $Updated_Property)
+                                        Write-Verbose ('{0}| - Changing "{1}" from {2} to {3}' -f $Function_Name, $SubProperty_Name, $Current_Property_Value, $Updated_Property)
                                         $Object.Put($SubProperty_Name, $Updated_Property)
                                     } else {
                                         Write-Verbose ('{0}|Property already set correctly: {1}' -f $Function_Name, $SubProperty_Name)
                                     }
 
                                 } else {
-                                    $Current_Property = $Object.InvokeGet($Property.Name)
-                                    if ($Current_Property -ne $Property.Value) {
-                                        Write-Verbose ('{0}|Replace: "{1}" with "{2}"' -f $Function_Name, $Property.Name, ($Property.Value -join ','))
-                                        $Object.PutEx($ADS_PROPERTY_UPDATE, $Property.Name, @($Property.Value))
+                                    if ($Set_Alias_Properties.Values -contains $Property.Name) {
+                                        $Property_Name = ($Set_Alias_Properties.GetEnumerator() | Where-Object { $_.Value -eq $Property.Name }).Name
+                                        $Current_Property_Value = $Object.InvokeGet($Property_Name)
+                                        $Compare_Value = $Property.Value
+
+                                        if ($Property.Name -eq 'changepasswordatlogon') {
+                                            $Current_Property_Value = $Object.ConvertLargeIntegerToInt64($Object.pwdlastset.Value)
+                                            if ($Property.Value -eq $true) {
+                                                $Compare_Value = 0
+                                            } elseif ($Current_Property_Value -gt 0) {
+                                                $Compare_Value = $Current_Property_Value
+                                            } else {
+                                                $Compare_Value = -1
+                                            }
+                                        }
                                     } else {
-                                        Write-Verbose ('{0}|Property already set correctly: {1}' -f $Function_Name, $Property.Name)
+                                        $Property_Name = $Property.Name
+                                        $Compare_Value = $Property.Value
+                                        $Current_Property_Value = $Object.InvokeGet($Property.Name)
+                                    }
+
+                                    Write-Verbose ('{0}|Comparing "{1}" with "{2}"' -f $Function_Name, ($Current_Property_Value -join ','), ($Compare_Value -join ','))
+                                    if ($Current_Property_Value -ne $Compare_Value) {
+                                        Write-Verbose ('{0}|Replace: "{1}" with "{2}"' -f $Function_Name, $Property_Name, ($Compare_Value -join ','))
+                                        $Object.PutEx($ADS_PROPERTY_UPDATE, $Property_Name, @($Compare_Value))
+                                    } else {
+                                        Write-Verbose ('{0}|Property already set correctly: {1}' -f $Function_Name, $Property_Name)
                                     }
                                 }
                             }

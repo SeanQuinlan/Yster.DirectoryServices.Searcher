@@ -273,9 +273,9 @@ function Find-DSSComputer {
                     foreach ($Non_LDAP_Network_Property in $Non_LDAP_Network_Properties_To_Process) {
                         $Non_LDAP_Network_Property_AddressList = $null
                         if ($Non_LDAP_Network_Property -eq 'ipv4address') {
-                            $Non_LDAP_Network_Property_AddressList = ($Host_IP_Addresses | Where-Object { $_.AddressFamily -eq 'InterNetwork' }).IPAddressToString
+                            $Non_LDAP_Network_Property_AddressList = ($Host_IP_Addresses | Where-Object { $_.AddressFamily -eq 'InterNetwork' }).'IPAddressToString'
                         } elseif ($Non_LDAP_Network_Property -eq 'ipv6address') {
-                            $Non_LDAP_Network_Property_AddressList = ($Host_IP_Addresses | Where-Object { ($_.AddressFamily -eq 'InterNetworkV6') -and (-not $_.IsIPv6LinkLocal) -and (-not $_.IsIPv6SiteLocal) }).IPAddressToString
+                            $Non_LDAP_Network_Property_AddressList = ($Host_IP_Addresses | Where-Object { ($_.AddressFamily -eq 'InterNetworkV6') -and (-not $_.IsIPv6LinkLocal) -and (-not $_.IsIPv6SiteLocal) }).'IPAddressToString'
                         }
 
                         Write-Verbose ('{0}|Non_LDAP: Adding Property: {1} = {2}' -f $Function_Name, $Non_LDAP_Network_Property, $Non_LDAP_Network_Property_AddressList)

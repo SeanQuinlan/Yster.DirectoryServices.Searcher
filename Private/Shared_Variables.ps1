@@ -132,6 +132,11 @@ $Useful_Calculated_SubProperties = @{
     }
 }
 
+# A set of arguments/properties to Set-ADUser which simply set a different LDAP property.
+$Set_Alias_Properties = @{
+    'pwdlastset' = 'changepasswordatlogon'
+}
+
 # An Enum to determine KerberosEncryptionType.
 # Taken from https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-kile/6cfc7b50-11ed-4b4d-846d-6f08f0812919
 Add-Type -TypeDefinition @"
