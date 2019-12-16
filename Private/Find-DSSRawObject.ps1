@@ -119,7 +119,7 @@ function Find-DSSRawObject {
 
     try {
         $Common_Parameters = @('Context', 'Server', 'Credential', 'SearchBase')
-        $Common_Search_Parameters = @{}
+        $Common_Search_Parameters = @{ }
         foreach ($Parameter in $Common_Parameters) {
             if ($PSBoundParameters.ContainsKey($Parameter)) {
                 $Common_Search_Parameters[$Parameter] = Get-Variable -Name $Parameter -ValueOnly
@@ -347,7 +347,7 @@ function Find-DSSRawObject {
                                                 # Convert this to a SID, which can then be looked up in Active Directory to find the DistinguishedName.
                                                 $Computer_Object = $_.'IdentityReference'
                                                 $Computer_SID = $Computer_Object.Translate([Security.Principal.SecurityIdentifier])
-                                                $Computer_Search_Parameters = @{}
+                                                $Computer_Search_Parameters = @{ }
                                                 $Computer_Search_Parameters['ObjectSID'] = $Computer_SID
                                                 $Computer_Search_Result = (Get-DSSComputer @Common_Search_Parameters @Computer_Search_Parameters).'distinguishedname'
                                                 $Delegation_Principals.Add($Computer_Search_Result)
@@ -381,7 +381,11 @@ function Find-DSSRawObject {
                                             }
                                         }
                                         'kerberosencryptiontype' {
-                                            $Useful_Calculated_Property_Value = [Enum]::Parse('ADKerberosEncryptionType', $Current_Searcher_Result_Value)
+                                            $Useful_Calculated_Property_Value = ([Enum]::Parse('ADKerberosEncryptionType', $Current_Searcher_Result_Value) -split ',').Trim()
+                                            # If no matches, set the resulting value to "None", as the Get-AD* cmdlets do the same.
+                                            if ($Useful_Calculated_Property_Value -eq $Current_Searcher_Result_Value) {
+                                                $Useful_Calculated_Property_Value = 'None'
+                                            }
                                         }
 
                                         # Group properties
