@@ -137,6 +137,15 @@ $Set_Alias_Properties = @{
     'pwdlastset' = 'changepasswordatlogon'
 }
 
+# A list of all the 2-letter country codes.
+$Country_Codes = New-Object 'System.Collections.Generic.List[string]'
+foreach ($Culture in [System.Globalization.CultureInfo]::GetCultures([System.Globalization.CultureTypes]::SpecificCultures)) {
+    $TwoLetterCode = (New-Object 'System.Globalization.RegionInfo' -ArgumentList $Culture.Name).TwoLetterISORegionName
+    if (($Country_Codes -notcontains $TwoLetterCode) -and ($TwoLetterCode -match '[A-Z]{2}')) {
+        $Country_Codes.Add($TwoLetterCode)
+    }
+}
+
 # An Enum to determine KerberosEncryptionType.
 # Taken from https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-kile/6cfc7b50-11ed-4b4d-846d-6f08f0812919
 Add-Type -TypeDefinition @"
