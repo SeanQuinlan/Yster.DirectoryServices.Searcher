@@ -129,62 +129,69 @@ function Set-DSSRawObject {
 
         if ($Action -match 'GroupMember') {
             Write-Verbose ('{0}|Getting GroupMembers or PrincipalGroups first' -f $Function_Name)
-            $global:GroupMember_Objects = New-Object -TypeName 'System.Collections.Generic.List[PSObject]'
-            $GroupMember_Properties = @(
-                'SAMAccountName'
-                'DistinguishedName'
-                'ObjectSID'
-                'ObjectGUID'
-            )
 
             if ($Action -match 'PrincipalGroupMembership') {
                 $Member_Set = $MemberOf
             } else {
                 $Member_Set = $Members
             }
+            $global:GroupMember_Objects = Get-DSSResolvedObject @Common_Search_Parameters -InputSet $Member_Set
 
-            foreach ($Member_Object in $Member_Set) {
-                $Member_To_AddRemove = $null
-                foreach ($GroupMember_Property in $GroupMember_Properties) {
-                    if ($GroupMember_Property -eq 'ObjectGUID') {
-                        # Only proceed if the $Member_Object string is a valid GUID.
-                        if ([System.Guid]::TryParse($Member_Object, [ref][System.Guid]::Empty)) {
-                            $Member_Object = (Convert-GuidToHex -Guid $Member_Object)
-                        } else {
-                            break
-                        }
-                    }
-                    $Member_Search_Parameters = @{
-                        'OutputFormat' = 'DirectoryEntry'
-                        'LDAPFilter'   = ('({0}={1})' -f $GroupMember_Property, $Member_Object)
-                    }
-                    $Member_Object_Result = Find-DSSRawObject @Common_Search_Parameters @Member_Search_Parameters
-                    if ($Member_Object_Result.Count) {
-                        $Member_To_AddRemove = @{
-                            'Path' = $Member_Object_Result.'adspath'
-                            'Name' = $($Member_Object_Result.'distinguishedname')
-                        }
-                        if ($Action -match 'PrincipalGroupMembership') {
-                            $Member_To_AddRemove['Object'] = $Member_Object_Result
-                        }
-                        Write-Verbose ('{0}|Found member: {1}' -f $Function_Name, $Member_To_AddRemove['Name'])
-                        break
-                    }
-                }
-                if (-not $Member_To_AddRemove) {
-                    $Terminating_ErrorRecord_Parameters = @{
-                        'Exception'    = 'System.DirectoryServices.ActiveDirectory.ActiveDirectoryObjectNotFoundException'
-                        'ID'           = 'DSS-{0}' -f $Function_Name
-                        'Category'     = 'ObjectNotFound'
-                        'TargetObject' = $Object
-                        'Message'      = 'Cannot find object with Identity of "{0}"' -f $Member_Object
-                    }
-                    $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
-                    $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
-                } else {
-                    $GroupMember_Objects.Add($Member_To_AddRemove)
-                }
-            }
+
+
+
+            # $global:GroupMember_Objects = New-Object -TypeName 'System.Collections.Generic.List[PSObject]'
+            # $GroupMember_Properties = @(
+            #     'SAMAccountName'
+            #     'DistinguishedName'
+            #     'ObjectSID'
+            #     'ObjectGUID'
+            # )
+
+
+
+            # foreach ($Member_Object in $Member_Set) {
+            #     $Member_To_AddRemove = $null
+            #     foreach ($GroupMember_Property in $GroupMember_Properties) {
+            #         if ($GroupMember_Property -eq 'ObjectGUID') {
+            #             # Only proceed if the $Member_Object string is a valid GUID.
+            #             if ([System.Guid]::TryParse($Member_Object, [ref][System.Guid]::Empty)) {
+            #                 $Member_Object = (Convert-GuidToHex -Guid $Member_Object)
+            #             } else {
+            #                 break
+            #             }
+            #         }
+            #         $Member_Search_Parameters = @{
+            #             'OutputFormat' = 'DirectoryEntry'
+            #             'LDAPFilter'   = ('({0}={1})' -f $GroupMember_Property, $Member_Object)
+            #         }
+            #         $Member_Object_Result = Find-DSSRawObject @Common_Search_Parameters @Member_Search_Parameters
+            #         if ($Member_Object_Result.Count) {
+            #             $Member_To_AddRemove = @{
+            #                 'Path' = $Member_Object_Result.'adspath'
+            #                 'Name' = $($Member_Object_Result.'distinguishedname')
+            #             }
+            #             if ($Action -match 'PrincipalGroupMembership') {
+            #                 $Member_To_AddRemove['Object'] = $Member_Object_Result
+            #             }
+            #             Write-Verbose ('{0}|Found member: {1}' -f $Function_Name, $Member_To_AddRemove['Name'])
+            #             break
+            #         }
+            #     }
+            #     if (-not $Member_To_AddRemove) {
+            #         $Terminating_ErrorRecord_Parameters = @{
+            #             'Exception'    = 'System.DirectoryServices.ActiveDirectory.ActiveDirectoryObjectNotFoundException'
+            #             'ID'           = 'DSS-{0}' -f $Function_Name
+            #             'Category'     = 'ObjectNotFound'
+            #             'TargetObject' = $Object
+            #             'Message'      = 'Cannot find object with Identity of "{0}"' -f $Member_Object
+            #         }
+            #         $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+            #         $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+            #     } else {
+            #         $GroupMember_Objects.Add($Member_To_AddRemove)
+            #     }
+            # }
         }
 
         $Confirm_Header = New-Object -TypeName 'System.Text.StringBuilder'
@@ -231,15 +238,15 @@ function Set-DSSRawObject {
 
                 'GroupMember' {
                     $GroupMember_ShouldProcess = New-Object -TypeName 'System.Text.StringBuilder'
-                    $GroupMember_Objects.GetEnumerator() | ForEach-Object {
+                    foreach ($GroupMember_Object in $GroupMember_Objects) {
                         if ($Action -eq 'AddGroupMember') {
-                            $ShouldProcess_Line = 'Add group member "{0}" to target: "{1}".' -f $_['Name'], $($Object.'distinguishedname')
+                            $ShouldProcess_Line = 'Add group member "{0}" to target: "{1}".' -f $GroupMember_Object['Name'], $($Object.'distinguishedname')
                         } elseif ($Action -eq 'AddPrincipalGroupMembership') {
-                            $ShouldProcess_Line = 'Add target "{0}" to group: "{1}".' -f $($Object.'distinguishedname'), $_['Name']
+                            $ShouldProcess_Line = 'Add target "{0}" to group: "{1}".' -f $($Object.'distinguishedname'), $GroupMember_Object['Name']
                         } elseif ($Action -eq 'RemoveGroupMember') {
-                            $ShouldProcess_Line = 'Remove group member "{0}" from target: "{1}".' -f $_['Name'], $($Object.'distinguishedname')
+                            $ShouldProcess_Line = 'Remove group member "{0}" from target: "{1}".' -f $GroupMember_Object['Name'], $($Object.'distinguishedname')
                         } elseif ($Action -eq 'RemovePrincipalGroupMembership') {
-                            $ShouldProcess_Line = 'Remove target "{0}" from group: "{1}".' -f $($Object.'distinguishedname'), $_['Name']
+                            $ShouldProcess_Line = 'Remove target "{0}" from group: "{1}".' -f $($Object.'distinguishedname'), $GroupMember_Object['Name']
                         }
                         [void]$GroupMember_ShouldProcess.AppendLine($ShouldProcess_Line)
                     }
