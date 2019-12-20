@@ -7,7 +7,10 @@ function Get-DSSResolvedObject {
 
         This is used in other functions that need to resolve a subset of objects that are passed through another property, like a list of group members that are passed to Add-DSSGroupMember.
     .EXAMPLE
+        $Members = @('jsmith','rjacobs','S-1-5-21-3387319392-2301824641-2614994224-7110')
+        $ResolvedGroupMembers = GroupMember_Objects = Get-DSSResolvedObject -InputSet $Members
 
+        Resolves the list of group members and returns an object that can be used to add/remove members.
     .NOTES
 
     #>
