@@ -304,15 +304,47 @@ function Set-DSSRawObject {
                         }
                     }
                     if ($Replace) {
-                        $Replace.GetEnumerator() | ForEach-Object {
-                            # The Country property is handled separately.
-                            if ($_.Name -eq 'c') {
-                                $Set_CountryProperties.Add($_.Value)
+                        # The Country property needs to be handled separately, as it actually sets 3 LDAP properties.
+                        if ($Replace.Keys -contains 'c') {
+                            $Country_Property = $Replace['c']
+                            if (($Countries_Ambiguous_Alpha2 -contains $Country_Property) -or ($Countries_Ambiguous_CountryCodes -contains $Country_Property)) {
+                                $Terminating_ErrorRecord_Parameters = @{
+                                    'Exception'    = 'Microsoft.ActiveDirectory.Management.ADException'
+                                    'ID'           = 'DSS-{0}' -f $Function_Name
+                                    'Category'     = 'InvalidData'
+                                    'TargetObject' = $Object
+                                    'Message'      = 'The specified country code "{0}" can apply to multiple country names. Please supply full country name instead.' -f $Country_Property
+                                }
+                                $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+                                $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+                            } elseif (($Countries_Fullnames -notcontains $Country_Property) -and ($Countries_Alpha2 -notcontains $Country_Property) -and ($Countries_CountryCodes -notcontains $Country_Property)) {
+                                $Terminating_ErrorRecord_Parameters = @{
+                                    'Exception'    = 'System.ArgumentException'
+                                    'ID'           = 'DSS-{0}' -f $Function_Name
+                                    'Category'     = 'InvalidData'
+                                    'TargetObject' = $Object
+                                    'Message'      = 'The specified country "{0}" cannot be matched to a full country name or country code.' -f $Country_Property
+                                }
+                                $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+                                $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
                             } else {
-                                $ShouldProcess_Line = 'Replace value of property "{0}" with value: "{1}"' -f $_.Name, ($_.Value -join ',')
-                                $Set_AllProperties.Add($_.Name)
-                                [void]$Set_ShouldProcess.AppendLine($ShouldProcess_Line)
+                                if ($Countries_Fullnames -contains $Country_Property) {
+                                    $Country_FullName = $Property
+                                } elseif ($Countries_Alpha2 -contains $Country_Property) {
+                                    $Country_FullName = ($Countries.GetEnumerator() | Where-Object { $_.Value.'Alpha2' -eq $Country_Property }).Name
+                                } elseif ($Countries_CountryCodes -contains $Country_Property) {
+                                    $Country_FullName = ($Countries.GetEnumerator() | Where-Object { $_.Value.'CountryCode' -eq $Country_Property }).Name
+                                }
+
+                                $Replace['co'] = $Country_FullName
+                                $Replace['c'] = $Countries[$Country_FullName]['Alpha2']
+                                $Replace['countrycode'] = $Countries[$Country_FullName]['CountryCode']
                             }
+                        }
+                        $Replace.GetEnumerator() | ForEach-Object {
+                            $ShouldProcess_Line = 'Replace value of property "{0}" with value: "{1}"' -f $_.Name, ($_.Value -join ',')
+                            $Set_AllProperties.Add($_.Name)
+                            [void]$Set_ShouldProcess.AppendLine($ShouldProcess_Line)
                         }
                     }
                     if ($Clear) {
@@ -346,49 +378,7 @@ function Set-DSSRawObject {
                     # Process the Country property as it actually sets 3 LDAP properties.
                     if ($Set_CountryProperties.Count) {
                         foreach ($Property in $Set_CountryProperties) {
-                            if (($Countries_Ambiguous_Alpha2 -contains $Property) -or ($Countries_Ambiguous_CountryCodes -contains $Property)) {
-                                $Terminating_ErrorRecord_Parameters = @{
-                                    'Exception'    = 'Microsoft.ActiveDirectory.Management.ADException'
-                                    'ID'           = 'DSS-{0}' -f $Function_Name
-                                    'Category'     = 'InvalidData'
-                                    'TargetObject' = $Object
-                                    'Message'      = 'The specified country code "{0}" can apply to multiple country names. Please supply full country name instead.' -f $Property
-                                }
-                                $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
-                                $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
-                            } elseif (($Countries_Fullnames -notcontains $Property) -and ($Countries_Alpha2 -notcontains $Property) -and ($Countries_CountryCodes -notcontains $Property)) {
-                                $Terminating_ErrorRecord_Parameters = @{
-                                    'Exception'    = 'System.ArgumentException'
-                                    'ID'           = 'DSS-{0}' -f $Function_Name
-                                    'Category'     = 'InvalidData'
-                                    'TargetObject' = $Object
-                                    'Message'      = 'The specified country "{0}" cannot be matched to a full country name or country code.' -f $Property
-                                }
-                                $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
-                                $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
-                            } else {
-                                if ($Countries_Fullnames -contains $Property) {
-                                    $Country_FullName = $Property
-                                } elseif ($Countries_Alpha2 -contains $Property) {
-                                    $Country_FullName = ($Countries.GetEnumerator() | Where-Object { $_.Value.'Alpha2' -eq $Property }).Name
-                                } elseif ($Countries_CountryCodes -contains $Property) {
-                                    $Country_FullName = ($Countries.GetEnumerator() | Where-Object { $_.Value.'CountryCode' -eq $Property }).Name
-                                }
 
-                                $Country_Properties = @('co', 'c', 'countrycode')
-                                foreach ($Country_Property in $Country_Properties) {
-                                    if ($Country_Property -eq 'c') {
-                                        $Country_Value = $Countries[$Country_FullName]['Alpha2']
-                                    } elseif ($Country_Property -eq 'co') {
-                                        $Country_Value = $Country_FullName
-                                    } elseif ($Country_Property -eq 'countrycode') {
-                                        $Country_Value = $Countries[$Country_FullName]['CountryCode']
-                                    }
-                                    $Replace[$Country_Property] = $Country_Value
-                                    $ShouldProcess_Line = 'Replace value of property "{0}" with value: "{1}"' -f $Country_Property, $Country_Value
-                                    [void]$Set_ShouldProcess.AppendLine($ShouldProcess_Line)
-                                }
-                            }
                         }
                     }
 
