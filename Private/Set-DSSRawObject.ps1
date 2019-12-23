@@ -380,6 +380,19 @@ function Set-DSSRawObject {
                                     }
 
                                 } elseif ($Property.Name -eq 'cannotchangepassword') {
+                                    if ($Property.Value -isnot [boolean]) {
+                                        $Terminating_ErrorRecord_Parameters = @{
+                                            'Exception'      = 'System.ArgumentException'
+                                            'ID'             = 'DSS-{0}' -f $Function_Name
+                                            'Category'       = 'InvalidType'
+                                            'TargetObject'   = $Object
+                                            'Message'        = 'Specified property must be a boolean: {0}' -f $Property.Name
+                                            'InnerException' = $_.Exception
+                                        }
+                                        $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+                                        $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+                                    }
+
                                     # This requires 2 Deny permissions to be set: the "Everyone" group and "NT AUTHORITY\SELF" user. Only if both are set to Deny, will "cannotchangepassword" be true.
                                     # Adapted from: https://social.technet.microsoft.com/Forums/scriptcenter/en-US/e947d590-d183-46b9-9a7a-4e785638c6fb/how-can-i-get-a-list-of-active-directory-user-accounts-where-the-user-cannot-change-the-password?forum=ITCG
                                     $global:ChangePassword_Rules = $Object.ObjectSecurity.Access | Where-Object { $_.ObjectType -eq $ChangePassword_GUID }
