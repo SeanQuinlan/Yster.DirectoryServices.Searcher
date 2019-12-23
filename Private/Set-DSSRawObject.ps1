@@ -239,7 +239,6 @@ function Set-DSSRawObject {
 
                     $Set_ShouldProcess = New-Object -TypeName 'System.Text.StringBuilder'
                     $Set_AllProperties = New-Object -TypeName 'System.Collections.Generic.List[String]'
-                    $Set_CountryProperties = New-Object -TypeName 'System.Collections.Generic.List[String]'
 
                     if ($Remove) {
                         $Remove.GetEnumerator() | ForEach-Object {
@@ -332,13 +331,6 @@ function Set-DSSRawObject {
                                 $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
                                 $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
                             }
-                        }
-                    }
-
-                    # Process the Country property as it actually sets 3 LDAP properties.
-                    if ($Set_CountryProperties.Count) {
-                        foreach ($Property in $Set_CountryProperties) {
-
                         }
                     }
 
