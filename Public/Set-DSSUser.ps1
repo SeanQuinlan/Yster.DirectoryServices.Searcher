@@ -328,6 +328,23 @@ function Set-DSSUser {
         [String]
         $LogonWorkstations,
 
+        # Sets the Manager property of the user. This value can be one of the following object types:
+        # * DistinguishedName
+        # * ObjectSID (SID)
+        # * ObjectGUID (GUID)
+        # * SAMAccountName
+        #
+        # Some examples of using this property are:
+        #
+        # -Manager 'rsmith'
+        # -Manager 'CN=rsmith,OU=Users,OU=Company,DC=contoso,DC=com'
+        # -Manager 'S-1-5-21-3387319312-2301824641-2614994224-7110'
+        # -Manager 'f4fcc8dc-bd82-41d0-bc0a-5c44350bbb62'
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $Manager,
+
         # The value that will be set as the MobilePhone of the user.
         # An example of using this property is:
         #
@@ -561,7 +578,6 @@ function Set-DSSUser {
     # CannotChangePassword
     # Certificates
     # CompoundIdentitySupported
-    # Country
     # Instance
     # KerberosEncryptionType
     # Manager

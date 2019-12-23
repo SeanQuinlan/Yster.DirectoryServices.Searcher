@@ -129,7 +129,6 @@ function Set-DSSRawObject {
 
         if ($Action -match 'GroupMember') {
             Write-Verbose ('{0}|Getting GroupMembers or PrincipalGroups first' -f $Function_Name)
-
             if ($Action -match 'PrincipalGroupMembership') {
                 $Member_Set = $MemberOf
             } else {
@@ -240,6 +239,7 @@ function Set-DSSRawObject {
                     $Set_ShouldProcess = New-Object -TypeName 'System.Text.StringBuilder'
                     $Set_AllProperties = New-Object -TypeName 'System.Collections.Generic.List[String]'
                     $Set_CountryProperties = New-Object -TypeName 'System.Collections.Generic.List[String]'
+
                     if ($Remove) {
                         $Remove.GetEnumerator() | ForEach-Object {
                             $ShouldProcess_Line = 'Removing value "{0}" from property: "{1}"' -f ($_.Value -join ','), $_.Name
@@ -247,6 +247,7 @@ function Set-DSSRawObject {
                             [void]$Set_ShouldProcess.AppendLine($ShouldProcess_Line)
                         }
                     }
+
                     if ($Add) {
                         $Add.GetEnumerator() | ForEach-Object {
                             $ShouldProcess_Line = 'Adding value "{0}" to property: "{1}"' -f ($_.Value -join ','), $_.Name
@@ -254,6 +255,7 @@ function Set-DSSRawObject {
                             [void]$Set_ShouldProcess.AppendLine($ShouldProcess_Line)
                         }
                     }
+
                     if ($Replace) {
                         # The Country property needs to be handled separately, as it actually sets 3 LDAP properties.
                         if ($Replace.Keys -contains 'c') {
@@ -292,12 +294,18 @@ function Set-DSSRawObject {
                                 $Replace['countrycode'] = $Countries[$Country_FullName]['CountryCode']
                             }
                         }
+                        if ($Replace.Keys -contains 'manager') {
+                            Write-Verbose ('{0}|Resolving manager "{1}" to DistinguishedName' -f $Function_Name, $Replace['manager'])
+                            $Resolved_Manager = Get-DSSResolvedObject @Common_Search_Parameters -InputSet $Replace['manager']
+                            $Replace['manager'] = $Resolved_Manager.'Name'
+                        }
                         $Replace.GetEnumerator() | ForEach-Object {
                             $ShouldProcess_Line = 'Replace value of property "{0}" with value: "{1}"' -f $_.Name, ($_.Value -join ',')
                             $Set_AllProperties.Add($_.Name)
                             [void]$Set_ShouldProcess.AppendLine($ShouldProcess_Line)
                         }
                     }
+
                     if ($Clear) {
                         $Clear | ForEach-Object {
                             $ShouldProcess_Line = 'Clear value of property "{0}"' -f $_
@@ -347,12 +355,14 @@ function Set-DSSRawObject {
                                 $Object.PutEx($ADS_PROPERTY_DELETE, $Property.Name, @($Property.Value))
                             }
                         }
+
                         if ($Add) {
                             foreach ($Property in $Add.GetEnumerator()) {
                                 Write-Verbose ('{0}|Add: "{1}" added to "{2}"' -f $Function_Name, ($Property.Value -join ','), $Property.Name)
                                 $Object.PutEx($ADS_PROPERTY_APPEND, $Property.Name, @($Property.Value))
                             }
                         }
+
                         if ($Replace) {
                             foreach ($Property in $Replace.GetEnumerator()) {
                                 Write-Verbose ('{0}|Checking property: {1}' -f $Function_Name, $Property.Name)
@@ -408,12 +418,14 @@ function Set-DSSRawObject {
                                 }
                             }
                         }
+
                         if ($Clear) {
                             foreach ($Property in $Clear) {
                                 Write-Verbose ('{0}|Clear property: {1}' -f $Function_Name, $Property)
                                 $Object.PutEx($ADS_PROPERTY_CLEAR, $Property, @())
                             }
                         }
+
                         Write-Verbose ('{0}|Applying properties on object' -f $Function_Name)
                         $Object.SetInfo()
                         Write-Verbose ('{0}|Properties applied successfully' -f $Function_Name)
