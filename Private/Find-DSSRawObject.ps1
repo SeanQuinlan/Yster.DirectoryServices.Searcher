@@ -422,12 +422,12 @@ function Find-DSSRawObject {
                                             $ChangePassword_Rules = $Current_Searcher_Result_Value.Access | Where-Object { $_.ObjectType -eq $ChangePassword_GUID }
                                             $null = $ChangePassword_Identity_Everyone_Correct = $ChangePassword_Identity_Self_Correct
                                             foreach ($ChangePassword_Rule in $ChangePassword_Rules) {
-                                                if (($ChangePassword_Rule.IdentityReference -eq $ChangePassword_Identity_Everyone) -and ($ChangePassword_Rule.AccessControlType -eq 'Deny')) {
-                                                    Write-Verbose ('{0}|Security: CannotChangePassword: Found correct permission for "Everyone" group: {1}' -f $Function_Name, $ChangePassword_Identity_Everyone)
+                                                if (($ChangePassword_Rule.IdentityReference -eq $ChangePassword_Identity_Everyone_Object.Value) -and ($ChangePassword_Rule.AccessControlType -eq 'Deny')) {
+                                                    Write-Verbose ('{0}|Security: CannotChangePassword: Found correct permission for "Everyone" group: {1}' -f $Function_Name, $ChangePassword_Identity_Everyone_Object.Value)
                                                     $ChangePassword_Identity_Everyone_Correct = $true
                                                 }
-                                                if (($ChangePassword_Rule.IdentityReference -eq $ChangePassword_Identity_Self) -and ($ChangePassword_Rule.AccessControlType -eq 'Deny')) {
-                                                    Write-Verbose ('{0}|Security: CannotChangePassword: Found correct permission for "Self" user: {1}' -f $Function_Name, $ChangePassword_Identity_Self)
+                                                if (($ChangePassword_Rule.IdentityReference -eq $ChangePassword_Identity_Self_Object.Value) -and ($ChangePassword_Rule.AccessControlType -eq 'Deny')) {
+                                                    Write-Verbose ('{0}|Security: CannotChangePassword: Found correct permission for "Self" user: {1}' -f $Function_Name, $ChangePassword_Identity_Self_Object.Value)
                                                     $ChangePassword_Identity_Self_Correct = $true
                                                 }
                                             }

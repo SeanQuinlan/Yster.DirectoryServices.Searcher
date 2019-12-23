@@ -19,6 +19,7 @@ function Set-DSSRawObject {
         https://docs.microsoft.com/en-us/dotnet/api/system.management.automation.cmdlet.shouldprocess
         https://docs.microsoft.com/en-gb/windows/win32/api/iads/nf-iads-iads-put
         http://www.selfadsi.org/write.htm
+        https://docs.microsoft.com/en-us/dotnet/api/system.directoryservices.activedirectoryaccessrule
     #>
 
     [CmdletBinding(SupportsShouldProcess = $true)]
@@ -386,6 +387,103 @@ function Set-DSSRawObject {
                                         Write-Verbose ('{0}|Property already set correctly: {1}' -f $Function_Name, $SubProperty_Name)
                                     }
 
+                                } elseif ($Property.Name -eq 'cannotchangepassword') {
+                                    # This requires 2 Deny permissions to be set: the "Everyone" group and "NT AUTHORITY\SELF" user. Only if both are set to Deny, will "cannotchangepassword" be true.
+                                    # Adapted from: https://social.technet.microsoft.com/Forums/scriptcenter/en-US/e947d590-d183-46b9-9a7a-4e785638c6fb/how-can-i-get-a-list-of-active-directory-user-accounts-where-the-user-cannot-change-the-password?forum=ITCG
+                                    $global:ChangePassword_Rules = $Object.ObjectSecurity.Access | Where-Object { $_.ObjectType -eq $ChangePassword_GUID }
+                                    $null = $ChangePassword_Identity_Everyone_Correct = $ChangePassword_Identity_Self_Correct
+
+                                    if ($Property.Value -eq $true) {
+                                        foreach ($ChangePassword_Rule in $ChangePassword_Rules) {
+                                            if (($ChangePassword_Rule.IdentityReference -eq $ChangePassword_Identity_Everyone_Object) -and ($ChangePassword_Rule.AccessControlType -eq 'Deny')) {
+                                                Write-Verbose ('{0}|CannotChangePassword: Found correct DENY permission for "Everyone" group: {1}' -f $Function_Name, $ChangePassword_Identity_Everyone_Object.Value)
+                                                $ChangePassword_Identity_Everyone_Correct = $true
+                                            }
+                                            if (($ChangePassword_Rule.IdentityReference -eq $ChangePassword_Identity_Self_Object) -and ($ChangePassword_Rule.AccessControlType -eq 'Deny')) {
+                                                Write-Verbose ('{0}|CannotChangePassword: Found correct DENY permission for "Self" user: {1}' -f $Function_Name, $ChangePassword_Identity_Self_Object.Value)
+                                                $ChangePassword_Identity_Self_Correct = $true
+                                            }
+                                        }
+                                        if ($ChangePassword_Identity_Everyone_Correct -and $ChangePassword_Identity_Self_Correct) {
+                                            $ChangePassword_Action = 'None'
+                                        } else {
+                                            $ChangePassword_Action = 'SetDeny'
+                                        }
+                                    } else {
+                                        # For the ALLOW rule:
+                                        # 1. Either just "Everyone" group can be set to Allow and no "NT AUTHORITY\SELF" user rule exists.
+                                        # 2. Both "Everyone" group and "NT AUTHORITY\SELF" user rules are set to Allow.
+                                        foreach ($ChangePassword_Rule in $ChangePassword_Rules) {
+                                            if ($ChangePassword_Rule.IdentityReference -eq $ChangePassword_Identity_Everyone_Object) {
+                                                if ($ChangePassword_Rule.AccessControlType -eq 'Allow') {
+                                                    Write-Verbose ('{0}|CannotChangePassword: Found correct ALLOW permission for "Everyone" group: {1}' -f $Function_Name, $ChangePassword_Identity_Everyone_Object.Value)
+                                                    $ChangePassword_Identity_Everyone_Correct = $true
+                                                } else {
+                                                    Write-Verbose ('{0}|CannotChangePassword: Found incorrect permission for "Everyone" group: {1}' -f $Function_Name, $ChangePassword_Identity_Everyone_Object.Value)
+                                                    $ChangePassword_Identity_Everyone_Correct = $false
+                                                }
+                                            }
+                                            if ($ChangePassword_Rule.IdentityReference -eq $ChangePassword_Identity_Self_Object) {
+                                                if ($ChangePassword_Rule.AccessControlType -eq 'Allow') {
+                                                    Write-Verbose ('{0}|CannotChangePassword: Found correct ALLOW permission for "Self" user: {1}' -f $Function_Name, $ChangePassword_Identity_Self_Object.Value)
+                                                    $ChangePassword_Identity_Self_Correct = $true
+                                                } else {
+                                                    Write-Verbose ('{0}|CannotChangePassword: Found incorrect permission for "Self" user: {1} with permission "{2}"' -f $Function_Name, $ChangePassword_Identity_Self_Object.Value, $ChangePassword_Rule.AccessControlType)
+                                                    $ChangePassword_Identity_Self_Correct = $false
+                                                }
+                                            }
+                                        }
+                                        if ($ChangePassword_Identity_Everyone_Correct -and ($ChangePassword_Identity_Self_Correct -ne $false)) {
+                                            $ChangePassword_Action = 'None'
+                                        } else {
+                                            $ChangePassword_Action = 'SetAllow'
+                                        }
+                                    }
+
+                                    switch ($ChangePassword_Action) {
+                                        'SetAllow' {
+                                            # Remove existing incorrect rules.
+                                            foreach ($ChangePassword_Rule in $ChangePassword_Rules) {
+                                                [void]$Object.ObjectSecurity.RemoveAccessRule($ChangePassword_Rule)
+                                            }
+                                            Write-Verbose ('{0}|CannotChangePassword: Setting ALLOW permission for "Everyone" group: {1}' -f $Function_Name, $ChangePassword_Identity_Everyone_Object.Value)
+                                            $ChangePassword_AccessRule_Arguments = @(
+                                                $ChangePassword_Identity_Everyone_Object
+                                                [System.DirectoryServices.ActiveDirectoryRights]::ExtendedRight
+                                                [System.Security.AccessControl.AccessControlType]::Allow
+                                                [System.Guid]$ChangePassword_GUID
+                                                [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None
+                                            )
+                                            $ChangePassword_AccessRule = New-Object 'System.DirectoryServices.ActiveDirectoryAccessRule' -ArgumentList $ChangePassword_AccessRule_Arguments
+                                            $Object.ObjectSecurity.SetAccessRule($ChangePassword_AccessRule)
+                                            $Object.CommitChanges()
+                                        }
+                                        'SetDeny' {
+                                            # Remove existing incorrect rules.
+                                            foreach ($ChangePassword_Rule in $ChangePassword_Rules) {
+                                                [void]$Object.ObjectSecurity.RemoveAccessRule($ChangePassword_Rule)
+                                            }
+                                            $ChangePassword_AccessRule_Common = @(
+                                                [System.DirectoryServices.ActiveDirectoryRights]::ExtendedRight
+                                                [System.Security.AccessControl.AccessControlType]::Deny
+                                                [System.Guid]$ChangePassword_GUID
+                                                [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None
+                                            )
+                                            foreach ($ChangePassword_Identity in @($ChangePassword_Identity_Everyone_Object, $ChangePassword_Identity_Self_Object)) {
+                                                Write-Verbose ('{0}|CannotChangePassword: Setting DENY permission for: {1}' -f $Function_Name, $ChangePassword_Identity.Value)
+                                                $global:ChangePassword_AccessRule_Arguments = New-Object -TypeName 'System.Collections.Generic.List[Object]'
+                                                $ChangePassword_AccessRule_Arguments.Add($ChangePassword_Identity)
+                                                $ChangePassword_AccessRule_Arguments.AddRange($ChangePassword_AccessRule_Common)
+                                                $ChangePassword_AccessRule = New-Object 'System.DirectoryServices.ActiveDirectoryAccessRule' -ArgumentList $ChangePassword_AccessRule_Arguments
+                                                $Object.ObjectSecurity.SetAccessRule($ChangePassword_AccessRule)
+                                                $Object.CommitChanges()
+                                            }
+                                        }
+                                        'None' {
+                                            Write-Verbose ('{0}|CannotChangePassword: Both permissions already set correctly, doing nothing' -f $Function_Name)
+                                        }
+                                    }
+
                                 } else {
                                     if ($Set_Alias_Properties.Values -contains $Property.Name) {
                                         $Property_Name = ($Set_Alias_Properties.GetEnumerator() | Where-Object { $_.Value -eq $Property.Name }).Name
@@ -393,7 +491,7 @@ function Set-DSSRawObject {
                                         $Compare_Value = $Property.Value
 
                                         if ($Property.Name -eq 'changepasswordatlogon') {
-                                            $Current_Property_Value = $Object.ConvertLargeIntegerToInt64($Object.pwdlastset.Value)
+                                            $Current_Property_Value = $Object.ConvertLargeIntegerToInt64($Object.'pwdlastset'.Value)
                                             if ($Property.Value -eq $true) {
                                                 $Compare_Value = 0
                                             } elseif ($Current_Property_Value -gt 0) {

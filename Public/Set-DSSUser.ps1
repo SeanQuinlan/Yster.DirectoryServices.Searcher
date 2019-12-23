@@ -97,6 +97,15 @@ function Set-DSSUser {
         [Boolean]
         $AllowReversiblePasswordEncryption,
 
+        # Specifies whether an account's password can be changed.
+        # An example of using this property is:
+        #
+        # -CannotChangePassword $true
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Boolean]
+        $CannotChangePassword,
+
         # Specifies whether an account is required to change it's password when next logging on.
         # An example of using this property is:
         #
@@ -575,7 +584,6 @@ function Set-DSSUser {
     # AuthenticationPolicy
     # AuthenticationPolicySilo
     # AuthType
-    # CannotChangePassword
     # Certificates
     # CompoundIdentitySupported
     # Instance
