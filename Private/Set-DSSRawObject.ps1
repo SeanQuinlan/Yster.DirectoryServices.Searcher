@@ -401,7 +401,7 @@ function Set-DSSRawObject {
                                         } else {
                                             $ChangePassword_Action = 'SetDeny'
                                         }
-                                    } else {
+                                    } elseif ($Property.Value -eq $false) {
                                         # For the ALLOW rule:
                                         # 1. Either just "Everyone" group can be set to Allow and no "NT AUTHORITY\SELF" user rule exists.
                                         # 2. Both "Everyone" group and "NT AUTHORITY\SELF" user rules are set to Allow.
