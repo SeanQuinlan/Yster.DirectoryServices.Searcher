@@ -158,6 +158,14 @@ $OptionalFeature_Scope_Table = @{
     '1' = 'ForestOrConfigurationSet'
 }
 
+# Variables related to the "Cannot Change Password" properties.
+# Adapted from: https://social.technet.microsoft.com/Forums/scriptcenter/en-US/e947d590-d183-46b9-9a7a-4e785638c6fb/how-can-i-get-a-list-of-active-directory-user-accounts-where-the-user-cannot-change-the-password?forum=ITCG
+$ChangePassword_GUID = 'ab721a53-1e2f-11d0-9819-00aa0040529b'
+$ChangePassword_Identity_Everyone_SID = New-Object -TypeName 'System.Security.Principal.SecurityIdentifier' -ArgumentList ([System.Security.Principal.WellKnownSidType]::WorldSid, $null) # Everyone
+$ChangePassword_Identity_Everyone = $ChangePassword_Identity_Everyone_SID.Translate([System.Security.Principal.NTAccount]).Value
+$ChangePassword_Identity_Self_SID = New-Object -TypeName 'System.Security.Principal.SecurityIdentifier' -ArgumentList ([System.Security.Principal.WellKnownSidType]::SelfSid, $null) # NT AUTHORITY\SELF
+$ChangePassword_Identity_Self = $ChangePassword_Identity_Self_SID.Translate([System.Security.Principal.NTAccount]).Value
+
 # Active Directory country names and codes.
 # Taken from the Bia.Countries module - https://github.com/lehtoj/Bia.Countries
 $Countries = @{

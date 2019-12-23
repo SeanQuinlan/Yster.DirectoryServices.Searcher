@@ -580,7 +580,6 @@ function Set-DSSUser {
     # CompoundIdentitySupported
     # Instance
     # KerberosEncryptionType
-    # Manager
     # Partition
     # PassThru
     # PrincipalsAllowedToDelegateToAccount
