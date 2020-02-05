@@ -492,8 +492,6 @@ function Set-DSSRawObject {
                                 } else {
                                     if ($Set_Alias_Properties.Values -contains $Property.Name) {
                                         $Property_Name = ($Set_Alias_Properties.GetEnumerator() | Where-Object { $_.Value -eq $Property.Name }).Name
-                                        $Current_Property_Value = $Object.InvokeGet($Property_Name)
-                                        $Compare_Value = $Property.Value
 
                                         if ($Property.Name -eq 'changepasswordatlogon') {
                                             $Current_Property_Value = $Object.ConvertLargeIntegerToInt64($Object.'pwdlastset'.Value)
@@ -504,7 +502,14 @@ function Set-DSSRawObject {
                                             } else {
                                                 $Compare_Value = -1
                                             }
+                                        } elseif ($Property.Name -eq 'kerberosencryptiontype') {
+                                            $Current_Property_Value = $Object.InvokeGet($Property_Name)
+                                            $Compare_Value = ([Enum]::Parse('ADKerberosEncryptionType', ($Property.Value -join ', '), $true)).value__
+                                        } else {
+                                            $Current_Property_Value = $Object.InvokeGet($Property_Name)
+                                            $Compare_Value = $Property.Value
                                         }
+
                                     } else {
                                         $Property_Name = $Property.Name
                                         $Compare_Value = $Property.Value

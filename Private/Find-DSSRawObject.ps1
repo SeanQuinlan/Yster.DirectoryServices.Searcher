@@ -105,15 +105,6 @@ function Find-DSSRawObject {
         'objectsid'
     )
 
-    # Some additional flags to the 'msds-supportedencryptiontypes' property which don't form part of the ADKerberosEncryptionTypes Enum.
-    # - Taken from https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-kile/6cfc7b50-11ed-4b4d-846d-6f08f0812919
-    $Additional_Encryption_Types = @{
-        'FAST-Supported'                    = '0x10000'
-        'Compound-Identity-Supported'       = '0x20000'
-        'Claims-Supported'                  = '0x40000'
-        'Resource-SID-Compression-Disabled' = '0x80000'
-    }
-
     # A regular expression to determine if a property needs to be paged to return all values.
     $Paging_Regex = '\;range=(\d+)-(.*)'
 
@@ -381,11 +372,7 @@ function Find-DSSRawObject {
                                             }
                                         }
                                         'kerberosencryptiontype' {
-                                            $Useful_Calculated_Property_Value = ([Enum]::Parse('ADKerberosEncryptionType', $Current_Searcher_Result_Value) -split ',').Trim()
-                                            # If no matches, set the resulting value to "None", as the Get-AD* cmdlets do the same.
-                                            if ($Useful_Calculated_Property_Value -eq $Current_Searcher_Result_Value) {
-                                                $Useful_Calculated_Property_Value = 'None'
-                                            }
+                                            $Useful_Calculated_Property_Value = ([Enum]::Parse('ADKerberosEncryptionType', $Current_Searcher_Result_Value, $true) -split ',').Trim()
                                         }
 
                                         # Group properties

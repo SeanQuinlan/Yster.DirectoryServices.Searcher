@@ -158,7 +158,6 @@ function Set-DSSUser {
 
         # The value that will be set as the Country of the user. This sets 3 properties at once: co, country and countrycode.
         # This property can be set using the long country name, the short 2-letter country code or the numerical countrycode. The long country name must exactly match the name as seen in the Active Directory Users and Computers property panel.
-        #
         # Some examples of using this property are:
         #
         # -Country 'United Kingdom'
@@ -327,6 +326,23 @@ function Set-DSSUser {
         [String]
         $Initials,
 
+        # The Kerberos Encryption Types supported by the account. Must be one or more of the following: DES, RC4, AES128, AES256 or None.
+        # Setting this value to "None" will remove the other encryption types.
+        # Some examples of using this property are:
+        #
+        # -KerberosEncryptionType None
+        # -KerberosEncryptionType 'AES128','AES256'
+        [Parameter(Mandatory = $false)]
+        [ValidateSet(
+            'None',
+            'DES',
+            'RC4',
+            'AES128',
+            'AES256'
+        )]
+        [String[]]
+        $KerberosEncryptionType,
+
         # Specifies the computers that the user can log onto. More than one computer can be specified by supplying a string with the names separated by commas.
         # Some examples of using this property are:
         #
@@ -338,10 +354,10 @@ function Set-DSSUser {
         $LogonWorkstations,
 
         # Sets the Manager property of the user. This value can be one of the following object types:
-        # * DistinguishedName
-        # * ObjectSID (SID)
-        # * ObjectGUID (GUID)
-        # * SAMAccountName
+        # ..DistinguishedName
+        # ..ObjectSID (SID)
+        # ..ObjectGUID (GUID)
+        # ..SAMAccountName
         #
         # Some examples of using this property are:
         #
@@ -527,7 +543,7 @@ function Set-DSSUser {
 
         # The value that will be set as the StreetAddress of the user.
         # To add a value that displays as multiple lines in any output, separate each line with a carriage return and newline (`r`n).
-        # Note that the characters before the "r" and "n" are backticks (grave accents) and not regular quotes (apostrophes).
+        # Note that the characters before the "r" and "n" are backticks (grave accents) and not regular quotes/apostrophes.
         # Additionally, in order for PowerShell to parse the carriage return and newline, the string needs to be within double quotes and not single quotes.
         # Some examples of using this property are:
         #
@@ -587,7 +603,6 @@ function Set-DSSUser {
     # Certificates
     # CompoundIdentitySupported
     # Instance
-    # KerberosEncryptionType
     # Partition
     # PassThru
     # PrincipalsAllowedToDelegateToAccount

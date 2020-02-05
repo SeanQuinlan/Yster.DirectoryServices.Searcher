@@ -134,8 +134,9 @@ $Useful_Calculated_SubProperties = @{
 
 # A set of arguments/properties to Set-ADUser which simply set a different LDAP property.
 $Set_Alias_Properties = @{
-    'pwdlastset'           = 'changepasswordatlogon'
-    'ntsecuritydescriptor' = 'cannotchangepassword'
+    'msds-supportedencryptiontypes' = 'kerberosencryptiontype'
+    'ntsecuritydescriptor'          = 'cannotchangepassword'
+    'pwdlastset'                    = 'changepasswordatlogon'
 }
 
 # An Enum to determine KerberosEncryptionType.
@@ -143,6 +144,7 @@ $Set_Alias_Properties = @{
 Add-Type -TypeDefinition @"
     [System.Flags]
     public enum ADKerberosEncryptionType {
+        None    = 0x00,
         DES_CRC = 0x01,
         DES_MD5 = 0x02,
         RC4     = 0x04,
@@ -150,6 +152,15 @@ Add-Type -TypeDefinition @"
         AES256  = 0x10
     }
 "@
+
+# Some additional flags to the 'msds-supportedencryptiontypes' property which don't form part of the ADKerberosEncryptionType Enum.
+# - Taken from https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-kile/6cfc7b50-11ed-4b4d-846d-6f08f0812919
+$Additional_Encryption_Types = @{
+    'FAST-Supported'                    = '0x10000'
+    'Compound-Identity-Supported'       = '0x20000'
+    'Claims-Supported'                  = '0x40000'
+    'Resource-SID-Compression-Disabled' = '0x80000'
+}
 
 # As of February 2019 there are only 2 OptionalFeatures available (Recycle Bin and Privileged Access Management) and both are Forest-wide in scope.
 # Therefore the below table is a guess based on values taken from Enable-ADOptionalFeature - https://docs.microsoft.com/en-us/powershell/module/addsadministration/enable-adoptionalfeature
