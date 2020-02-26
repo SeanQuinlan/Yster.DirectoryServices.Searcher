@@ -149,6 +149,15 @@ function Set-DSSUser {
         [String]
         $Company,
 
+        # Indicates whether an account supports Kerberos service tickets which includes the authorization data for the user's device.
+        # An example of using this property is:
+        #
+        # -CompoundIdentitySupported $true
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Boolean]
+        $CompoundIdentitySupported,
+
         # The directory context to search - Domain or Forest. By default this will search within the domain only.
         # If you want to search the entire directory, specify "Forest" for this parameter and the search will be performed on a Global Catalog server, targetting the entire forest.
         [Parameter(Mandatory = $false)]
@@ -601,7 +610,6 @@ function Set-DSSUser {
     # AuthenticationPolicySilo
     # AuthType
     # Certificates
-    # CompoundIdentitySupported
     # Instance
     # Partition
     # PassThru

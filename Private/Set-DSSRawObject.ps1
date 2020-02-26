@@ -235,7 +235,8 @@ function Set-DSSRawObject {
 
                 'Set' {
                     $Calculated_SubProperties_List = $Useful_Calculated_SubProperties.GetEnumerator() | ForEach-Object { $_.Value.GetEnumerator().Name }
-                    $Calculated_SubProperties_List_Full = $Calculated_SubProperties_List + $Set_Alias_Properties.Values
+                    $Set_Alias_Properties_Full = $Set_Alias_Properties.Values | ForEach-Object { $_ } # This will unwind any nested arrays
+                    $Calculated_SubProperties_List_Full = $Calculated_SubProperties_List + $Set_Alias_Properties_Full
 
                     $Set_ShouldProcess = New-Object -TypeName 'System.Text.StringBuilder'
                     $Set_AllProperties = New-Object -TypeName 'System.Collections.Generic.List[String]'
@@ -447,7 +448,6 @@ function Set-DSSRawObject {
 
                                     switch ($ChangePassword_Action) {
                                         'SetAllow' {
-                                            # Remove existing incorrect rules.
                                             foreach ($ChangePassword_Rule in $ChangePassword_Rules) {
                                                 [void]$Object.ObjectSecurity.RemoveAccessRule($ChangePassword_Rule)
                                             }
@@ -464,7 +464,6 @@ function Set-DSSRawObject {
                                             $Object.CommitChanges()
                                         }
                                         'SetDeny' {
-                                            # Remove existing incorrect rules.
                                             foreach ($ChangePassword_Rule in $ChangePassword_Rules) {
                                                 [void]$Object.ObjectSecurity.RemoveAccessRule($ChangePassword_Rule)
                                             }
@@ -490,24 +489,37 @@ function Set-DSSRawObject {
                                     }
 
                                 } else {
-                                    if ($Set_Alias_Properties.Values -contains $Property.Name) {
+                                    if ($Set_Alias_Properties_Full -contains $Property.Name) {
                                         $Property_Name = ($Set_Alias_Properties.GetEnumerator() | Where-Object { $_.Value -eq $Property.Name }).Name
-
-                                        if ($Property.Name -eq 'changepasswordatlogon') {
-                                            $Current_Property_Value = $Object.ConvertLargeIntegerToInt64($Object.'pwdlastset'.Value)
-                                            if ($Property.Value -eq $true) {
-                                                $Compare_Value = 0
-                                            } elseif ($Current_Property_Value -gt 0) {
-                                                $Compare_Value = $Current_Property_Value
-                                            } else {
-                                                $Compare_Value = -1
+                                        Write-Verbose ('{0}|Alias property name: {1}' -f $Function_Name, $Property_Name)
+                                        switch ($Property.Name) {
+                                            'changepasswordatlogon' {
+                                                $Current_Property_Value = $Object.ConvertLargeIntegerToInt64($Object.'pwdlastset'.Value)
+                                                if ($Property.Value -eq $true) {
+                                                    $Compare_Value = 0
+                                                } elseif ($Current_Property_Value -gt 0) {
+                                                    $Compare_Value = $Current_Property_Value
+                                                } else {
+                                                    $Compare_Value = -1
+                                                }
                                             }
-                                        } elseif ($Property.Name -eq 'kerberosencryptiontype') {
-                                            $Current_Property_Value = $Object.InvokeGet($Property_Name)
-                                            $Compare_Value = ([Enum]::Parse('ADKerberosEncryptionType', ($Property.Value -join ', '), $true)).value__
-                                        } else {
-                                            $Current_Property_Value = $Object.InvokeGet($Property_Name)
-                                            $Compare_Value = $Property.Value
+                                            'compoundidentitysupported' {
+                                                $Compound_Identity_Value = $Additional_Encryption_Types.'Compound-Identity-Supported'
+                                                $Current_Property_Value = $Object.InvokeGet($Property_Name)
+                                                if ($Property.Value -eq $true) {
+                                                    $Compare_Value = $Current_Property_Value -bor $Compound_Identity_Value
+                                                } else {
+                                                    $Compare_Value = $Current_Property_Value -bxor $Compound_Identity_Value
+                                                }
+                                            }
+                                            'kerberosencryptiontype' {
+                                                $Current_Property_Value = $Object.InvokeGet($Property_Name)
+                                                $Compare_Value = ([Enum]::Parse('ADKerberosEncryptionType', ($Property.Value -join ', '), $true)).value__
+                                            }
+                                            default {
+                                                $Current_Property_Value = $Object.InvokeGet($Property_Name)
+                                                $Compare_Value = $Property.Value
+                                            }
                                         }
 
                                     } else {
