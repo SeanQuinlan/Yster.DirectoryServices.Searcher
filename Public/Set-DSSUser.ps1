@@ -621,53 +621,8 @@ function Set-DSSUser {
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
 
     try {
-        $Common_Parameters = @('Context', 'Server', 'Credential')
-        $Common_Search_Parameters = @{ }
-        foreach ($Parameter in $Common_Parameters) {
-            if ($PSBoundParameters.ContainsKey($Parameter)) {
-                $Common_Search_Parameters[$Parameter] = Get-Variable -Name $Parameter -ValueOnly
-                [void]$PSBoundParameters.Remove($Parameter)
-            }
-        }
-
-        $Default_LDAPFilter = '(objectclass=user)'
-        $Identity_Parameters = @('SAMAccountName', 'DistinguishedName', 'ObjectSID', 'ObjectGUID')
-        foreach ($Parameter in $Identity_Parameters) {
-            if ($PSBoundParameters.ContainsKey($Parameter)) {
-                $Directory_Search_Type = $Parameter
-                $Directory_Search_Value = Get-Variable -Name $Parameter -ValueOnly
-                $LDAPFilter = '(&{0}({1}={2}))' -f $Default_LDAPFilter, $Directory_Search_Type, $Directory_Search_Value
-                [void]$PSBoundParameters.Remove($Parameter)
-            }
-        }
-        $Directory_Search_Parameters = @{
-            'LDAPFilter'   = $LDAPFilter
-            'OutputFormat' = 'DirectoryEntry'
-        }
-
-        $Object_Directory_Entry = Find-DSSRawObject @Common_Search_Parameters @Directory_Search_Parameters
-        if ($Object_Directory_Entry) {
-            $Set_Parameters = Confirm-DSSObjectParameters -BoundParameters $PSBoundParameters
-
-            if ($Set_Parameters.Count) {
-                $Set_Parameters['Action'] = 'Set'
-                $Set_Parameters['Object'] = $Object_Directory_Entry
-                Write-Verbose ('{0}|Calling Set-DSSRawObject' -f $Function_Name)
-                Set-DSSRawObject @$Common_Search_Parameters @Set_Parameters
-            } else {
-                Write-Verbose ('{0}|No Set parameters provided, so doing nothing' -f $Function_Name)
-            }
-        } else {
-            $Terminating_ErrorRecord_Parameters = @{
-                'Exception'    = 'System.DirectoryServices.ActiveDirectory.ActiveDirectoryObjectNotFoundException'
-                'ID'           = 'DSS-{0}' -f $Function_Name
-                'Category'     = 'ObjectNotFound'
-                'TargetObject' = $Object_Directory_Entry
-                'Message'      = 'Cannot find {0} with {1} of "{2}"' -f ($Function_Name -replace '[GS]et-DSS'), $Directory_Search_Type, $Directory_Search_Value
-            }
-            $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
-            $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
-        }
+        Write-Verbose ('{0}|Calling Set-DSSObjectWrapper' -f $Function_Name)
+        Set-DSSObjectWrapper -ObjectType 'User' -BoundParameters $PSBoundParameters
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
             $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_
