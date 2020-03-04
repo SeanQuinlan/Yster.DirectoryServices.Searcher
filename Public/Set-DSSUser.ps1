@@ -59,8 +59,8 @@ function Set-DSSUser {
         [Object]
         $AccountExpirationDate,
 
-        # Indicates whether the security context of the user is delegated to a service or not.
-        # This sets the AccountNotDelegated flag of the UserAccountControl attribute of the user.
+        # Indicates whether the security context of the object is delegated to a service or not.
+        # This sets the AccountNotDelegated flag of the UserAccountControl attribute.
         # An example of using this property is:
         #
         # -AccountNotDelegated $true
@@ -204,7 +204,7 @@ function Set-DSSUser {
         [String]
         $Department,
 
-        # The value that will be set as the Description of the user.
+        # The value that will be set as the Description of the object.
         # An example of using this property is:
         #
         # -Description 'Joe Smith'
@@ -213,7 +213,7 @@ function Set-DSSUser {
         [String]
         $Description,
 
-        # The value that will be set as the DisplayName of the user.
+        # The value that will be set as the DisplayName of the object.
         # An example of using this property is:
         #
         # -DisplayName 'Smith, John'
@@ -318,7 +318,7 @@ function Set-DSSUser {
         [String]
         $HomePage,
 
-        # The value that will be set as the HomePhone of the user.
+        # The value that will be set as the HomePhone of the account.
         # An example of using this property is:
         #
         # -HomePhone '000-000-1111'
@@ -438,8 +438,8 @@ function Set-DSSUser {
         [Boolean]
         $PasswordNeverExpires,
 
-        # Specifies whether the user account requires a password.
-        # This sets the PasswordNotRequired flag of the UserAccountControl attribute of the user.
+        # Specifies whether the account requires a password.
+        # This sets the PasswordNotRequired flag of the UserAccountControl attribute.
         # An example of using this property is:
         #
         # -PasswordNotRequired $true
@@ -500,7 +500,7 @@ function Set-DSSUser {
         # Multiple properties can also be specified by separating them with semi-colons.
         # See below for some examples:
         #
-        # -Replace @{Description='Senior Manager'}
+        # -Replace @{description='Senior Manager'}
         # -Replace @{otherTelephone='000-0000-0000','111-1111-1111'}
         # -Replace @{givenname='John'; sn='Smith'; displayname='Smith, John'}
         #
@@ -585,7 +585,7 @@ function Set-DSSUser {
         $Title,
 
         # Specifies whether an account is trusted for Kerberos delegation.
-        # This sets the TrustedForDelegation flag of the UserAccountControl attribute of the user.
+        # This sets the TrustedForDelegation flag of the UserAccountControl attribute.
         # An example of using this property is:
         #
         # -TrustedForDelegation $true
@@ -594,7 +594,7 @@ function Set-DSSUser {
         [Boolean]
         $TrustedForDelegation,
 
-        # The value that will be set as the UserPrincipalName of the user.
+        # The value that will be set as the UserPrincipalName of the account.
         # An example of using this property is:
         #
         # -UserPrincipalName 'jsmith@contoso.com'
