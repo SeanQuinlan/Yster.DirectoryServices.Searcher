@@ -40,7 +40,12 @@ function Set-DSSObjectWrapper {
 
     try {
 
+        Write-Host $BoundParameters['samaccountname']
+
         switch ($ObjectType) {
+            'Computer' {
+                $Default_LDAPFilter = '(objectclass=computer)'
+            }
             'User' {
                 $Default_LDAPFilter = '(objectclass=user)'
             }
@@ -59,7 +64,7 @@ function Set-DSSObjectWrapper {
         foreach ($Parameter in $Identity_Parameters) {
             if ($BoundParameters.ContainsKey($Parameter)) {
                 $Directory_Search_Type = $Parameter
-                $Directory_Search_Value = Get-Variable -Name $Parameter -ValueOnly
+                $Directory_Search_Value = $BoundParameters[$Parameter]
                 $LDAPFilter = '(&{0}({1}={2}))' -f $Default_LDAPFilter, $Directory_Search_Type, $Directory_Search_Value
                 [void]$BoundParameters.Remove($Parameter)
             }
@@ -87,7 +92,7 @@ function Set-DSSObjectWrapper {
                 'ID'           = 'DSS-{0}' -f $Function_Name
                 'Category'     = 'ObjectNotFound'
                 'TargetObject' = $Object_Directory_Entry
-                'Message'      = 'Cannot find {0} with {1} of "{2}"' -f ($Function_Name -replace '[GS]et-DSS'), $Directory_Search_Type, $Directory_Search_Value
+                'Message'      = 'Cannot find {0} with {1} of "{2}"' -f $ObjectType, $Directory_Search_Type, $Directory_Search_Value
             }
             $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
             $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
