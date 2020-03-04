@@ -166,7 +166,8 @@ function Set-DSSUser {
         $Context = 'Domain',
 
         # The value that will be set as the Country of the user. This sets 3 properties at once: co, country and countrycode.
-        # This property can be set using the long country name, the short 2-letter country code or the numerical countrycode. The long country name must exactly match the name as seen in the Active Directory Users and Computers property panel.
+        # This property can be set using the long country name, the short 2-letter country code or the numerical countrycode.
+        # The long country name must exactly match the name as seen in the Active Directory Users and Computers property panel.
         # Some examples of using this property are:
         #
         # -Country 'United Kingdom'
