@@ -48,23 +48,11 @@ function Set-DSSGroup {
         [String]
         $SAMAccountName,
 
-        # The values to remove from an existing property.
-        [Parameter(Mandatory = $false)]
-        [ValidateNotNullOrEmpty()]
-        [HashTable]
-        $Remove,
-
         # The values to add to an existing property.
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         [HashTable]
         $Add,
-
-        # Values to use to replace the existing property.
-        [Parameter(Mandatory = $false)]
-        [ValidateNotNullOrEmpty()]
-        [HashTable]
-        $Replace,
 
         # An array of properties to clear.
         [Parameter(Mandatory = $false)]
@@ -78,96 +66,79 @@ function Set-DSSGroup {
         [String]
         $Context = 'Domain',
 
-        # The server to connect to.
-        [Parameter(Mandatory = $false)]
-        [ValidateNotNullOrEmpty()]
-        [String]
-        $Server,
-
         # The credential to use for access.
         [Parameter(Mandatory = $false)]
         [ValidateNotNull()]
         [System.Management.Automation.PSCredential]
         [System.Management.Automation.Credential()]
-        $Credential = [System.Management.Automation.PSCredential]::Empty
+        $Credential = [System.Management.Automation.PSCredential]::Empty,
+
+        # The value that will be set as the Description of the object.
+        # An example of using this property is:
+        #
+        # -Description 'UK Sales Group'
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $Description,
+
+        # The value that will be set as the DisplayName of the object.
+        # An example of using this property is:
+        #
+        # -DisplayName 'All Marketing Users'
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $DisplayName,
+
+        # The value that will be set as the HomePage of the object.
+        # An example of using this property is:
+        #
+        # -HomePage 'intranet.contoso.com/sales'
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Alias('WWWHomePage')]
+        [String]
+        $HomePage,
+
+        # The values to remove from an existing property.
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [HashTable]
+        $Remove,
+
+        # Values to use to replace the existing property.
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [HashTable]
+        $Replace,
+
+        # The server to connect to.
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $Server
+
+
     )
 
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
 
+    # Parameters to add:
+    # ------------------
+    # AuthType
+    # GroupCategory
+    # GroupScope
+    # Identity
+    # Instance
+    # ManagedBy
+    # Partition
+    # PassThru
+
     try {
-        $Common_Search_Parameters = @{
-            'Context' = $Context
-        }
-        if ($PSBoundParameters.ContainsKey('Server')) {
-            $Common_Search_Parameters['Server'] = $Server
-        }
-        if ($PSBoundParameters.ContainsKey('Credential')) {
-            $Common_Search_Parameters['Credential'] = $Credential
-        }
-
-        $Confirm_Parameters = @{}
-        if ($PSBoundParameters.ContainsKey('Confirm')) {
-            $Confirm_Parameters['Confirm'] = $Confirm
-        }
-        if ($PSBoundParameters.ContainsKey('WhatIf')) {
-            $Confirm_Parameters['WhatIf'] = $WhatIf
-        }
-
-        $Default_LDAPFilter = '(objectclass=group)'
-        if ($PSBoundParameters.ContainsKey('SAMAccountName')) {
-            $LDAPFilter = '(&{0}(samaccountname={1}))' -f $Default_LDAPFilter, $SAMAccountName
-            $Directory_Search_Type = 'SAMAccountName'
-            $Directory_Search_Value = $SAMAccountName
-        } elseif ($PSBoundParameters.ContainsKey('DistinguishedName')) {
-            $LDAPFilter = '(&{0}(distinguishedname={1}))' -f $Default_LDAPFilter, $DistinguishedName
-            $Directory_Search_Type = 'DistinguishedName'
-            $Directory_Search_Value = $DistinguishedName
-        } elseif ($PSBoundParameters.ContainsKey('ObjectSID')) {
-            $LDAPFilter = '(&{0}(objectsid={1}))' -f $Default_LDAPFilter, $ObjectSID
-            $Directory_Search_Type = 'ObjectSID'
-            $Directory_Search_Value = $ObjectSID
-        } else {
-            $LDAPFilter = '(&{0}(objectguid={1}))' -f $Default_LDAPFilter, $ObjectGUID
-            $Directory_Search_Type = 'ObjectGUID'
-            $Directory_Search_Value = $ObjectGUID
-        }
-        $Directory_Search_Parameters = @{
-            'LDAPFilter'   = $LDAPFilter
-            'OutputFormat' = 'DirectoryEntry'
-        }
-
-        $global:Object_Directory_Entry = Find-DSSRawObject @Common_Search_Parameters @Directory_Search_Parameters
-        if ($Object_Directory_Entry) {
-            $Set_Choices = @('Remove', 'Add', 'Replace', 'Clear')
-            $Set_Parameters = @{}
-            foreach ($Set_Choice in $Set_Choices) {
-                if ($PSBoundParameters.ContainsKey($Set_Choice)) {
-                    $Set_Parameters[$Set_Choice] = (Get-Variable -Name $Set_Choice -ValueOnly)
-                    $Set_Parameter_Valid = $true
-                }
-            }
-
-            if ($Set_Parameter_Valid -eq $true) {
-                $Set_Parameters['Action'] = 'Set'
-                $Set_Parameters['Object'] = $Object_Directory_Entry
-                Write-Verbose ('{0}|Calling Set-DSSRawObject' -f $Function_Name)
-                Set-DSSRawObject @$Common_Search_Parameters @Set_Parameters @Confirm_Parameters
-
-            } else {
-                Write-Verbose ('{0}|No Set parameters provided, so doing nothing' -f $Function_Name)
-            }
-        } else {
-            $Terminating_ErrorRecord_Parameters = @{
-                'Exception'    = 'System.DirectoryServices.ActiveDirectory.ActiveDirectoryObjectNotFoundException'
-                'ID'           = 'DSS-{0}' -f $Function_Name
-                'Category'     = 'ObjectNotFound'
-                'TargetObject' = $Object_Directory_Entry
-                'Message'      = 'Cannot find Group with {0} of "{1}"' -f $Directory_Search_Type, $Directory_Search_Value
-            }
-            $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
-            $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
-        }
+        Write-Verbose ('{0}|Calling Set-DSSObjectWrapper' -f $Function_Name)
+        Set-DSSObjectWrapper -ObjectType 'Group' -BoundParameters $PSBoundParameters
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
             $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_
