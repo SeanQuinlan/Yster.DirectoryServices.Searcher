@@ -141,7 +141,7 @@ $Set_Alias_Properties = @{
 
 # An Enum to determine KerberosEncryptionType.
 # Taken from https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-kile/6cfc7b50-11ed-4b4d-846d-6f08f0812919
-Add-Type -TypeDefinition @"
+Add-Type -TypeDefinition @'
     [System.Flags]
     public enum ADKerberosEncryptionType {
         None    = 0x00,
@@ -151,7 +151,7 @@ Add-Type -TypeDefinition @"
         AES128  = 0x08,
         AES256  = 0x10
     }
-"@
+'@
 
 # Some additional flags to the 'msds-supportedencryptiontypes' property which don't form part of the ADKerberosEncryptionType Enum.
 # - Taken from https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-kile/6cfc7b50-11ed-4b4d-846d-6f08f0812919
@@ -177,6 +177,21 @@ $ChangePassword_Identity_Everyone_SID = New-Object -TypeName 'System.Security.Pr
 $ChangePassword_Identity_Everyone_Object = $ChangePassword_Identity_Everyone_SID.Translate([System.Security.Principal.NTAccount])
 $ChangePassword_Identity_Self_SID = New-Object -TypeName 'System.Security.Principal.SecurityIdentifier' -ArgumentList ([System.Security.Principal.WellKnownSidType]::SelfSid, $null) # NT AUTHORITY\SELF
 $ChangePassword_Identity_Self_Object = $ChangePassword_Identity_Self_SID.Translate([System.Security.Principal.NTAccount])
+
+# An Enum to determine Active Directory Group Type.
+# Taken from: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-adts/11972272-09ec-4a42-bf5e-3e99b321cf55
+Add-Type -TypeDefinition @'
+    [System.Flags]
+    public enum ADGroupType : uint {
+        BUILTIN_LOCAL_GROUP = 0x00000001,
+        ACCOUNT_GROUP       = 0x00000002, // Global
+        RESOURCE_GROUP      = 0x00000004, // DomainLocal
+        UNIVERSAL_GROUP     = 0x00000008, // Universal
+        APP_BASIC_GROUP     = 0x00000010,
+        APP_QUERY_GROUP     = 0x00000020,
+        SECURITY_ENABLED    = 0x80000000
+    }
+'@
 
 # Active Directory country names and codes.
 # Taken from the Bia.Countries module - https://github.com/lehtoj/Bia.Countries

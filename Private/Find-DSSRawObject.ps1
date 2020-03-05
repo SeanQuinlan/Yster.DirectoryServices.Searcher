@@ -377,18 +377,20 @@ function Find-DSSRawObject {
 
                                         # Group properties
                                         'groupscope' {
-                                            if (($Current_Searcher_Result_Value -bor 2) -eq $Current_Searcher_Result_Value) {
+                                            $GroupType_Parsed = ([Enum]::ToObject('ADGroupType', $Current_Searcher_Result_Value) -split ',').Trim()
+                                            if ($GroupType_Parsed -contains 'ACCOUNT_GROUP' ) {
                                                 $Useful_Calculated_Property_Value = 'Global'
-                                            } elseif (($Current_Searcher_Result_Value -bor 4) -eq $Current_Searcher_Result_Value) {
+                                            } elseif ($GroupType_Parsed -contains 'RESOURCE_GROUP') {
                                                 $Useful_Calculated_Property_Value = 'Domain Local'
-                                            } elseif (($Current_Searcher_Result_Value -bor 8) -eq $Current_Searcher_Result_Value) {
+                                            } elseif ($GroupType_Parsed -contains 'UNIVERSAL_GROUP') {
                                                 $Useful_Calculated_Property_Value = 'Universal'
                                             } else {
                                                 $Useful_Calculated_Property_Value = 'Unknown'
                                             }
                                         }
                                         'groupcategory' {
-                                            if ($Current_Searcher_Result_Value -lt 0) {
+                                            $GroupType_Parsed = ([Enum]::ToObject('ADGroupType', $Current_Searcher_Result_Value) -split ',').Trim()
+                                            if ($GroupType_Parsed -contains 'SECURITY_ENABLED' ) {
                                                 $Useful_Calculated_Property_Value = 'Security'
                                             } else {
                                                 $Useful_Calculated_Property_Value = 'Distribution'
