@@ -14,7 +14,7 @@ function Set-DSSObjectWrapper {
     .NOTES
     #>
 
-    [CmdletBinding(DefaultParameterSetName = 'DistinguishedName', SupportsShouldProcess = $true)]
+    [CmdletBinding(SupportsShouldProcess = $true)]
     param(
         # The type of AD object that has been wrapped.
         [Parameter(Mandatory = $true)]
@@ -39,12 +39,12 @@ function Set-DSSObjectWrapper {
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
 
     try {
-
-        Write-Host $BoundParameters['samaccountname']
-
         switch ($ObjectType) {
             'Computer' {
                 $Default_LDAPFilter = '(objectclass=computer)'
+            }
+            'Group' {
+                $Default_LDAPFilter = '(objectclass=group)'
             }
             'User' {
                 $Default_LDAPFilter = '(objectclass=user)'
