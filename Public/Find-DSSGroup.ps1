@@ -44,17 +44,17 @@ function Find-DSSGroup {
         [String]
         $SearchScope,
 
-        # The group scope to search. Must be one of: DomainLocal, Global, Universal.
-        [Parameter(Mandatory = $false)]
-        [ValidateSet('DomainLocal', 'Global', 'Universal')]
-        [String]
-        $GroupScope,
-
         # The group category to search. Must be one of: Security, Distribution.
         [Parameter(Mandatory = $false)]
         [ValidateSet('Security', 'Distribution')]
         [String]
         $GroupCategory,
+
+        # The group scope to search. Must be one of: DomainLocal, Global, Universal.
+        [Parameter(Mandatory = $false)]
+        [ValidateSet('DomainLocal', 'Global', 'Universal')]
+        [String]
+        $GroupScope,
 
         # Whether to return deleted objects in the search results.
         [Parameter(Mandatory = $false)]

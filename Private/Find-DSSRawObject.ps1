@@ -347,13 +347,13 @@ function Find-DSSRawObject {
                                         }
 
                                         # Domain properties
+                                        'featurescope' {
+                                            $Useful_Calculated_Property_Value = $OptionalFeature_Scope_Table[$Current_Searcher_Result_Value.ToString()]
+                                        }
                                         'linkedgrouppolicyobjects' {
                                             # Convert the "gplink" string property into an array of strings, selecting just the Group Policy DistinguishedName.
                                             $Regex_GPLink = [System.Text.RegularExpressions.Regex]'\[LDAP://(.*?)\;\d\]'
                                             $Useful_Calculated_Property_Value = $Regex_GPLink.Matches($Current_Searcher_Result_Value) | ForEach-Object { $_.Groups[1].Value }
-                                        }
-                                        'featurescope' {
-                                            $Useful_Calculated_Property_Value = $OptionalFeature_Scope_Table[$Current_Searcher_Result_Value.ToString()]
                                         }
                                         'requireddomainmode' {
                                             $Useful_Calculated_Property_Value = $DomainMode_Table[$Current_Searcher_Result_Value.ToString()]
@@ -376,6 +376,14 @@ function Find-DSSRawObject {
                                         }
 
                                         # Group properties
+                                        'groupcategory' {
+                                            $GroupType_Parsed = ([Enum]::ToObject('ADGroupType', $Current_Searcher_Result_Value) -split ',').Trim()
+                                            if ($GroupType_Parsed -contains 'SECURITY_ENABLED' ) {
+                                                $Useful_Calculated_Property_Value = 'Security'
+                                            } else {
+                                                $Useful_Calculated_Property_Value = 'Distribution'
+                                            }
+                                        }
                                         'groupscope' {
                                             $GroupType_Parsed = ([Enum]::ToObject('ADGroupType', $Current_Searcher_Result_Value) -split ',').Trim()
                                             if ($GroupType_Parsed -contains 'ACCOUNT_GROUP' ) {
@@ -386,14 +394,6 @@ function Find-DSSRawObject {
                                                 $Useful_Calculated_Property_Value = 'Universal'
                                             } else {
                                                 $Useful_Calculated_Property_Value = 'Unknown'
-                                            }
-                                        }
-                                        'groupcategory' {
-                                            $GroupType_Parsed = ([Enum]::ToObject('ADGroupType', $Current_Searcher_Result_Value) -split ',').Trim()
-                                            if ($GroupType_Parsed -contains 'SECURITY_ENABLED' ) {
-                                                $Useful_Calculated_Property_Value = 'Security'
-                                            } else {
-                                                $Useful_Calculated_Property_Value = 'Distribution'
                                             }
                                         }
                                         'primarygroup' {
