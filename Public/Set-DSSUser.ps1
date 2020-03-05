@@ -160,6 +160,9 @@ function Set-DSSUser {
 
         # The directory context to search - Domain or Forest. By default this will search within the domain only.
         # If you want to search the entire directory, specify "Forest" for this parameter and the search will be performed on a Global Catalog server, targetting the entire forest.
+        # An example of using this property is:
+        #
+        # -Context 'Forest'
         [Parameter(Mandatory = $false)]
         [ValidateSet('Domain', 'Forest')]
         [String]
@@ -526,6 +529,11 @@ function Set-DSSUser {
         $ScriptPath,
 
         # The server or domain to connect to.
+        # See below for some examples:
+        #
+        # -Server DC01
+        # -Server 'dc01.contoso.com'
+        # -Server CONTOSO
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         [String]

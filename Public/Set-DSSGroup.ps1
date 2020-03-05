@@ -48,19 +48,45 @@ function Set-DSSGroup {
         [String]
         $SAMAccountName,
 
-        # The values to add to an existing property.
+        # A property name and a value or set of values that will be added to the existing property values.
+        # Multiple values for the same property can be separated by commas.
+        # Multiple properties can also be specified by separating them with semi-colons.
+        # See below for some examples:
+        #
+        # -Add @{othertelephone='000-1111-2222'}
+        # -Add @{url='www.contoso.com','sales.contoso.com','intranet.contoso.com'}
+        #
+        # If specifying the Add, Clear, Remove and Replace parameters together, they are processed in this order:
+        # ..Remove
+        # ..Add
+        # ..Replace
+        # ..Clear
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         [HashTable]
         $Add,
 
-        # An array of properties to clear.
+        # A property or an array of properties to clear.
+        # See below for some examples:
+        #
+        # -Clear Description
+        # -Clear description,displayname
+        #
+        # If specifying the Add, Clear, Remove and Replace parameters together, they are processed in this order:
+        # ..Remove
+        # ..Add
+        # ..Replace
+        # ..Clear
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         [Array]
         $Clear,
 
-        # The context to search - Domain or Forest.
+        # The directory context to search - Domain or Forest. By default this will search within the domain only.
+        # If you want to search the entire directory, specify "Forest" for this parameter and the search will be performed on a Global Catalog server, targetting the entire forest.
+        # An example of using this property is:
+        #
+        # -Context 'Forest'
         [Parameter(Mandatory = $false)]
         [ValidateSet('Domain', 'Forest')]
         [String]
@@ -101,24 +127,53 @@ function Set-DSSGroup {
         [String]
         $HomePage,
 
-        # The values to remove from an existing property.
+        # A property name and a value or set of values that will be removed from an existing multi-property value.
+        # Multiple values for the same property can be separated by commas.
+        # Multiple properties can also be specified by separating them with semi-colons.
+        # See below for some examples:
+        #
+        # -Remove @{othertelephone='000-1111-2222'}
+        # -Remove @{url='www.contoso.com','sales.contoso.com','intranet.contoso.com'}
+        #
+        # If specifying the Add, Clear, Remove and Replace parameters together, they are processed in this order:
+        # ..Remove
+        # ..Add
+        # ..Replace
+        # ..Clear
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         [HashTable]
         $Remove,
 
-        # Values to use to replace the existing property.
+        # A property name and a value or set of values that will be used to replace the existing property values.
+        # Multiple values for the same property can be separated by commas.
+        # Multiple properties can also be specified by separating them with semi-colons.
+        # See below for some examples:
+        #
+        # -Replace @{description='Senior Manager'}
+        # -Replace @{otherTelephone='000-0000-0000','111-1111-1111'}
+        # -Replace @{wwwhomepage='intranet.contoso.com/marketing'; displayname='All Marketing Users'}
+        #
+        # If specifying the Add, Clear, Remove and Replace parameters together, they are processed in this order:
+        # ..Remove
+        # ..Add
+        # ..Replace
+        # ..Clear
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         [HashTable]
         $Replace,
 
-        # The server to connect to.
+        # The server or domain to connect to.
+        # See below for some examples:
+        #
+        # -Server DC01
+        # -Server 'dc01.contoso.com'
+        # -Server CONTOSO
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         [String]
         $Server
-
 
     )
 

@@ -133,6 +133,9 @@ function Set-DSSComputer {
 
         # The directory context to search - Domain or Forest. By default this will search within the domain only.
         # If you want to search the entire directory, specify "Forest" for this parameter and the search will be performed on a Global Catalog server, targetting the entire forest.
+        # An example of using this property is:
+        #
+        # -Context 'Forest'
         [Parameter(Mandatory = $false)]
         [ValidateSet('Domain', 'Forest')]
         [String]
@@ -267,6 +270,11 @@ function Set-DSSComputer {
         $Replace,
 
         # The server or domain to connect to.
+        # See below for some examples:
+        #
+        # -Server DC01
+        # -Server 'dc01.contoso.com'
+        # -Server CONTOSO
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         [String]
@@ -295,7 +303,6 @@ function Set-DSSComputer {
 
     # Parameters to add:
     # -----------------
-
     # AuthType
     # AuthenticationPolicy
     # AuthenticationPolicySilo
@@ -312,14 +319,12 @@ function Set-DSSComputer {
     # Partition
     # PassThru
     # PrincipalsAllowedToDelegateToAccount
-    # SAMAccountName
     # ServicePrincipalNames
 
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
 
     try {
-
         if ($PSBoundParameters.ContainsKey('SAMAccountName')) {
             if (-not $PSBoundParameters['SAMAccountName'].EndsWith('$')) {
                 $PSBoundParameters['SAMAccountName'] = ('{0}$' -f $PSBoundParameters['SAMAccountName'])
