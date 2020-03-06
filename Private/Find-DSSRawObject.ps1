@@ -263,8 +263,8 @@ function Find-DSSRawObject {
                             $Paging_Directory_Searcher = New-Object -TypeName 'System.DirectoryServices.DirectorySearcher' -ArgumentList @($Paging_Directory_Entry)
 
                             do {
-                                $Paging_Start = ($Paging_Start -as [int]) + $Paging_Total
-                                $Paging_End = ($Paging_End -as [int]) + $Paging_Total
+                                $Paging_Start = [int]$Paging_Start + $Paging_Total
+                                $Paging_End = [int]$Paging_End + $Paging_Total
                                 $Paging_Property = '{0};range={1}-{2}' -f $Current_Searcher_Result_Base_Property, $Paging_Start, $Paging_End
                                 $Paging_Directory_Searcher.PropertiesToLoad.Clear()
                                 [void]$Paging_Directory_Searcher.PropertiesToLoad.Add($Paging_Property)
@@ -377,20 +377,18 @@ function Find-DSSRawObject {
 
                                         # Group properties
                                         'groupcategory' {
-                                            $GroupType_Parsed = ([Enum]::ToObject('ADGroupType', $Current_Searcher_Result_Value) -split ',').Trim()
-                                            if ($GroupType_Parsed -contains 'SECURITY_ENABLED' ) {
+                                            if (($Current_Searcher_Result_Value -bor $ADGroupTypes['Security']) -eq $Current_Searcher_Result_Value) {
                                                 $Useful_Calculated_Property_Value = 'Security'
                                             } else {
                                                 $Useful_Calculated_Property_Value = 'Distribution'
                                             }
                                         }
                                         'groupscope' {
-                                            $GroupType_Parsed = ([Enum]::ToObject('ADGroupType', $Current_Searcher_Result_Value) -split ',').Trim()
-                                            if ($GroupType_Parsed -contains 'ACCOUNT_GROUP' ) {
+                                            if (($Current_Searcher_Result_Value -bor $ADGroupTypes['Global']) -eq $Current_Searcher_Result_Value) {
                                                 $Useful_Calculated_Property_Value = 'Global'
-                                            } elseif ($GroupType_Parsed -contains 'RESOURCE_GROUP') {
+                                            } elseif (($Current_Searcher_Result_Value -bor $ADGroupTypes['DomainLocal']) -eq $Current_Searcher_Result_Value) {
                                                 $Useful_Calculated_Property_Value = 'Domain Local'
-                                            } elseif ($GroupType_Parsed -contains 'UNIVERSAL_GROUP') {
+                                            } elseif (($Current_Searcher_Result_Value -bor $ADGroupTypes['Universal']) -eq $Current_Searcher_Result_Value) {
                                                 $Useful_Calculated_Property_Value = 'Universal'
                                             } else {
                                                 $Useful_Calculated_Property_Value = 'Unknown'
