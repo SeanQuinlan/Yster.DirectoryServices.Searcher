@@ -202,14 +202,7 @@ function Find-DSSGroup {
         # See: https://ldapwiki.com/wiki/Active%20Directory%20Group%20Related%20Searches
         if ($PSBoundParameters.ContainsKey('GroupScope')) {
             Write-Verbose ('{0}|GroupScope: {1}' -f $Function_Name, $GroupScope)
-            if ($GroupScope -eq 'DomainLocal') {
-                $GroupScope_Flag = 'RESOURCE_GROUP'
-            } elseif ($GroupScope -eq 'Global') {
-                $GroupScope_Flag = 'ACCOUNT_GROUP'
-            } else {
-                $GroupScope_Flag = 'UNIVERSAL_GROUP'
-            }
-            $Addtional_LDAPFilter = ('(grouptype:1.2.840.113556.1.4.804:={0})' -f [Enum]::Parse('ADGroupType', $GroupScope_Flag, $true).value__)
+            $Addtional_LDAPFilter = ('(grouptype:1.2.840.113556.1.4.804:={0})' -f [int]$ADGroupTypes[$GroupScope])
         }
         if ($PSBoundParameters.ContainsKey('GroupCategory')) {
             Write-Verbose ('{0}|GroupCategory: {1}' -f $Function_Name, $GroupCategory)
