@@ -113,7 +113,7 @@ function Set-DSSOrganizationalUnit {
             'OutputFormat' = 'DirectoryEntry'
         }
 
-        $global:Object_Directory_Entry = Find-DSSRawObject @Common_Search_Parameters @Directory_Search_Parameters
+        $Object_Directory_Entry = Find-DSSRawObject @Common_Search_Parameters @Directory_Search_Parameters
         if ($Object_Directory_Entry) {
             $Set_Choices = @('Remove', 'Add', 'Replace', 'Clear')
             $Set_Parameters = @{}

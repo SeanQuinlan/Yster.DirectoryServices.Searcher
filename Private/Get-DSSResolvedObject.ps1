@@ -47,7 +47,7 @@ function Get-DSSResolvedObject {
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
 
-    $global:Output_Objects = New-Object -TypeName 'System.Collections.Generic.List[PSObject]'
+    $Output_Objects = New-Object -TypeName 'System.Collections.Generic.List[PSObject]'
     $Object_Search_Properties = @(
         'SAMAccountName'
         'DistinguishedName'
