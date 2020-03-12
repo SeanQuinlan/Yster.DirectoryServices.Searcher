@@ -453,6 +453,12 @@ function Find-DSSRawObject {
                                         'lastlogonreplicationinterval' {
                                             $Useful_Calculated_Property_Value = New-TimeSpan -Days $Current_Searcher_Result_Value
                                         }
+
+                                        # Custom Properties
+                                        'domainname' {
+                                            # This is simply everything before the first "/" in the canonicalname.
+                                            $Useful_Calculated_Property_Value = $Current_Searcher_Result_Value.Split('/')[0]
+                                        }
                                     }
 
                                     Write-Verbose ('{0}|Useful_Properties: Returning calculated property: {1} = {2}' -f $Function_Name, $Useful_Calculated_Property_Name, $Useful_Calculated_Property_Value)
