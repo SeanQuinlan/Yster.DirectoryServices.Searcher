@@ -117,6 +117,24 @@ function Set-DSSGroup {
         [String]
         $DisplayName,
 
+        # The category of the group to set. Must be one of: Security, Distribution.
+        # An example of using this property is:
+        #
+        # -GroupCategory Security
+        [Parameter(Mandatory = $false)]
+        [ValidateSet('Security', 'Distribution')]
+        [String]
+        $GroupCategory,
+
+        # The scope of the group to set. Must be one of: DomainLocal, Global, Universal.
+        # An example of using this property is:
+        #
+        # -GroupScope Universal
+        [Parameter(Mandatory = $false)]
+        [ValidateSet('DomainLocal', 'Global', 'Universal')]
+        [String]
+        $GroupScope,
+
         # The value that will be set as the HomePage of the object.
         # An example of using this property is:
         #
@@ -183,8 +201,6 @@ function Set-DSSGroup {
     # Parameters to add:
     # ------------------
     # AuthType
-    # GroupCategory
-    # GroupScope
     # Identity
     # Instance
     # ManagedBy

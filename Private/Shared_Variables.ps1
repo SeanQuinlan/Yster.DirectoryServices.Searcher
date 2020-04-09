@@ -76,6 +76,9 @@ $Useful_Calculated_Properties = @{
 
     # Properties which are returned as TimeSpan objects, based on an integer stored in Active Directory.
     'msds-logontimesyncinterval'               = 'lastlogonreplicationinterval'
+
+    # Custom properties
+    'canonicalname'                            = 'domainname'
 }
 
 $Combined_Calculated_Properties = $Microsoft_Alias_Properties + $Useful_Calculated_Properties
@@ -134,6 +137,7 @@ $Useful_Calculated_SubProperties = @{
 
 # A set of arguments/properties to Set-ADUser which simply set a different LDAP property.
 $Set_Alias_Properties = @{
+    'grouptype'                     = @('groupcategory', 'groupscope')
     'msds-supportedencryptiontypes' = @('compoundidentitysupported', 'kerberosencryptiontype')
     'ntsecuritydescriptor'          = 'cannotchangepassword'
     'pwdlastset'                    = 'changepasswordatlogon'
@@ -192,6 +196,13 @@ Add-Type -TypeDefinition @'
         SECURITY_ENABLED    = 0x80000000
     }
 '@
+
+$ADGroupTypes = @{
+    'Global'      = '0x00000002'
+    'DomainLocal' = '0x00000004'
+    'Universal'   = '0x00000008'
+    'Security'    = '0x80000000'
+}
 
 # Active Directory country names and codes.
 # Taken from the Bia.Countries module - https://github.com/lehtoj/Bia.Countries

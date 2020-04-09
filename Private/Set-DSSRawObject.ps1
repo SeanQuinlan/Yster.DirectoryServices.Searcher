@@ -20,6 +20,7 @@ function Set-DSSRawObject {
         https://docs.microsoft.com/en-gb/windows/win32/api/iads/nf-iads-iads-put
         http://www.selfadsi.org/write.htm
         https://docs.microsoft.com/en-us/dotnet/api/system.directoryservices.activedirectoryaccessrule
+        https://ldapwiki.com/wiki/GroupType
     #>
 
     [CmdletBinding(SupportsShouldProcess = $true)]
@@ -396,7 +397,7 @@ function Set-DSSRawObject {
 
                                     # This requires 2 Deny permissions to be set: the "Everyone" group and "NT AUTHORITY\SELF" user. Only if both are set to Deny, will "cannotchangepassword" be true.
                                     # Adapted from: https://social.technet.microsoft.com/Forums/scriptcenter/en-US/e947d590-d183-46b9-9a7a-4e785638c6fb/how-can-i-get-a-list-of-active-directory-user-accounts-where-the-user-cannot-change-the-password?forum=ITCG
-                                    $global:ChangePassword_Rules = $Object.ObjectSecurity.Access | Where-Object { $_.ObjectType -eq $ChangePassword_GUID }
+                                    $ChangePassword_Rules = $Object.ObjectSecurity.Access | Where-Object { $_.ObjectType -eq $ChangePassword_GUID }
                                     $null = $ChangePassword_Identity_Everyone_Correct = $ChangePassword_Identity_Self_Correct
 
                                     if ($Property.Value -eq $true) {
@@ -475,7 +476,7 @@ function Set-DSSRawObject {
                                             )
                                             foreach ($ChangePassword_Identity in @($ChangePassword_Identity_Everyone_Object, $ChangePassword_Identity_Self_Object)) {
                                                 Write-Verbose ('{0}|CannotChangePassword: Setting DENY permission for: {1}' -f $Function_Name, $ChangePassword_Identity.Value)
-                                                $global:ChangePassword_AccessRule_Arguments = New-Object -TypeName 'System.Collections.Generic.List[Object]'
+                                                $ChangePassword_AccessRule_Arguments = New-Object -TypeName 'System.Collections.Generic.List[Object]'
                                                 $ChangePassword_AccessRule_Arguments.Add($ChangePassword_Identity)
                                                 $ChangePassword_AccessRule_Arguments.AddRange($ChangePassword_AccessRule_Common)
                                                 $ChangePassword_AccessRule = New-Object 'System.DirectoryServices.ActiveDirectoryAccessRule' -ArgumentList $ChangePassword_AccessRule_Arguments
@@ -491,8 +492,43 @@ function Set-DSSRawObject {
                                 } else {
                                     if ($Set_Alias_Properties_Full -contains $Property.Name) {
                                         $Property_Name = ($Set_Alias_Properties.GetEnumerator() | Where-Object { $_.Value -eq $Property.Name }).Name
-                                        Write-Verbose ('{0}|Alias property name: {1}' -f $Function_Name, $Property_Name)
+                                        $Current_Property_Value = $Object.InvokeGet($Property_Name)
+                                        Write-Verbose ('{0}|Alias property name: {1}, Value: {2}' -f $Function_Name, $Property_Name, $Current_Property_Value)
                                         switch ($Property.Name) {
+                                            # Delegation properties
+                                            # Domain properties
+
+                                            # Encryption properties
+                                            'compoundidentitysupported' {
+                                                $Compound_Identity_Value = $Additional_Encryption_Types.'Compound-Identity-Supported'
+                                                if ($Property.Value -eq $true) {
+                                                    $Compare_Value = $Current_Property_Value -bor $Compound_Identity_Value
+                                                } else {
+                                                    $Compare_Value = $Current_Property_Value -bxor $Compound_Identity_Value
+                                                }
+                                            }
+                                            'kerberosencryptiontype' {
+                                                $Compare_Value = ([Enum]::Parse('ADKerberosEncryptionType', ($Property.Value -join ', '), $true)).value__
+                                            }
+
+                                            # Group properties
+                                            'groupcategory' {
+                                                if ($Property.Value -eq 'Distribution') {
+                                                    $Compare_Value = $Current_Property_Value -band -bnot $ADGroupTypes['Security']
+                                                } elseif ($Property.Value -eq 'Security') {
+                                                    $Compare_Value = $Current_Property_Value -bor $ADGroupTypes['Security']
+                                                }
+                                            }
+                                            'groupscope' {
+                                                if ($Current_Property_Value -le 0) {
+                                                    $Compare_Base = -2147483648
+                                                } else {
+                                                    $Compare_Base = 0
+                                                }
+                                                $Compare_Value = $Compare_Base + $ADGroupTypes[$Property.Value]
+                                            }
+
+                                            # Security properties
                                             'changepasswordatlogon' {
                                                 $Current_Property_Value = $Object.ConvertLargeIntegerToInt64($Object.'pwdlastset'.Value)
                                                 if ($Property.Value -eq $true) {
@@ -503,21 +539,11 @@ function Set-DSSRawObject {
                                                     $Compare_Value = -1
                                                 }
                                             }
-                                            'compoundidentitysupported' {
-                                                $Compound_Identity_Value = $Additional_Encryption_Types.'Compound-Identity-Supported'
-                                                $Current_Property_Value = $Object.InvokeGet($Property_Name)
-                                                if ($Property.Value -eq $true) {
-                                                    $Compare_Value = $Current_Property_Value -bor $Compound_Identity_Value
-                                                } else {
-                                                    $Compare_Value = $Current_Property_Value -bxor $Compound_Identity_Value
-                                                }
-                                            }
-                                            'kerberosencryptiontype' {
-                                                $Current_Property_Value = $Object.InvokeGet($Property_Name)
-                                                $Compare_Value = ([Enum]::Parse('ADKerberosEncryptionType', ($Property.Value -join ', '), $true)).value__
-                                            }
+
+                                            # Time properties
+                                            # TimeSpan properties
+
                                             default {
-                                                $Current_Property_Value = $Object.InvokeGet($Property_Name)
                                                 $Compare_Value = $Property.Value
                                             }
                                         }
@@ -530,6 +556,99 @@ function Set-DSSRawObject {
 
                                     Write-Verbose ('{0}|Comparing "{1}" with "{2}"' -f $Function_Name, ($Current_Property_Value -join ','), ($Compare_Value -join ','))
                                     if ($Current_Property_Value -ne $Compare_Value) {
+                                        # Check whether the groupscope conversion is possible:
+                                        # https://docs.microsoft.com/en-us/windows/win32/ad/changing-a-groupampaposs-scope-or-type
+                                        # Note: Even though the above page says no, the conversion "from Universal to DomainLocal if the Universal group is part of a DomainLocal from another domain" is possible. Works through Set-ADGroup too, so further testing may be needed.
+                                        if ($Property_Name -eq 'grouptype') {
+                                            Write-Verbose ('{0}|Getting group members and principal group membership' -f $Function_Name)
+                                            $Error_Message = New-Object -TypeName 'System.Text.StringBuilder'
+                                            $Common_Search_Parameters['Context'] = 'Forest'
+                                            $Current_Group_Members = Get-DSSGroupMember @Common_Search_Parameters -DistinguishedName $Object.'distinguishedname' -Properties 'objectclass', 'groupscope', 'distinguishedname', 'domainname'
+                                            $Current_Principal_Groups = Get-DSSPrincipalGroupMembership @Common_Search_Parameters -DistinguishedName $Object.'distinguishedname'
+
+                                            if (($Current_Property_Value -bor $ADGroupTypes['Global']) -eq $Current_Property_Value) {
+                                                if (($Compare_Value -bor $ADGroupTypes['Universal']) -eq $Compare_Value) {
+                                                    Write-Verbose ('{0}|Converting Global to Universal' -f $Function_Name)
+                                                    $Check_For_MemberOf_Global_Group = $Current_Principal_Groups | Where-Object { $_.'groupscope' -eq 'Global' }
+                                                    if ($Check_For_MemberOf_Global_Group) {
+                                                        [void]$Error_Message.AppendLine('Unable to convert group to Universal while a member of these Global groups:')
+                                                        $Check_For_MemberOf_Global_Group.'distinguishedname' | ForEach-Object {
+                                                            [void]$Error_Message.AppendLine($_)
+                                                        }
+                                                    }
+                                                } elseif (($Compare_Value -bor $ADGroupTypes['DomainLocal']) -eq $Compare_Value) {
+                                                    Write-Verbose ('{0}|Converting Global to DomainLocal' -f $Function_Name)
+                                                    [void]$Error_Message.AppendLine('Unable to convert group from Global to Domain Local')
+                                                }
+                                            } elseif (($Current_Property_Value -bor $ADGroupTypes['DomainLocal']) -eq $Current_Property_Value) {
+                                                if (($Compare_Value -bor $ADGroupTypes['Global']) -eq $Compare_Value) {
+                                                    Write-Verbose ('{0}|Converting DomainLocal to Global' -f $Function_Name)
+                                                    [void]$Error_Message.AppendLine('Unable to convert group from Domain Local to Global')
+                                                } elseif (($Compare_Value -bor $ADGroupTypes['Universal']) -eq $Compare_Value) {
+                                                    Write-Verbose ('{0}|Converting DomainLocal to Universal' -f $Function_Name)
+                                                    Write-Verbose ('{0}|Checking for DomainLocal groups as members' -f $Function_Name)
+                                                    $Check_For_DomainLocal_GroupMembers = $Current_Group_Members | Where-Object { $_.'groupscope' -eq 'Domain Local' }
+                                                    if ($Check_For_DomainLocal_GroupMembers) {
+                                                        [void]$Error_Message.AppendLine('Unable to convert group to Universal while these Domain Local groups are members:')
+                                                        $Check_For_DomainLocal_GroupMembers.'distinguishedname' | ForEach-Object {
+                                                            [void]$Error_Message.AppendLine($_)
+                                                        }
+                                                    }
+                                                }
+                                            } elseif (($Current_Property_Value -bor $ADGroupTypes['Universal']) -eq $Current_Property_Value) {
+                                                $Current_Domain_Name = (Get-DSSGroup @Common_Search_Parameters -DistinguishedName $Object.'distinguishedname' -Properties 'domainname').'domainname'
+                                                if (($Compare_Value -bor $ADGroupTypes['Global']) -eq $Compare_Value) {
+                                                    Write-Verbose ('{0}|Converting Universal to Global' -f $Function_Name)
+                                                    Write-Verbose ('{0}|Checking for Universal groups as members' -f $Function_Name)
+                                                    $Check_For_Universal_GroupMembers = $Current_Group_Members | Where-Object { $_.'groupscope' -eq 'Universal' }
+                                                    if ($Check_For_Universal_GroupMembers) {
+                                                        [void]$Error_Message.AppendLine('Unable to convert group to Global while these Universal groups are members:')
+                                                        $Check_For_Universal_GroupMembers.'distinguishedname' | ForEach-Object {
+                                                            [void]$Error_Message.AppendLine($_)
+                                                        }
+                                                    }
+                                                    Write-Verbose ('{0}|Checking for Users from another domain as members' -f $Function_Name)
+                                                    $Check_For_OtherDomain_Users_GroupMembers = $Current_Group_Members | Where-Object { ($_.'objectclass' -contains 'User') -and ($_.'domainname' -ne $Current_Domain_Name) }
+                                                    if ($Check_For_OtherDomain_Users_GroupMembers) {
+                                                        [void]$Error_Message.AppendLine('Unable to convert group to Global while these users from a different domain are members:')
+                                                        $Check_For_OtherDomain_Users_GroupMembers.'distinguishedname' | ForEach-Object {
+                                                            [void]$Error_Message.AppendLine($_)
+                                                        }
+                                                    }
+                                                    Write-Verbose ('{0}|Checking for Global groups from another domain as members' -f $Function_Name)
+                                                    $Check_For_OtherDomain_Global_GroupMembers = $Current_Group_Members | Where-Object { ($_.'groupscope' -eq 'Global') -and ($_.'domainname' -ne $Current_Domain_Name) }
+                                                    if ($Check_For_OtherDomain_Global_GroupMembers) {
+                                                        [void]$Error_Message.AppendLine('Unable to convert group to Global while these Global groups from a different domain are members:')
+                                                        $Check_For_OtherDomain_Global_GroupMembers.'distinguishedname' | ForEach-Object {
+                                                            [void]$Error_Message.AppendLine($_)
+                                                        }
+                                                    }
+                                                } elseif (($Compare_Value -bor $ADGroupTypes['DomainLocal']) -eq $Compare_Value) {
+                                                    Write-Verbose ('{0}|Converting Universal to DomainLocal' -f $Function_Name)
+                                                    $Check_For_MemberOf_Universal_Group = $Current_Principal_Groups | Where-Object { $_.'groupscope' -eq 'Universal' }
+                                                    if ($Check_For_MemberOf_Universal_Group) {
+                                                        [void]$Error_Message.AppendLine('Unable to convert group to Domain Local while a member of these Universal groups:')
+                                                        $Check_For_MemberOf_Universal_Group.'distinguishedname' | ForEach-Object {
+                                                            [void]$Error_Message.AppendLine($_)
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            if ($Error_Message.Length) {
+                                                $Terminating_ErrorRecord_Parameters = @{
+                                                    'Exception'      = 'Microsoft.ActiveDirectory.Management.ADException'
+                                                    'ID'             = 'DSS-{0}' -f $Function_Name
+                                                    'Category'       = 'InvalidOperation'
+                                                    'TargetObject'   = $Object
+                                                    'Message'        = $Error_Message.ToString()
+                                                    'InnerException' = $_.Exception
+                                                }
+                                                $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+                                                $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+                                            }
+                                        }
+
                                         Write-Verbose ('{0}|Replace: "{1}" with "{2}"' -f $Function_Name, $Property_Name, ($Compare_Value -join ','))
                                         $Object.PutEx($ADS_PROPERTY_UPDATE, $Property_Name, @($Compare_Value))
                                     } else {
@@ -557,7 +676,7 @@ function Set-DSSRawObject {
                     $Confirm_Statement = $Whatif_Statement
                     if ($PSCmdlet.ShouldProcess($Whatif_Statement, $Confirm_Statement, $Confirm_Header.ToString())) {
                         Write-Verbose ('{0}|Found object, checking for ProtectFromAccidentalDeletion' -f $Function_Name)
-                        $Check_Object = Get-DSSObject -DistinguishedName $Object.distinguishedname -Properties 'protectedfromaccidentaldeletion'
+                        $Check_Object = Get-DSSObject @Common_Search_Parameters -DistinguishedName $Object.distinguishedname -Properties 'protectedfromaccidentaldeletion'
                         if ($Check_Object.'protectedfromaccidentaldeletion') {
                             $Terminating_ErrorRecord_Parameters = @{
                                 'Exception'    = 'System.UnauthorizedAccessException'
