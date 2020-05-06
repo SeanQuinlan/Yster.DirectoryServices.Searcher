@@ -145,6 +145,23 @@ function Set-DSSGroup {
         [String]
         $HomePage,
 
+        # Sets the ManagedBy property of the group. This value can be one of the following object types:
+        # ..DistinguishedName
+        # ..ObjectSID (SID)
+        # ..ObjectGUID (GUID)
+        # ..SAMAccountName
+        #
+        # Some examples of using this property are:
+        #
+        # -ManagedBy 'rsmith'
+        # -ManagedBy 'CN=rsmith,OU=Users,OU=Company,DC=contoso,DC=com'
+        # -ManagedBy 'S-1-5-21-3387319312-2301824641-2614994224-7110'
+        # -ManagedBy 'f4fcc8dc-bd82-41d0-bc0a-5c44350bbb62'
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $ManagedBy,
+
         # A property name and a value or set of values that will be removed from an existing multi-property value.
         # Multiple values for the same property can be separated by commas.
         # Multiple properties can also be specified by separating them with semi-colons.
@@ -203,7 +220,6 @@ function Set-DSSGroup {
     # AuthType
     # Identity
     # Instance
-    # ManagedBy
     # Partition
     # PassThru
 

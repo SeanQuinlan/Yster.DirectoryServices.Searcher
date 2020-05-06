@@ -296,10 +296,13 @@ function Set-DSSRawObject {
                                 $Replace['countrycode'] = $Countries[$Country_FullName]['CountryCode']
                             }
                         }
-                        if ($Replace.Keys -contains 'manager') {
-                            Write-Verbose ('{0}|Resolving manager "{1}" to DistinguishedName' -f $Function_Name, $Replace['manager'])
-                            $Resolved_Manager = Get-DSSResolvedObject @Common_Search_Parameters -InputSet $Replace['manager']
-                            $Replace['manager'] = $Resolved_Manager.'Name'
+                        $Managed_Keys = @('managedby', 'manager')
+                        foreach ($Managed_Key in $Managed_Keys) {
+                            if ($Replace.Keys -contains $Managed_Key) {
+                                Write-Verbose ('{0}|Resolving {1} "{2}" to DistinguishedName' -f $Function_Name, $Managed_Key, $Replace[$Managed_Key])
+                                $Resolved_Key = Get-DSSResolvedObject @Common_Search_Parameters -InputSet $Replace[$Managed_Key]
+                                $Replace[$Managed_Key] = $Resolved_Key.'Name'
+                            }
                         }
                         $Replace.GetEnumerator() | ForEach-Object {
                             $ShouldProcess_Line = 'Replace value of property "{0}" with value: "{1}"' -f $_.Name, ($_.Value -join ',')
