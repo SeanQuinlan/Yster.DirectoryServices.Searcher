@@ -34,7 +34,7 @@ Describe ('{0} Function Validation' -f $Module_Name) -Tags 'Module' {
             $Function_ParamBlock = $Function_AST.ParamBlock.Extent.Text.Split("`n").Trim()
             $Function_ParameterNames = $Function_AST.ParamBlock.Parameters.Name.VariablePath.UserPath
             $Function_ParameterBlocks = $Function_ParameterNames | Where-Object {
-                $Function_AST.ParamBlock.Extent.Text -match ('{0}.*,' -f $_) # Only match those with a comma after the parameter (ie. exclude the last parameter).
+                $Function_AST.ParamBlock.Extent.Text -match ('\${0}.*,' -f $_) # Only match those with a comma after the parameter (ie. exclude the last parameter).
             }
             foreach ($ParameterName in $Function_ParameterBlocks) {
                 # Select-String's LineNumber properties start from 1 since they are designed to be output to the console.
