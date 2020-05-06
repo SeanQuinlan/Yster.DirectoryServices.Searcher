@@ -32,118 +32,222 @@ function Set-DSSOrganizationalUnit {
         [String]
         $ObjectGUID,
 
-        # The values to remove from an existing property.
-        [Parameter(Mandatory = $false)]
-        [ValidateNotNullOrEmpty()]
-        [HashTable]
-        $Remove,
-
-        # The values to add to an existing property.
+        # A property name and a value or set of values that will be added to the existing property values.
+        # Multiple values for the same property can be separated by commas.
+        # Multiple properties can also be specified by separating them with semi-colons.
+        # See below for some examples:
+        #
+        # -Add @{postaladdress='1 First St'}
+        # -Add @{businesscategory='Sales','Head Office'}
+        #
+        # If specifying the Add, Clear, Remove and Replace parameters together, they are processed in this order:
+        # ..Remove
+        # ..Add
+        # ..Replace
+        # ..Clear
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         [HashTable]
         $Add,
 
-        # Values to use to replace the existing property.
+        # The value that will be set as the City of the organizational unit.
+        # An example of using this property is:
+        #
+        # -City 'San Francisco'
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
-        [HashTable]
-        $Replace,
+        [String]
+        $City,
 
-        # An array of properties to clear.
+        # A property or an array of properties to clear.
+        # See below for some examples:
+        #
+        # -Clear Description
+        # -Clear postaladdress,street,displayname
+        #
+        # If specifying the Add, Clear, Remove and Replace parameters together, they are processed in this order:
+        # ..Remove
+        # ..Add
+        # ..Replace
+        # ..Clear
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         [Array]
         $Clear,
 
-        # The context to search - Domain or Forest.
+        # The directory context to search - Domain or Forest. By default this will search within the domain only.
+        # If you want to search the entire directory, specify "Forest" for this parameter and the search will be performed on a Global Catalog server, targetting the entire forest.
+        # An example of using this property is:
+        #
+        # -Context 'Forest'
         [Parameter(Mandatory = $false)]
         [ValidateSet('Domain', 'Forest')]
         [String]
         $Context = 'Domain',
 
-        # The server to connect to.
+        # The value that will be set as the Country of the object. This sets 3 properties at once: co, country and countrycode.
+        # This property can be set using the long country name, the short 2-letter country code or the numerical countrycode.
+        # The long country name must exactly match the name as seen in the Active Directory Users and Computers property panel.
+        # Some examples of using this property are:
+        #
+        # -Country 'United Kingdom'
+        # -Country 'gb'
+        # -Country 826
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Alias('CountryCode')]
+        [String]
+        $Country,
+
+        # The credential to use for access to perform the required action.
+        # This credential can be provided in the form of a username, DOMAIN\username or as a PowerShell credential object.
+        # In the case of a username or DOMAIN\username, you will be prompted to supply the password.
+        # Some examples of using this property are:
+        #
+        # -Credential jsmith
+        # -Credential 'CONTOSO\jsmith'
+        #
+        # $Creds = Get-Credential
+        # -Credential $Creds
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNull()]
+        [System.Management.Automation.PSCredential]
+        [System.Management.Automation.Credential()]
+        $Credential = [System.Management.Automation.PSCredential]::Empty,
+
+        # The value that will be set as the Description of the object.
+        # An example of using this property is:
+        #
+        # -Description 'Marketing Users'
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $Description,
+
+        # The value that will be set as the DisplayName of the object.
+        # An example of using this property is:
+        #
+        # -DisplayName 'Marketing Users'
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $DisplayName,
+
+        # Sets the ManagedBy property of the object. This value can be one of the following object types:
+        # ..DistinguishedName
+        # ..ObjectSID (SID)
+        # ..ObjectGUID (GUID)
+        # ..SAMAccountName
+        #
+        # Some examples of using this property are:
+        #
+        # -ManagedBy 'rsmith'
+        # -ManagedBy 'CN=rsmith,OU=Users,OU=Company,DC=contoso,DC=com'
+        # -ManagedBy 'S-1-5-21-3387319312-2301824641-2614994224-7110'
+        # -ManagedBy 'f4fcc8dc-bd82-41d0-bc0a-5c44350bbb62'
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $ManagedBy,
+
+        # The value that will be set as the PostalCode of the object.
+        # An example of using this property is:
+        #
+        # -PostalCode '12345'
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $PostalCode,
+
+        # A property name and a value or set of values that will be removed from an existing multi-property value.
+        # Multiple values for the same property can be separated by commas.
+        # Multiple properties can also be specified by separating them with semi-colons.
+        # See below for some examples:
+        #
+        # -Remove @{postaladdress='1 First St'}
+        # -Remove @{businesscategory='Sales','Head Office'}
+        #
+        # If specifying the Add, Clear, Remove and Replace parameters together, they are processed in this order:
+        # ..Remove
+        # ..Add
+        # ..Replace
+        # ..Clear
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [HashTable]
+        $Remove,
+
+        # A property name and a value or set of values that will be used to replace the existing property values.
+        # Multiple values for the same property can be separated by commas.
+        # Multiple properties can also be specified by separating them with semi-colons.
+        # See below for some examples:
+        #
+        # -Replace @{description='Head Office'}
+        # -Replace @{businesscategory='Marketing', 'HeadOffice'}
+        # -Replace @{displayname='Marketing Users'; street='Main St'; wwwhomepage='marketing.contoso.com'}
+        #
+        # If specifying the Add, Clear, Remove and Replace parameters together, they are processed in this order:
+        # ..Remove
+        # ..Add
+        # ..Replace
+        # ..Clear
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [HashTable]
+        $Replace,
+
+        # The server or domain to connect to.
+        # See below for some examples:
+        #
+        # -Server DC01
+        # -Server 'dc01.contoso.com'
+        # -Server CONTOSO
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         [String]
         $Server,
 
-        # The credential to use for access.
+        # The value that will be set as the State of the object.
+        # An example of using this property is:
+        #
+        # -State 'California'
         [Parameter(Mandatory = $false)]
-        [ValidateNotNull()]
-        [System.Management.Automation.PSCredential]
-        [System.Management.Automation.Credential()]
-        $Credential = [System.Management.Automation.PSCredential]::Empty
+        [ValidateNotNullOrEmpty()]
+        [Alias('St')]
+        [String]
+        $State,
+
+        # The value that will be set as the StreetAddress of the object.
+        # To add a value that displays as multiple lines in any output, separate each line with a carriage return and newline (`r`n).
+        # Note that the characters before the "r" and "n" are backticks (grave accents) and not regular quotes/apostrophes.
+        # Additionally, in order for PowerShell to parse the carriage return and newline, the string needs to be within double quotes and not single quotes.
+        # Some examples of using this property are:
+        #
+        # -StreetAddress '1 Main St'
+        # -StreetAddress "First Line`r`nSecond Line"
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $StreetAddress
     )
+
+    # parameters to add:
+    # ------------------
+    # AuthType
+    # Identity
+    # Instance
+    # Partition
+    # PassThru
+    # ProtectedFromAccidentalDeletion
+    # WhatIf
+
 
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
 
     try {
-        $Common_Search_Parameters = @{
-            'Context' = $Context
-        }
-        if ($PSBoundParameters.ContainsKey('Server')) {
-            $Common_Search_Parameters['Server'] = $Server
-        }
-        if ($PSBoundParameters.ContainsKey('Credential')) {
-            $Common_Search_Parameters['Credential'] = $Credential
-        }
-
-        $Confirm_Parameters = @{}
-        if ($PSBoundParameters.ContainsKey('Confirm')) {
-            $Confirm_Parameters['Confirm'] = $Confirm
-        }
-        if ($PSBoundParameters.ContainsKey('WhatIf')) {
-            $Confirm_Parameters['WhatIf'] = $WhatIf
-        }
-
-        $Default_LDAPFilter = '(objectclass=organizationalunit)'
-        if ($PSBoundParameters.ContainsKey('DistinguishedName')) {
-            $LDAPFilter = '(&{0}(distinguishedname={1}))' -f $Default_LDAPFilter, $DistinguishedName
-            $Directory_Search_Type = 'DistinguishedName'
-            $Directory_Search_Value = $DistinguishedName
-        } else {
-            $LDAPFilter = '(&{0}(objectguid={1}))' -f $Default_LDAPFilter, $ObjectGUID
-            $Directory_Search_Type = 'ObjectGUID'
-            $Directory_Search_Value = $ObjectGUID
-        }
-        $Directory_Search_Parameters = @{
-            'LDAPFilter'   = $LDAPFilter
-            'OutputFormat' = 'DirectoryEntry'
-        }
-
-        $Object_Directory_Entry = Find-DSSRawObject @Common_Search_Parameters @Directory_Search_Parameters
-        if ($Object_Directory_Entry) {
-            $Set_Choices = @('Remove', 'Add', 'Replace', 'Clear')
-            $Set_Parameters = @{}
-            foreach ($Set_Choice in $Set_Choices) {
-                if ($PSBoundParameters.ContainsKey($Set_Choice)) {
-                    $Set_Parameters[$Set_Choice] = (Get-Variable -Name $Set_Choice -ValueOnly)
-                    $Set_Parameter_Valid = $true
-                }
-            }
-
-            if ($Set_Parameter_Valid -eq $true) {
-                $Set_Parameters['Action'] = 'Set'
-                $Set_Parameters['Object'] = $Object_Directory_Entry
-                Write-Verbose ('{0}|Calling Set-DSSRawObject' -f $Function_Name)
-                Set-DSSRawObject @$Common_Search_Parameters @Set_Parameters @Confirm_Parameters
-
-            } else {
-                Write-Verbose ('{0}|No Set parameters provided, so doing nothing' -f $Function_Name)
-            }
-        } else {
-            $Terminating_ErrorRecord_Parameters = @{
-                'Exception'    = 'System.DirectoryServices.ActiveDirectory.ActiveDirectoryObjectNotFoundException'
-                'ID'           = 'DSS-{0}' -f $Function_Name
-                'Category'     = 'ObjectNotFound'
-                'TargetObject' = $Object_Directory_Entry
-                'Message'      = 'Cannot find Organizational Unit with {0} of "{1}"' -f $Directory_Search_Type, $Directory_Search_Value
-            }
-            $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
-            $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
-        }
+        Write-Verbose ('{0}|Calling Set-DSSObjectWrapper' -f $Function_Name)
+        Set-DSSObjectWrapper -ObjectType 'OrganizationalUnit' -BoundParameters $PSBoundParameters
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
             $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_
