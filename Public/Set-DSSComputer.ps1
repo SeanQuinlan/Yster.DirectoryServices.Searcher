@@ -175,6 +175,15 @@ function Set-DSSComputer {
         [String]
         $DisplayName,
 
+        # The value that will be set as the DNSHostName of the object.
+        # An example of using this property is:
+        #
+        # -DNSHostName 'server1.corp.contoso.com'
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $DNSHostName,
+
         # Specifies whether an account is enabled.
         # This sets the Enabled flag of the UserAccountControl attribute of the user.
         # An example of using this property is:
@@ -211,6 +220,68 @@ function Set-DSSComputer {
         )]
         [String[]]
         $KerberosEncryptionType,
+
+        # The value that will be set as the Location of the object.
+        # An example of using this property is:
+        #
+        # -Location 'San Franciso DC1'
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $Location,
+
+        # Sets the ManagedBy property of the computer. This value can be one of the following object types:
+        # ..DistinguishedName
+        # ..ObjectSID (SID)
+        # ..ObjectGUID (GUID)
+        # ..SAMAccountName
+        #
+        # Some examples of using this property are:
+        #
+        # -ManagedBy 'rsmith'
+        # -ManagedBy 'CN=rsmith,OU=Users,OU=Company,DC=contoso,DC=com'
+        # -ManagedBy 'S-1-5-21-3387319312-2301824641-2614994224-7110'
+        # -ManagedBy 'f4fcc8dc-bd82-41d0-bc0a-5c44350bbb62'
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $ManagedBy,
+
+        # The value that will be set as the OperatingSystem of the object.
+        # An example of using this property is:
+        #
+        # -OperatingSystem 'Windows Server 2016 Standard'
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $OperatingSystem,
+
+        # The value that will be set as the OperatingSystemHotfix of the object.
+        # An example of using this property is:
+        #
+        # -OperatingSystemHotfix 'HF001'
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $OperatingSystemHotFix,
+
+        # The value that will be set as the OperatingSystemServicePack of the object.
+        # An example of using this property is:
+        #
+        # -OperatingSystemServicePack 'SP1'
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $OperatingSystemServicePack,
+
+        # The value that will be set as the OperatingSystemVersion of the object.
+        # An example of using this property is:
+        #
+        # -OperatingSystemVersion '10.0 (14393)'
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $OperatingSystemVersion,
 
         # Specifies that the account password does not expire.
         # This sets the PasswordNeverExpires flag of the UserAccountControl attribute of the user.
@@ -307,15 +378,8 @@ function Set-DSSComputer {
     # AuthenticationPolicy
     # AuthenticationPolicySilo
     # Certificates
-    # DNSHostName
     # Identity
     # Instance
-    # Location
-    # ManagedBy
-    # OperatingSystem
-    # OperatingSystemHotfix
-    # OperatingSystemServicePack
-    # OperatingSystemVersion
     # Partition
     # PassThru
     # PrincipalsAllowedToDelegateToAccount
