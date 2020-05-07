@@ -185,7 +185,7 @@ function Set-DSSGroup {
         # Multiple properties can also be specified by separating them with semi-colons.
         # See below for some examples:
         #
-        # -Replace @{description='Senior Manager'}
+        # -Replace @{description='Sales Users'}
         # -Replace @{otherTelephone='000-0000-0000','111-1111-1111'}
         # -Replace @{wwwhomepage='intranet.contoso.com/marketing'; displayname='All Marketing Users'}
         #
@@ -209,7 +209,6 @@ function Set-DSSGroup {
         [ValidateNotNullOrEmpty()]
         [String]
         $Server
-
     )
 
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name

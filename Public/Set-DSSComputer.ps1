@@ -88,7 +88,7 @@ function Set-DSSComputer {
         $Add,
 
         # Indicates whether reversible password encryption is allowed for the account.
-        # This sets the AllowReversiblePasswordEncryption flag of the UserAccountControl attribute of the user.
+        # This sets the AllowReversiblePasswordEncryption flag of the UserAccountControl attribute of the account.
         # An example of using this property is:
         #
         # -AllowReversiblePasswordEncryption $true
@@ -184,8 +184,8 @@ function Set-DSSComputer {
         [String]
         $DNSHostName,
 
-        # Specifies whether an account is enabled.
-        # This sets the Enabled flag of the UserAccountControl attribute of the user.
+        # Specifies whether an object is enabled.
+        # This sets the Enabled flag of the UserAccountControl attribute of the object.
         # An example of using this property is:
         #
         # -Enabled $false
@@ -194,7 +194,7 @@ function Set-DSSComputer {
         [Boolean]
         $Enabled,
 
-        # The value that will be set as the HomePage of the account.
+        # The value that will be set as the HomePage of the object.
         # An example of using this property is:
         #
         # -HomePage 'intranet.contoso.com'
@@ -284,7 +284,7 @@ function Set-DSSComputer {
         $OperatingSystemVersion,
 
         # Specifies that the account password does not expire.
-        # This sets the PasswordNeverExpires flag of the UserAccountControl attribute of the user.
+        # This sets the PasswordNeverExpires flag of the UserAccountControl attribute of the account.
         # An example of using this property is:
         #
         # -PasswordNeverExpires $true

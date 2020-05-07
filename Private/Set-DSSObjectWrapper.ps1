@@ -46,6 +46,9 @@ function Set-DSSObjectWrapper {
             'Group' {
                 $Default_LDAPFilter = '(objectclass=group)'
             }
+            'OrganizationalUnit' {
+                $Default_LDAPFilter = '(objectclass=organizationalunit)'
+            }
             'User' {
                 $Default_LDAPFilter = '(objectclass=user)'
             }

@@ -27,7 +27,7 @@ function Confirm-DSSObjectParameters {
 
     try {
         $Set_Choices = @('Remove', 'Add', 'Replace', 'Clear')
-        $global:Set_Parameters = @{}
+        $Set_Parameters = @{}
 
         # Add any other bound parameters, excluding the ones in $All_CommonParameters and in the $Set_Choices above.
         foreach ($Parameter_Key in $BoundParameters.Keys) {

@@ -88,7 +88,7 @@ function Set-DSSUser {
         $Add,
 
         # Indicates whether reversible password encryption is allowed for the account.
-        # This sets the AllowReversiblePasswordEncryption flag of the UserAccountControl attribute of the user.
+        # This sets the AllowReversiblePasswordEncryption flag of the UserAccountControl attribute of the account.
         # An example of using this property is:
         #
         # -AllowReversiblePasswordEncryption $true
@@ -115,7 +115,7 @@ function Set-DSSUser {
         [Boolean]
         $ChangePasswordAtLogon,
 
-        # The value that will be set as the City of the user.
+        # The value that will be set as the City of the object.
         # An example of using this property is:
         #
         # -City 'San Francisco'
@@ -140,7 +140,7 @@ function Set-DSSUser {
         [Array]
         $Clear,
 
-        # The value that will be set as the Company of the user.
+        # The value that will be set as the Company of the object.
         # An example of using this property is:
         #
         # -Company 'Contoso, Inc'
@@ -168,7 +168,7 @@ function Set-DSSUser {
         [String]
         $Context = 'Domain',
 
-        # The value that will be set as the Country of the user. This sets 3 properties at once: co, country and countrycode.
+        # The value that will be set as the Country of the object. This sets 3 properties at once: co, country and countrycode.
         # This property can be set using the long country name, the short 2-letter country code or the numerical countrycode.
         # The long country name must exactly match the name as seen in the Active Directory Users and Computers property panel.
         # Some examples of using this property are:
@@ -198,7 +198,7 @@ function Set-DSSUser {
         [System.Management.Automation.Credential()]
         $Credential = [System.Management.Automation.PSCredential]::Empty,
 
-        # The value that will be set as the Department of the user.
+        # The value that will be set as the Department of the object.
         # An example of using this property is:
         #
         # -Department 'Engineering'
@@ -225,7 +225,7 @@ function Set-DSSUser {
         [String]
         $DisplayName,
 
-        # The value that will be set as the Division of the user.
+        # The value that will be set as the Division of the object.
         # An example of using this property is:
         #
         # -Division 'Marketing'
@@ -234,7 +234,7 @@ function Set-DSSUser {
         [String]
         $Division,
 
-        # The value that will be set as the EmailAddress of the user.
+        # The value that will be set as the EmailAddress of the object.
         # An example of using this property is:
         #
         # -EmailAddress 'jsmith@contoso.com'
@@ -262,8 +262,8 @@ function Set-DSSUser {
         [String]
         $EmployeeNumber,
 
-        # Specifies whether an account is enabled.
-        # This sets the Enabled flag of the UserAccountControl attribute of the user.
+        # Specifies whether an object is enabled.
+        # This sets the Enabled flag of the UserAccountControl attribute of the object.
         # An example of using this property is:
         #
         # -Enabled $false
@@ -272,7 +272,7 @@ function Set-DSSUser {
         [Boolean]
         $Enabled,
 
-        # The value that will be set as the Fax number of the user.
+        # The value that will be set as the Fax number of the object.
         # An example of using this property is:
         #
         # -Fax '000-1111 2222'
@@ -311,7 +311,7 @@ function Set-DSSUser {
         [String]
         $HomeDrive,
 
-        # The value that will be set as the HomePage of the user.
+        # The value that will be set as the HomePage of the object.
         # An example of using this property is:
         #
         # -HomePage 'intranet.contoso.com/jsmith'
@@ -321,7 +321,7 @@ function Set-DSSUser {
         [String]
         $HomePage,
 
-        # The value that will be set as the HomePhone of the account.
+        # The value that will be set as the HomePhone of the object.
         # An example of using this property is:
         #
         # -HomePhone '000-000-1111'
@@ -393,7 +393,7 @@ function Set-DSSUser {
         [String]
         $MobilePhone,
 
-        # The value that will be set as the Office of the user.
+        # The value that will be set as the Office of the object.
         # An example of using this property is:
         #
         # -Office 'San Francisco'
@@ -403,7 +403,7 @@ function Set-DSSUser {
         [String]
         $Office,
 
-        # The value that will be set as the OfficePhone of the user.
+        # The value that will be set as the OfficePhone of the object.
         # An example of using this property is:
         #
         # -OfficePhone '(000) 000 1111'
@@ -412,7 +412,7 @@ function Set-DSSUser {
         [String]
         $OfficePhone,
 
-        # The value that will be set as the Organization of the user.
+        # The value that will be set as the Organization of the object.
         # An example of using this property is:
         #
         # -Organization 'Contoso'
@@ -451,7 +451,7 @@ function Set-DSSUser {
         [Boolean]
         $PasswordNotRequired,
 
-        # The value that will be set as the POBox of the user.
+        # The value that will be set as the POBox of the object.
         # An example of using this property is:
         #
         # -POBox '111'
@@ -461,7 +461,7 @@ function Set-DSSUser {
         [String]
         $POBox,
 
-        # The value that will be set as the PostalCode of the user.
+        # The value that will be set as the PostalCode of the object.
         # An example of using this property is:
         #
         # -PostalCode '12345'
@@ -539,8 +539,8 @@ function Set-DSSUser {
         [String]
         $Server,
 
-        # Specifies whether the user requires a smart card for logon.
-        # This sets the SmartcardLogonRequired flag of the UserAccountControl attribute of the user.
+        # Specifies whether the account requires a smart card for logon.
+        # This sets the SmartcardLogonRequired flag of the UserAccountControl attribute of the account.
         # An example of using this property is:
         #
         # -SmartcardLogonRequired $true
@@ -549,7 +549,7 @@ function Set-DSSUser {
         [Boolean]
         $SmartcardLogonRequired,
 
-        # The value that will be set as the State of the user.
+        # The value that will be set as the State of the object.
         # An example of using this property is:
         #
         # -State 'California'
@@ -559,7 +559,7 @@ function Set-DSSUser {
         [String]
         $State,
 
-        # The value that will be set as the StreetAddress of the user.
+        # The value that will be set as the StreetAddress of the object.
         # To add a value that displays as multiple lines in any output, separate each line with a carriage return and newline (`r`n).
         # Note that the characters before the "r" and "n" are backticks (grave accents) and not regular quotes/apostrophes.
         # Additionally, in order for PowerShell to parse the carriage return and newline, the string needs to be within double quotes and not single quotes.
