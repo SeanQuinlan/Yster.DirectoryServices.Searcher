@@ -409,12 +409,12 @@ function Find-DSSRawObject {
                                             $ChangePassword_Rules = $Current_Searcher_Result_Value.Access | Where-Object { $_.ObjectType -eq $ChangePassword_GUID }
                                             $null = $ChangePassword_Identity_Everyone_Correct = $ChangePassword_Identity_Self_Correct
                                             foreach ($ChangePassword_Rule in $ChangePassword_Rules) {
-                                                if (($ChangePassword_Rule.IdentityReference -eq $ChangePassword_Identity_Everyone_Object.Value) -and ($ChangePassword_Rule.AccessControlType -eq 'Deny')) {
-                                                    Write-Verbose ('{0}|Security: CannotChangePassword: Found correct permission for "Everyone" group: {1}' -f $Function_Name, $ChangePassword_Identity_Everyone_Object.Value)
+                                                if (($ChangePassword_Rule.IdentityReference -eq $Localised_Identity_Everyone_Object.Value) -and ($ChangePassword_Rule.AccessControlType -eq 'Deny')) {
+                                                    Write-Verbose ('{0}|Security: CannotChangePassword: Found correct permission for "Everyone" group: {1}' -f $Function_Name, $Localised_Identity_Everyone_Object.Value)
                                                     $ChangePassword_Identity_Everyone_Correct = $true
                                                 }
-                                                if (($ChangePassword_Rule.IdentityReference -eq $ChangePassword_Identity_Self_Object.Value) -and ($ChangePassword_Rule.AccessControlType -eq 'Deny')) {
-                                                    Write-Verbose ('{0}|Security: CannotChangePassword: Found correct permission for "Self" user: {1}' -f $Function_Name, $ChangePassword_Identity_Self_Object.Value)
+                                                if (($ChangePassword_Rule.IdentityReference -eq $Localised_Identity_Self_Object.Value) -and ($ChangePassword_Rule.AccessControlType -eq 'Deny')) {
+                                                    Write-Verbose ('{0}|Security: CannotChangePassword: Found correct permission for "Self" user: {1}' -f $Function_Name, $Localised_Identity_Self_Object.Value)
                                                     $ChangePassword_Identity_Self_Correct = $true
                                                 }
                                             }
@@ -427,15 +427,12 @@ function Find-DSSRawObject {
                                             }
                                         }
                                         'protectedfromaccidentaldeletion' {
-                                            $AccidentalDeletion_Rights = 'DeleteTree, Delete'
-                                            $AccidentalDeletion_Identity_Everyone_SID = New-Object -TypeName 'System.Security.Principal.SecurityIdentifier' -ArgumentList ([System.Security.Principal.WellKnownSidType]::WorldSid, $null)
-                                            $AccidentalDeletion_Identity_Everyone = $AccidentalDeletion_Identity_Everyone_SID.Translate([System.Security.Principal.NTAccount]).Value
-                                            $AccidentalDeletion_Rule = $Current_Searcher_Result_Value.Access | Where-Object { ($_.ActiveDirectoryRights -match $AccidentalDeletion_Rights) -and ($_.IdentityReference -eq $AccidentalDeletion_Identity_Everyone) }
+                                            $AccidentalDeletion_Rule = $Current_Searcher_Result_Value.Access | Where-Object { ($_.ActiveDirectoryRights -match $AccidentalDeletion_Rights) -and ($_.IdentityReference -eq $Localised_Identity_Everyone_Object.Value) }
                                             if (($AccidentalDeletion_Rule.Count -eq 1) -and ($AccidentalDeletion_Rule.AccessControlType -eq 'Deny')) {
-                                                Write-Verbose ('{0}|Security: AccidentalDeletion correct: Permission: {1} | Group: {2} | Count: {3}' -f $Function_Name, $AccidentalDeletion_Rule.AccessControlType, $AccidentalDeletion_Identity_Everyone, $AccidentalDeletion_Rule.Count)
+                                                Write-Verbose ('{0}|Security: AccidentalDeletion correct: Permission: {1} | Group: {2} | Count: {3}' -f $Function_Name, $AccidentalDeletion_Rule.AccessControlType, $Localised_Identity_Everyone_Object.Value, $AccidentalDeletion_Rule.Count)
                                                 $Useful_Calculated_Property_Value = $true
                                             } else {
-                                                Write-Verbose ('{0}|Security: AccidentalDeletion incorrect: Permission: {1} | Group: {2} | Count: {3}' -f $Function_Name, $AccidentalDeletion_Rule.AccessControlType, $AccidentalDeletion_Identity_Everyone, $AccidentalDeletion_Rule.Count)
+                                                Write-Verbose ('{0}|Security: AccidentalDeletion incorrect: Permission: {1} | Group: {2} | Count: {3}' -f $Function_Name, $AccidentalDeletion_Rule.AccessControlType, $Localised_Identity_Everyone_Object.Value, $AccidentalDeletion_Rule.Count)
                                                 $Useful_Calculated_Property_Value = $false
                                             }
                                         }

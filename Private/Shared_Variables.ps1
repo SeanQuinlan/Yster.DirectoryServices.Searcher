@@ -177,10 +177,17 @@ $OptionalFeature_Scope_Table = @{
 # Variables related to the "Cannot Change Password" properties.
 # Adapted from: https://social.technet.microsoft.com/Forums/scriptcenter/en-US/e947d590-d183-46b9-9a7a-4e785638c6fb/how-can-i-get-a-list-of-active-directory-user-accounts-where-the-user-cannot-change-the-password?forum=ITCG
 $ChangePassword_GUID = 'ab721a53-1e2f-11d0-9819-00aa0040529b'
-$ChangePassword_Identity_Everyone_SID = New-Object -TypeName 'System.Security.Principal.SecurityIdentifier' -ArgumentList ([System.Security.Principal.WellKnownSidType]::WorldSid, $null) # Everyone
-$ChangePassword_Identity_Everyone_Object = $ChangePassword_Identity_Everyone_SID.Translate([System.Security.Principal.NTAccount])
-$ChangePassword_Identity_Self_SID = New-Object -TypeName 'System.Security.Principal.SecurityIdentifier' -ArgumentList ([System.Security.Principal.WellKnownSidType]::SelfSid, $null) # NT AUTHORITY\SELF
-$ChangePassword_Identity_Self_Object = $ChangePassword_Identity_Self_SID.Translate([System.Security.Principal.NTAccount])
+
+
+# Variables related to the "Protected from Accidental Deletion" property.
+$AccidentalDeletion_Rights = 'DeleteTree, Delete'
+
+
+# Variables to localise some Security Principals.
+$Localised_Identity_Everyone_SID = New-Object -TypeName 'System.Security.Principal.SecurityIdentifier' -ArgumentList ([System.Security.Principal.WellKnownSidType]::WorldSid, $null) # Everyone
+$Localised_Identity_Everyone_Object = $Localised_Identity_Everyone_SID.Translate([System.Security.Principal.NTAccount])
+$Localised_Identity_Self_SID = New-Object -TypeName 'System.Security.Principal.SecurityIdentifier' -ArgumentList ([System.Security.Principal.WellKnownSidType]::SelfSid, $null) # NT AUTHORITY\SELF
+$Localised_Identity_Self_Object = $Localised_Identity_Self_SID.Translate([System.Security.Principal.NTAccount])
 
 # An Enum to determine Active Directory Group Type.
 # Taken from: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-adts/11972272-09ec-4a42-bf5e-3e99b321cf55

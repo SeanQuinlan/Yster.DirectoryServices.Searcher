@@ -405,12 +405,12 @@ function Set-DSSRawObject {
 
                                     if ($Property.Value -eq $true) {
                                         foreach ($ChangePassword_Rule in $ChangePassword_Rules) {
-                                            if (($ChangePassword_Rule.IdentityReference -eq $ChangePassword_Identity_Everyone_Object) -and ($ChangePassword_Rule.AccessControlType -eq 'Deny')) {
-                                                Write-Verbose ('{0}|CannotChangePassword: Found correct DENY permission for "Everyone" group: {1}' -f $Function_Name, $ChangePassword_Identity_Everyone_Object.Value)
+                                            if (($ChangePassword_Rule.IdentityReference -eq $Localised_Identity_Everyone_Object) -and ($ChangePassword_Rule.AccessControlType -eq 'Deny')) {
+                                                Write-Verbose ('{0}|CannotChangePassword: Found correct DENY permission for "Everyone" group: {1}' -f $Function_Name, $Localised_Identity_Everyone_Object.Value)
                                                 $ChangePassword_Identity_Everyone_Correct = $true
                                             }
-                                            if (($ChangePassword_Rule.IdentityReference -eq $ChangePassword_Identity_Self_Object) -and ($ChangePassword_Rule.AccessControlType -eq 'Deny')) {
-                                                Write-Verbose ('{0}|CannotChangePassword: Found correct DENY permission for "Self" user: {1}' -f $Function_Name, $ChangePassword_Identity_Self_Object.Value)
+                                            if (($ChangePassword_Rule.IdentityReference -eq $Localised_Identity_Self_Object) -and ($ChangePassword_Rule.AccessControlType -eq 'Deny')) {
+                                                Write-Verbose ('{0}|CannotChangePassword: Found correct DENY permission for "Self" user: {1}' -f $Function_Name, $Localised_Identity_Self_Object.Value)
                                                 $ChangePassword_Identity_Self_Correct = $true
                                             }
                                         }
@@ -424,21 +424,21 @@ function Set-DSSRawObject {
                                         # 1. Either just "Everyone" group can be set to Allow and no "NT AUTHORITY\SELF" user rule exists.
                                         # 2. Both "Everyone" group and "NT AUTHORITY\SELF" user rules are set to Allow.
                                         foreach ($ChangePassword_Rule in $ChangePassword_Rules) {
-                                            if ($ChangePassword_Rule.IdentityReference -eq $ChangePassword_Identity_Everyone_Object) {
+                                            if ($ChangePassword_Rule.IdentityReference -eq $Localised_Identity_Everyone_Object) {
                                                 if ($ChangePassword_Rule.AccessControlType -eq 'Allow') {
-                                                    Write-Verbose ('{0}|CannotChangePassword: Found correct ALLOW permission for "Everyone" group: {1}' -f $Function_Name, $ChangePassword_Identity_Everyone_Object.Value)
+                                                    Write-Verbose ('{0}|CannotChangePassword: Found correct ALLOW permission for "Everyone" group: {1}' -f $Function_Name, $Localised_Identity_Everyone_Object.Value)
                                                     $ChangePassword_Identity_Everyone_Correct = $true
                                                 } else {
-                                                    Write-Verbose ('{0}|CannotChangePassword: Found incorrect permission for "Everyone" group: {1}' -f $Function_Name, $ChangePassword_Identity_Everyone_Object.Value)
+                                                    Write-Verbose ('{0}|CannotChangePassword: Found incorrect permission for "Everyone" group: {1}' -f $Function_Name, $Localised_Identity_Everyone_Object.Value)
                                                     $ChangePassword_Identity_Everyone_Correct = $false
                                                 }
                                             }
-                                            if ($ChangePassword_Rule.IdentityReference -eq $ChangePassword_Identity_Self_Object) {
+                                            if ($ChangePassword_Rule.IdentityReference -eq $Localised_Identity_Self_Object) {
                                                 if ($ChangePassword_Rule.AccessControlType -eq 'Allow') {
-                                                    Write-Verbose ('{0}|CannotChangePassword: Found correct ALLOW permission for "Self" user: {1}' -f $Function_Name, $ChangePassword_Identity_Self_Object.Value)
+                                                    Write-Verbose ('{0}|CannotChangePassword: Found correct ALLOW permission for "Self" user: {1}' -f $Function_Name, $Localised_Identity_Self_Object.Value)
                                                     $ChangePassword_Identity_Self_Correct = $true
                                                 } else {
-                                                    Write-Verbose ('{0}|CannotChangePassword: Found incorrect permission for "Self" user: {1} with permission "{2}"' -f $Function_Name, $ChangePassword_Identity_Self_Object.Value, $ChangePassword_Rule.AccessControlType)
+                                                    Write-Verbose ('{0}|CannotChangePassword: Found incorrect permission for "Self" user: {1} with permission "{2}"' -f $Function_Name, $Localised_Identity_Self_Object.Value, $ChangePassword_Rule.AccessControlType)
                                                     $ChangePassword_Identity_Self_Correct = $false
                                                 }
                                             }
@@ -455,9 +455,9 @@ function Set-DSSRawObject {
                                             foreach ($ChangePassword_Rule in $ChangePassword_Rules) {
                                                 [void]$Object.ObjectSecurity.RemoveAccessRule($ChangePassword_Rule)
                                             }
-                                            Write-Verbose ('{0}|CannotChangePassword: Setting ALLOW permission for "Everyone" group: {1}' -f $Function_Name, $ChangePassword_Identity_Everyone_Object.Value)
+                                            Write-Verbose ('{0}|CannotChangePassword: Setting ALLOW permission for "Everyone" group: {1}' -f $Function_Name, $Localised_Identity_Everyone_Object.Value)
                                             $ChangePassword_AccessRule_Arguments = @(
-                                                $ChangePassword_Identity_Everyone_Object
+                                                $Localised_Identity_Everyone_Object
                                                 [System.DirectoryServices.ActiveDirectoryRights]::ExtendedRight
                                                 [System.Security.AccessControl.AccessControlType]::Allow
                                                 [System.Guid]$ChangePassword_GUID
@@ -477,7 +477,7 @@ function Set-DSSRawObject {
                                                 [System.Guid]$ChangePassword_GUID
                                                 [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None
                                             )
-                                            foreach ($ChangePassword_Identity in @($ChangePassword_Identity_Everyone_Object, $ChangePassword_Identity_Self_Object)) {
+                                            foreach ($ChangePassword_Identity in @($Localised_Identity_Everyone_Object, $Localised_Identity_Self_Object)) {
                                                 Write-Verbose ('{0}|CannotChangePassword: Setting DENY permission for: {1}' -f $Function_Name, $ChangePassword_Identity.Value)
                                                 $ChangePassword_AccessRule_Arguments = New-Object -TypeName 'System.Collections.Generic.List[Object]'
                                                 $ChangePassword_AccessRule_Arguments.Add($ChangePassword_Identity)
