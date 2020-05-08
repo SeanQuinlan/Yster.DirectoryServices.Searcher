@@ -480,6 +480,15 @@ function Set-DSSUser {
         [String]
         $ProfilePath,
 
+        # Specifies whether the object is protected from accidental deletion.
+        # An example of using this property is:
+        #
+        # -ProtectedFromAccidentalDeletion $false
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Boolean]
+        $ProtectedFromAccidentalDeletion,
+
         # A property name and a value or set of values that will be removed from an existing multi-property value.
         # Multiple values for the same property can be separated by commas.
         # Multiple properties can also be specified by separating them with semi-colons.

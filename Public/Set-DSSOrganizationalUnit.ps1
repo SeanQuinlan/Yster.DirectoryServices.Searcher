@@ -240,16 +240,6 @@ function Set-DSSOrganizationalUnit {
         $StreetAddress
     )
 
-    # parameters to add:
-    # ------------------
-    # AuthType
-    # Identity
-    # Instance
-    # Partition
-    # PassThru
-    # WhatIf
-
-
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
 

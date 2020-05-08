@@ -162,6 +162,15 @@ function Set-DSSGroup {
         [String]
         $ManagedBy,
 
+        # Specifies whether the object is protected from accidental deletion.
+        # An example of using this property is:
+        #
+        # -ProtectedFromAccidentalDeletion $false
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Boolean]
+        $ProtectedFromAccidentalDeletion,
+
         # A property name and a value or set of values that will be removed from an existing multi-property value.
         # Multiple values for the same property can be separated by commas.
         # Multiple properties can also be specified by separating them with semi-colons.
@@ -213,14 +222,6 @@ function Set-DSSGroup {
 
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
-
-    # Parameters to add:
-    # ------------------
-    # AuthType
-    # Identity
-    # Instance
-    # Partition
-    # PassThru
 
     try {
         Write-Verbose ('{0}|Calling Set-DSSObjectWrapper' -f $Function_Name)
