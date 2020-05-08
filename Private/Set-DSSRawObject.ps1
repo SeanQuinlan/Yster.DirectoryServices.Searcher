@@ -136,7 +136,7 @@ function Set-DSSRawObject {
             } else {
                 $Member_Set = $Members
             }
-            $global:GroupMember_Objects = Get-DSSResolvedObject @Common_Search_Parameters -InputSet $Member_Set
+            $GroupMember_Objects = Get-DSSResolvedObject @Common_Search_Parameters -InputSet $Member_Set
         }
 
         $Confirm_Header = New-Object -TypeName 'System.Text.StringBuilder'
@@ -451,6 +451,7 @@ function Set-DSSRawObject {
                                     }
 
                                     switch ($ChangePassword_Action) {
+                                        # Specific ActiveDirectoryAccessRule: https://docs.microsoft.com/en-us/dotnet/api/system.directoryservices.activedirectoryaccessrule.-ctor?view=dotnet-plat-ext-3.1#System_DirectoryServices_ActiveDirectoryAccessRule__ctor_System_Security_Principal_IdentityReference_System_DirectoryServices_ActiveDirectoryRights_System_Security_AccessControl_AccessControlType_System_Guid_System_DirectoryServices_ActiveDirectorySecurityInheritance_
                                         'SetAllow' {
                                             foreach ($ChangePassword_Rule in $ChangePassword_Rules) {
                                                 [void]$Object.ObjectSecurity.RemoveAccessRule($ChangePassword_Rule)
@@ -489,6 +490,61 @@ function Set-DSSRawObject {
                                         }
                                         'None' {
                                             Write-Verbose ('{0}|CannotChangePassword: Both permissions already set correctly, doing nothing' -f $Function_Name)
+                                        }
+                                    }
+
+                                } elseif ($Property.Name -eq 'protectedfromaccidentaldeletion') {
+                                    if ($Property.Value -isnot [boolean]) {
+                                        $Terminating_ErrorRecord_Parameters = @{
+                                            'Exception'      = 'System.ArgumentException'
+                                            'ID'             = 'DSS-{0}' -f $Function_Name
+                                            'Category'       = 'InvalidType'
+                                            'TargetObject'   = $Object
+                                            'Message'        = 'Specified property must be a boolean: {0}' -f $Property.Name
+                                            'InnerException' = $_.Exception
+                                        }
+                                        $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+                                        $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+                                    }
+                                    $AccidentalDeletion_Rule = $Object.ObjectSecurity.Access | Where-Object { ($_.ActiveDirectoryRights -match $AccidentalDeletion_Rights) -and ($_.IdentityReference -eq $Localised_Identity_Everyone_Object.Value) }
+
+                                    if (($AccidentalDeletion_Rule.Count -eq 1) -and ($AccidentalDeletion_Rule.AccessControlType -eq 'Deny')) {
+                                        Write-Verbose ('{0}|AccidentalDeletion: Found correct DENY permission' -f $Function_Name)
+                                        if ($Property.Value -eq $true) {
+                                            $AccidentalDeletion_Action = 'None'
+                                        } elseif ($Property.Value -eq $false) {
+                                            $AccidentalDeletion_Action = 'RemoveDeny'
+                                        }
+                                    } else {
+                                        Write-Verbose ('{0}|AccidentalDeletion: Did not find DENY permission' -f $Function_Name)
+                                        if ($Property.Value -eq $true) {
+                                            $AccidentalDeletion_Action = 'SetDeny'
+                                        } elseif ($Property.Value -eq $false) {
+                                            $AccidentalDeletion_Action = 'None'
+                                        }
+                                    }
+
+                                    switch ($AccidentalDeletion_Action) {
+                                        'RemoveDeny' {
+                                            Write-Verbose ('{0}|AccidentalDeletion: Removing DENY permission for "Everyone" group: {1}' -f $Function_Name, $Localised_Identity_Everyone_Object.Value)
+                                            [void]$Object.ObjectSecurity.RemoveAccessRule($AccidentalDeletion_Rule)
+                                            $Object.CommitChanges()
+                                        }
+                                        'SetDeny' {
+                                            # Specific ActiveDirectoryAccessRule: https://docs.microsoft.com/en-us/dotnet/api/system.directoryservices.activedirectoryaccessrule.-ctor?view=dotnet-plat-ext-3.1#System_DirectoryServices_ActiveDirectoryAccessRule__ctor_System_Security_Principal_IdentityReference_System_DirectoryServices_ActiveDirectoryRights_System_Security_AccessControl_AccessControlType_System_DirectoryServices_ActiveDirectorySecurityInheritance_
+                                            Write-Verbose ('{0}|AccidentalDeletion: Setting DENY permission for "Everyone" group: {1}' -f $Function_Name, $Localised_Identity_Everyone_Object.Value)
+                                            $AccidentalDeletion_AccessRule_Arguments = @(
+                                                $Localised_Identity_Everyone_Object
+                                                $AccidentalDeletion_Rights
+                                                [System.Security.AccessControl.AccessControlType]::Deny
+                                                [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None
+                                            )
+                                            $AccidentalDeletion_AccessRule = New-Object 'System.DirectoryServices.ActiveDirectoryAccessRule' -ArgumentList $AccidentalDeletion_AccessRule_Arguments
+                                            $Object.ObjectSecurity.SetAccessRule($AccidentalDeletion_AccessRule)
+                                            $Object.CommitChanges()
+                                        }
+                                        'None' {
+                                            Write-Verbose ('{0}|AccidentalDeletion: Permission already set correctly, doing nothing' -f $Function_Name)
                                         }
                                     }
 

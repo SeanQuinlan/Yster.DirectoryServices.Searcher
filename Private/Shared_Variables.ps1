@@ -135,11 +135,11 @@ $Useful_Calculated_SubProperties = @{
     }
 }
 
-# A set of arguments/properties to Set-ADUser which simply set a different LDAP property.
+# A set of arguments/properties to Set-ADXXX which simply set a different LDAP property.
 $Set_Alias_Properties = @{
     'grouptype'                     = @('groupcategory', 'groupscope')
     'msds-supportedencryptiontypes' = @('compoundidentitysupported', 'kerberosencryptiontype')
-    'ntsecuritydescriptor'          = 'cannotchangepassword'
+    'ntsecuritydescriptor'          = @('cannotchangepassword', 'protectedfromaccidentaldeletion')
     'pwdlastset'                    = 'changepasswordatlogon'
 }
 
