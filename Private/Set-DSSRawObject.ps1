@@ -849,6 +849,45 @@ function Set-DSSRawObject {
                 }
                 $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
                 $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+            } elseif ($_.Exception.ExtendedError -eq 8373) {
+                # This exception is thrown when you attempt to set a SPN value which is invalid.
+                # Microsoft Error Code: https://docs.microsoft.com/en-gb/windows/win32/debug/system-error-codes--8200-8999-
+                $Terminating_ErrorRecord_Parameters = @{
+                    'Exception'      = 'System.DirectoryServices.DirectoryServicesCOMException'
+                    'ID'             = 'DSS-{0}' -f $Function_Name
+                    'Category'       = 'InvalidData'
+                    'TargetObject'   = $Object
+                    'Message'        = 'The name reference is invalid'
+                    'InnerException' = $_.Exception
+                }
+                $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+                $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+            } elseif ($_.Exception.ExtendedError -eq 8647) {
+                # This exception is thrown when you attempt to set a SPN which is not unique forest-wide.
+                # From: https://docs.microsoft.com/en-us/windows-server/identity/ad-ds/manage/component-updates/spn-and-upn-uniqueness
+                $Terminating_ErrorRecord_Parameters = @{
+                    'Exception'      = 'System.DirectoryServices.DirectoryServicesCOMException'
+                    'ID'             = 'DSS-{0}' -f $Function_Name
+                    'Category'       = 'InvalidData'
+                    'TargetObject'   = $Object
+                    'Message'        = 'The operation failed because SPN value provided for addition/modification is not unique forest-wide'
+                    'InnerException' = $_.Exception
+                }
+                $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+                $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+            } elseif ($_.Exception.ExtendedError -eq 8648) {
+                # This exception is thrown when you attempt to set a UPN which is not unique forest-wide.
+                # From: https://docs.microsoft.com/en-us/windows-server/identity/ad-ds/manage/component-updates/spn-and-upn-uniqueness
+                $Terminating_ErrorRecord_Parameters = @{
+                    'Exception'      = 'System.DirectoryServices.DirectoryServicesCOMException'
+                    'ID'             = 'DSS-{0}' -f $Function_Name
+                    'Category'       = 'InvalidData'
+                    'TargetObject'   = $Object
+                    'Message'        = 'The operation failed because UPN value provided for addition/modification is not unique forest-wide'
+                    'InnerException' = $_.Exception
+                }
+                $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+                $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
             } else {
                 throw
             }

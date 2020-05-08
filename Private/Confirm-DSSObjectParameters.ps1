@@ -27,19 +27,51 @@ function Confirm-DSSObjectParameters {
 
     try {
         $Set_Choices = @('Remove', 'Add', 'Replace', 'Clear')
+        $AddRemoveReplace_ValidKeys = @('Add', 'Remove', 'Replace')
         $Set_Parameters = @{}
 
         # Add any other bound parameters, excluding the ones in $All_CommonParameters and in the $Set_Choices above.
         foreach ($Parameter_Key in $BoundParameters.Keys) {
             if (($All_CommonParameters + $Set_Choices) -notcontains $Parameter_Key) {
-                if ($Combined_Calculated_Properties.Values -contains $Parameter_Key) {
-                    $Parameter_Name = ($Combined_Calculated_Properties.GetEnumerator() | Where-Object { $_.Value -eq $Parameter_Key }).'Name'
+                # Any parameters that are supplied as hashtables will be "broken down" into their relevant Add/Remove/Replace key-value pairs.
+                if ($BoundParameters[$Parameter_Key] -is [HashTable]) {
+                    Write-Verbose ('{0}|Checking parameter hashtable for valid keys: {1}' -f $Function_Name, $Parameter_Key)
+                    foreach ($Key_Name in $BoundParameters[$Parameter_Key].Keys) {
+                        if ($AddRemoveReplace_ValidKeys -notcontains $Key_Name) {
+                            $Terminating_ErrorRecord_Parameters = @{
+                                'Exception'    = 'System.ArgumentException'
+                                'ID'           = 'DSS-{0}' -f $Function_Name
+                                'Category'     = 'InvalidArgument'
+                                'TargetObject' = $Object_Directory_Entry
+                                'Message'      = 'Cannot validate argument on parameter "{0}": Key "{1}" is invalid. Hashtable can only contain ADD, REMOVE, or REPLACE as keys.' -f $Parameter_Key, $Key_Name
+                            }
+                            $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+                            $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+                        }
+                    }
+                    Write-Verbose ('{0}|Breaking down parameter: {1}' -f $Function_Name, $Parameter_Key)
+                    $Microsoft_Aliases = $Microsoft_Alias_Properties.GetEnumerator() | ForEach-Object { $_.Value }
+                    foreach ($Key_Name in $BoundParameters[$Parameter_Key].Keys) {
+                        if ($Microsoft_Aliases -contains $Parameter_Key) {
+                            $LDAP_Parameter_Key = ($Microsoft_Alias_Properties.GetEnumerator() | Where-Object { $_.Value -eq $Parameter_Key }).'Name'
+                        } else {
+                            $LDAP_Parameter_Key = $Parameter_Key
+                        }
+                        Write-Verbose ('{0}|Adding "{1}" with values: {2} - {3}' -f $Function_Name, $Key_Name, $LDAP_Parameter_Key, $BoundParameters[$Parameter_Key][$Key_Name])
+                        $Set_Parameters[$Key_Name] += @{
+                            $LDAP_Parameter_Key = $BoundParameters[$Parameter_Key][$Key_Name]
+                        }
+                    }
                 } else {
-                    $Parameter_Name = $Parameter_Key
-                }
-                Write-Verbose ('{0}|Adding bound parameter: {1} - {2}' -f $Function_Name, $Parameter_Name, $BoundParameters[$Parameter_Key])
-                $Set_Parameters['Replace'] += @{
-                    $Parameter_Name = $BoundParameters[$Parameter_Key]
+                    if ($Combined_Calculated_Properties.Values -contains $Parameter_Key) {
+                        $Parameter_Name = ($Combined_Calculated_Properties.GetEnumerator() | Where-Object { $_.Value -eq $Parameter_Key }).'Name'
+                    } else {
+                        $Parameter_Name = $Parameter_Key
+                    }
+                    Write-Verbose ('{0}|Adding bound parameter: {1} - {2}' -f $Function_Name, $Parameter_Name, $BoundParameters[$Parameter_Key])
+                    $Set_Parameters['Replace'] += @{
+                        $Parameter_Name = $BoundParameters[$Parameter_Key]
+                    }
                 }
             }
         }

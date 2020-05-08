@@ -548,6 +548,33 @@ function Set-DSSUser {
         [String]
         $Server,
 
+        # A hashtable that defines the ServicePrincipalNames to add, remove or replace on the object.
+        # Add and remove will add or remove individual entries (if found). Replace will replace all entries with just those specified.
+        # The hashtable KEY has to be add, remove or replace.
+        # The corresponding hashtable VALUE can be a single string or multiple strings (separated by commas).
+        #
+        # See below for some examples:
+        # -ServicePrincipalNames @{Add='MSSQLSvc/SQLServer01.contoso.com'}
+        # -ServicePrincipalNames @{Add='MSSQLSvc/SQLServer01','MSSQLSvc/SQLServer01.contoso.com'}
+        # -ServicePrincipalNames @{Remove='MSSQLSvc/SQLServer01'}
+        # -ServicePrincipalNames @{Replace='MSSQLSvc/SQLServer02','MSSQLSvc/SQLServer02.contoso.com'}
+        #
+        # Multiple actions can also be specified by providing multiple lines within the hashtable. For example:
+        # -ServicePrincipalNames @{Remove='MSSQLSvc/SQLServer01'; Add='MSSQLSvc/SQLServer02'}
+        #
+        # You can clear all entries with this:
+        # -ServicePrincipalNames $null
+        #
+        # If specifying the Add, Remove and Replace parameters together, they are processed in this order:
+        # ..Remove
+        # ..Add
+        # ..Replace
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Alias('ServicePrincipalName')]
+        [HashTable]
+        $ServicePrincipalNames,
+
         # Specifies whether the account requires a smart card for logon.
         # This sets the SmartcardLogonRequired flag of the UserAccountControl attribute of the account.
         # An example of using this property is:
@@ -632,7 +659,6 @@ function Set-DSSUser {
     # Partition
     # PassThru
     # PrincipalsAllowedToDelegateToAccount
-    # ServicePrincipalNames
 
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
