@@ -9,7 +9,7 @@ function Find-DSSOrganizationalUnit {
 
         Finds all the OUs that match "Sales".
     .EXAMPLE
-        Find-DSSOrganizationalUnit -LDAPFilter '(name=UK*)' -SearchBase 'OU=RootOU,DC=root,DC=lab' -Properties *
+        Find-DSSOrganizationalUnit -LDAPFilter '(name=UK*)' -SearchBase 'OU=RootOU,DC=contoso,DC=com' -Properties *
 
         Finds all the OUs that have a "name" starting with "UK", under the above OU, and return all properties for each result.
     .NOTES

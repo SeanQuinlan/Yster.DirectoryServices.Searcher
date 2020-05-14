@@ -8,7 +8,7 @@ function Set-DSSObject {
             - DistinguishedName
             - ObjectGUID (GUID)
     .EXAMPLE
-        Set-DSSObject -DistinguishedName 'CN=SQL Servers,DC=Servers,DC=contoso,DC=com' -Replace @{Description='SQL Servers'}
+        Set-DSSObject -DistinguishedName 'CN=SQL Servers,OU=Servers,DC=contoso,DC=com' -Replace @{Description='SQL Servers'}
 
         Sets the Description attribute of the "SQL Servers" object, replacing any value that is already there.
     .NOTES

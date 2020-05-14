@@ -6,6 +6,7 @@ function Remove-DSSObject {
         Queries Active Directory for a specific object and then deletes it, based on one of the following specified parameters:
             - DistinguishedName
             - ObjectGUID (GUID)
+            - ObjectSID (SID)
     .EXAMPLE
         Remove-DSSObject -DistinguishedName 'CN=JSMITHLAP,OU=Sales,DC=contoso,DC=com'
 
@@ -30,6 +31,13 @@ function Remove-DSSObject {
         [Alias('GUID')]
         [String]
         $ObjectGUID,
+
+        # The ObjectSID of the object.
+        [Parameter(Mandatory = $true, ParameterSetName = 'SID')]
+        [ValidateNotNullOrEmpty()]
+        [Alias('SID')]
+        [String]
+        $ObjectSID,
 
         # Delete all child objects recursively.
         [Parameter(Mandatory = $false)]

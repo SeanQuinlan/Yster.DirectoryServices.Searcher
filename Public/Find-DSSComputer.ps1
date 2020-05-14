@@ -9,7 +9,7 @@ function Find-DSSComputer {
 
         Finds all the computers that match "srv" on one of the commonly indexed attributes. Wildcard is not required.
     .EXAMPLE
-        Find-DSSComputer -LDAPFilter '(name=appserver*)' -SearchBase 'DC=Mkt_Servers,DC=contoso,DC=com' -SearchScope 'OneLevel'
+        Find-DSSComputer -LDAPFilter '(name=appserver*)' -SearchBase 'OU=Mkt_Servers,DC=contoso,DC=com' -SearchScope 'OneLevel'
 
         Finds all computers that have a name starting with "appserver", in the "Mkt_Servers" OU or the immediate children of that OU.
     .NOTES

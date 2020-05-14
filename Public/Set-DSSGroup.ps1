@@ -6,11 +6,11 @@ function Set-DSSGroup {
         Queries Active Directory for a specific group object and then modifies one or more attributes on this object.
         The object can be specified using one of the following
             - DistinguishedName
-            - ObjectSID (SID)
             - ObjectGUID (GUID)
+            - ObjectSID (SID)
             - SAMAccountName
     .EXAMPLE
-        Set-DSSGroup -DistinguishedName 'CN=Application_Servers,DC=Servers,DC=contoso,DC=com' -Replace @{Description='Application Servers'}
+        Set-DSSGroup -DistinguishedName 'CN=Application_Servers,OU=Servers,DC=contoso,DC=com' -Replace @{Description='Application Servers'}
 
         Sets the Description attribute of the "Application_Servers" group, replacing any value that is already there.
     .NOTES
@@ -27,19 +27,19 @@ function Set-DSSGroup {
         [String]
         $DistinguishedName,
 
-        # The ObjectSID of the group.
-        [Parameter(Mandatory = $true, ParameterSetName = 'SID')]
-        [ValidateNotNullOrEmpty()]
-        [Alias('SID')]
-        [String]
-        $ObjectSID,
-
         # The ObjectGUID of the group.
         [Parameter(Mandatory = $true, ParameterSetName = 'GUID')]
         [ValidateNotNullOrEmpty()]
         [Alias('GUID')]
         [String]
         $ObjectGUID,
+
+        # The ObjectSID of the group.
+        [Parameter(Mandatory = $true, ParameterSetName = 'SID')]
+        [ValidateNotNullOrEmpty()]
+        [Alias('SID')]
+        [String]
+        $ObjectSID,
 
         # The SAMAccountName of the group.
         [Parameter(Mandatory = $true, ParameterSetName = 'SAM')]

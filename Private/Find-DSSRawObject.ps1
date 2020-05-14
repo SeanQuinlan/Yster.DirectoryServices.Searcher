@@ -10,7 +10,7 @@ function Find-DSSRawObject {
         $Directory_Search_Parameters = @{
             'Context'    = 'Domain'
             'PageSize'   = 1000
-            'SearchBase' = 'OU=RootOU,DC=root,DC=lab'
+            'SearchBase' = 'OU=Headquarters,DC=contoso,DC=com'
             'Properties' = @('distinguishedname','samaccountname')
             'LDAPFilter' = '(samaccountname=generic*)'
         }

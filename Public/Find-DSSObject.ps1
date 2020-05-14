@@ -9,9 +9,9 @@ function Find-DSSObject {
 
         Finds all the objects that match "administrator" on one of the common indexed attributes.
     .EXAMPLE
-        Find-DSSObject -LDAPFilter '(samaccountname=test*)' -SearchBase 'CN=Corp,DC=contoso,DC=com' -SearchScope 'OneLevel'
+        Find-DSSObject -LDAPFilter '(samaccountname=test*)' -SearchBase 'OU=Corp,DC=contoso,DC=com' -SearchScope 'OneLevel'
 
-        Finds all objects that have the samaccountname starting with "test", in the Corp container or the immediate children of Corp.
+        Finds all objects that have the samaccountname starting with "test", in the Corp OU or the immediate children of Corp.
     .NOTES
         References:
         https://docs.microsoft.com/en-us/powershell/module/addsadministration/get-adobject

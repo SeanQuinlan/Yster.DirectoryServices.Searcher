@@ -77,6 +77,18 @@ function Remove-DSSPrincipalGroupMembership {
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
 
     try {
+        if ($SAMAccountName -match '\*') {
+            $Terminating_ErrorRecord_Parameters = @{
+                'Exception'    = 'System.ArgumentException'
+                'ID'           = 'DSS-{0}' -f $Function_Name
+                'Category'     = 'SyntaxError'
+                'TargetObject' = $SAMAccountName
+                'Message'      = 'SAMAccountName cannot include wildcards'
+            }
+            $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+            $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+        }
+
         $Common_Search_Parameters = @{
             'Context' = $Context
         }

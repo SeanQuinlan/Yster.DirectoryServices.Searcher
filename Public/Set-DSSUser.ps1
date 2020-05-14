@@ -6,8 +6,8 @@ function Set-DSSUser {
         Queries Active Directory for a specific user object and then modifies one or more attributes on this object.
         The object can be specified using one of the following
             - DistinguishedName
-            - ObjectSID (SID)
             - ObjectGUID (GUID)
+            - ObjectSID (SID)
             - SAMAccountName
     .EXAMPLE
         Set-DSSUser -DistinguishedName 'CN=JSmith,OU=Marketing,OU=Accounts,DC=contoso,DC=com' -Replace @{DisplayName='Smith, Jacob'}
@@ -27,19 +27,19 @@ function Set-DSSUser {
         [String]
         $DistinguishedName,
 
-        # The ObjectSID of the user.
-        [Parameter(Mandatory = $true, ParameterSetName = 'SID')]
-        [ValidateNotNullOrEmpty()]
-        [Alias('SID')]
-        [String]
-        $ObjectSID,
-
         # The ObjectGUID of the user.
         [Parameter(Mandatory = $true, ParameterSetName = 'GUID')]
         [ValidateNotNullOrEmpty()]
         [Alias('GUID')]
         [String]
         $ObjectGUID,
+
+        # The ObjectSID of the user.
+        [Parameter(Mandatory = $true, ParameterSetName = 'SID')]
+        [ValidateNotNullOrEmpty()]
+        [Alias('SID')]
+        [String]
+        $ObjectSID,
 
         # The SAMAccountName of the user.
         [Parameter(Mandatory = $true, ParameterSetName = 'SAM')]

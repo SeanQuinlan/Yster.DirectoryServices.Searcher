@@ -9,7 +9,7 @@ function Find-DSSGroup {
 
         Returns basic properties from the Domain Admins group.
     .EXAMPLE
-        Find-DSSGroup -Name 'grp' -SearchBase 'OU=UserGroups,DC=root,DC=lab' -Properties *
+        Find-DSSGroup -Name 'grp' -SearchBase 'OU=UserGroups,DC=contoso,DC=com' -Properties *
 
         Returns all properties for any groups with "grp" in a common indexed attribute, only if found under the specified OU.
     .NOTES

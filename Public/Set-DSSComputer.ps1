@@ -6,11 +6,11 @@ function Set-DSSComputer {
         Queries Active Directory for a specific computer object and then modifies one or more attributes on this object.
         The object can be specified using one of the following
             - DistinguishedName
-            - ObjectSID (SID)
             - ObjectGUID (GUID)
+            - ObjectSID (SID)
             - SAMAccountName
     .EXAMPLE
-        Set-DSSComputer -DistinguishedName 'CN=APPSRV01,DC=Servers,DC=contoso,DC=com' -Replace @{Description='Application Server 01'}
+        Set-DSSComputer -DistinguishedName 'CN=APPSRV01,OU=Servers,DC=contoso,DC=com' -Replace @{Description='Application Server 01'}
 
         Sets the Description attribute of the APPSRV01 computer object, replacing any value that is already there.
     .NOTES
@@ -27,19 +27,19 @@ function Set-DSSComputer {
         [String]
         $DistinguishedName,
 
-        # The ObjectSID of the computer.
-        [Parameter(Mandatory = $true, ParameterSetName = 'SID')]
-        [ValidateNotNullOrEmpty()]
-        [Alias('SID')]
-        [String]
-        $ObjectSID,
-
         # The ObjectGUID of the computer.
         [Parameter(Mandatory = $true, ParameterSetName = 'GUID')]
         [ValidateNotNullOrEmpty()]
         [Alias('GUID')]
         [String]
         $ObjectGUID,
+
+        # The ObjectSID of the computer.
+        [Parameter(Mandatory = $true, ParameterSetName = 'SID')]
+        [ValidateNotNullOrEmpty()]
+        [Alias('SID')]
+        [String]
+        $ObjectSID,
 
         # The SAMAccountName of the computer.
         [Parameter(Mandatory = $true, ParameterSetName = 'SAM')]

@@ -1,6 +1,6 @@
-# A number of shared variables
+# A number of shared variables, used across different functions.
 
-# A list of all common function parameters
+# A list of all PowerShell built-in common paramters. The ones that are detailed in "Get-Help about_CommonParameters".
 $All_CommonParameters = [System.Management.Automation.PSCmdlet]::CommonParameters + [System.Management.Automation.PSCmdlet]::OptionalCommonParameters
 
 # The Microsoft AD Cmdlets add a number of "user-friendly" property names which are simply aliases of existing LDAP properties.

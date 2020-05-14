@@ -8,11 +8,9 @@ function Get-DSSResolvedObject {
         This is used in other functions that need to resolve a subset of objects that are passed through another property, like a list of group members that are passed to Add-DSSGroupMember.
     .EXAMPLE
         $Members = @('jsmith','rjacobs','S-1-5-21-3387319392-2301824641-2614994224-7110')
-        $ResolvedGroupMembers = GroupMember_Objects = Get-DSSResolvedObject -InputSet $Members
+        $ResolvedGroupMembers = Get-DSSResolvedObject -InputSet $Members
 
         Resolves the list of group members and returns an object that can be used to add/remove members.
-    .NOTES
-
     #>
 
     [CmdletBinding()]
@@ -23,13 +21,13 @@ function Get-DSSResolvedObject {
         [String[]]
         $InputSet,
 
-        # The context to search - Domain, Forest or Server.
+        # The context to search - Domain or Forest.
         [Parameter(Mandatory = $false)]
         [ValidateSet('Domain', 'Forest')]
         [String]
         $Context = 'Domain',
 
-        # The server/domain/forest to run the query on.
+        # The server/domain name/forest name to run the query on.
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         [Alias('Forest', 'Domain')]

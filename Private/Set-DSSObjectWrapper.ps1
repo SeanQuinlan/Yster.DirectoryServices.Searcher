@@ -11,7 +11,6 @@ function Set-DSSObjectWrapper {
         Set-DSSObjectWrapper -ObjectType 'User' -BoundParameters $PSBoundParameters
 
         Sets the user object with the supplied parameters.
-    .NOTES
     #>
 
     [CmdletBinding(SupportsShouldProcess = $true)]
