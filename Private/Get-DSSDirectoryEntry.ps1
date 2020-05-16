@@ -125,11 +125,12 @@ function Get-DSSDirectoryEntry {
             $Directory_Entry_Object
         } catch {
             $Terminating_ErrorRecord_Parameters = @{
-                'Exception'    = 'Microsoft.ActiveDirectory.Management.ADServerDownException'
-                'ID'           = 'DSS-{0}' -f $Function_Name
-                'Category'     = 'ResourceUnavailable'
-                'TargetObject' = $Directory_Entry_Object
-                'Message'      = 'Unable to contact the server. This may be because this server does not exist, it is currently down, or it does not have the Active Directory Web Services running.'
+                'Exception'      = 'System.DirectoryServices.ActiveDirectory.ActiveDirectoryOperationException'
+                'ID'             = 'DSS-{0}' -f $Function_Name
+                'Category'       = 'ResourceUnavailable'
+                'TargetObject'   = $Directory_Entry_Object
+                'Message'        = 'Unable to contact the server. This may be because this server does not exist, it is currently down, or it does not have the Active Directory Web Services running.'
+                'InnerException' = $_.Exception
             }
             $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
             $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)

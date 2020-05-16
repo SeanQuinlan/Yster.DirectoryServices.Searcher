@@ -48,18 +48,6 @@ function Get-DSSRootDSE {
             $Directory_Entry_Parameters['Credential'] = $Credential
         }
         $Directory_Entry = Get-DSSDirectoryEntry @Directory_Entry_Parameters
-        if (-not $Directory_Entry.Properties) {
-            $Terminating_ErrorRecord_Parameters = @{
-                'Exception'      = 'System.DirectoryServices.ActiveDirectory.ActiveDirectoryOperationException'
-                'ID'             = 'DSS-Active Directory'
-                'Category'       = 'ConnectionError'
-                'TargetObject'   = $Directory_Entry
-                'Message'        = ('Unable to contact the server: {0}' -f $Server)
-                'InnerException' = $_.Exception
-            }
-            $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
-            $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
-        }
 
         # Format the DirectoryEntry object to match that returned from Find-DSSRawObject.
         Write-Verbose ('{0}|Formatting result' -f $Function_Name)
