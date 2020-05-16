@@ -124,16 +124,42 @@ function Get-DSSDirectoryEntry {
             # Return the DirectoryEntry object
             $Directory_Entry_Object
         } catch {
-            $Terminating_ErrorRecord_Parameters = @{
-                'Exception'      = 'System.DirectoryServices.ActiveDirectory.ActiveDirectoryOperationException'
-                'ID'             = 'DSS-{0}' -f $Function_Name
-                'Category'       = 'ResourceUnavailable'
-                'TargetObject'   = $Directory_Entry_Object
-                'Message'        = 'Unable to contact the server. This may be because this server does not exist, it is currently down, or it does not have the Active Directory Web Services running.'
-                'InnerException' = $_.Exception
+            if ($_.Exception.InnerException.ErrorCode -eq '-2147016646') {
+                $Terminating_ErrorRecord_Parameters = @{
+                    'Exception'      = 'System.DirectoryServices.ActiveDirectory.ActiveDirectoryOperationException'
+                    'ID'             = 'DSS-{0}' -f $Function_Name
+                    'Category'       = 'ResourceUnavailable'
+                    'TargetObject'   = $Directory_Entry_Object
+                    'Message'        = 'Unable to contact the server. This may be because this server does not exist, it is currently down, or it does not have the Active Directory Web Services running.'
+                    'InnerException' = $_.Exception
+                }
+                $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+                $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+            } elseif ($_.Exception.InnerException.ErrorCode -eq '-2147016656') {
+                $Terminating_ErrorRecord_Parameters = @{
+                    'Exception'      = 'System.DirectoryServices.ActiveDirectory.ActiveDirectoryOperationException'
+                    'ID'             = 'DSS-{0}' -f $Function_Name
+                    'Category'       = 'ResourceUnavailable'
+                    'TargetObject'   = $Directory_Entry_Object
+                    'Message'        = ('Base path does not exist: {0}' -f $SearchBase)
+                    'InnerException' = $_.Exception
+                }
+                $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+                $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+            } elseif ($_.Exception.InnerException.ErrorCode -eq '-2147467259') {
+                $Terminating_ErrorRecord_Parameters = @{
+                    'Exception'      = 'System.DirectoryServices.ActiveDirectory.ActiveDirectoryOperationException'
+                    'ID'             = 'DSS-{0}' -f $Function_Name
+                    'Category'       = 'ResourceUnavailable'
+                    'TargetObject'   = $Directory_Entry_Object
+                    'Message'        = ('Unable to connect to path: {0}' -f $Path)
+                    'InnerException' = $_.Exception
+                }
+                $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+                $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+            } else {
+                throw $_
             }
-            $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
-            $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
         }
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
