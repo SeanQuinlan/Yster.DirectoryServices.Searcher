@@ -5,15 +5,13 @@ function Get-DSSObject {
     .DESCRIPTION
         Queries Active Directory for a specific object, based on one of the following specified parameters:
             - DistinguishedName
-            - ObjectSID (SID)
             - ObjectGUID (GUID)
-            - SAMAccountName
 
         This is a wrapper function that takes one of the required parameters and passes that to the Find-DSSObject with a specific LDAPFilter.
     .EXAMPLE
-        Get-DSSObject -ObjectSID 'S-1-5-21-3515480276-2049723633-1306762111-500'
+        Get-DSSObject -ObjectGUID 'd5d10b6f-089b-4578-9b52-7c2498e5f2cf'
 
-        Returns the object with the above SID.
+        Returns the object with the above GUID.
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'DistinguishedName')]
@@ -25,26 +23,12 @@ function Get-DSSObject {
         [String]
         $DistinguishedName,
 
-        # The ObjectSID of the object.
-        [Parameter(Mandatory = $true, ParameterSetName = 'SID')]
-        [ValidateNotNullOrEmpty()]
-        [Alias('SID')]
-        [String]
-        $ObjectSID,
-
         # The ObjectGUID of the object.
         [Parameter(Mandatory = $true, ParameterSetName = 'GUID')]
         [ValidateNotNullOrEmpty()]
         [Alias('GUID')]
         [String]
         $ObjectGUID,
-
-        # The SAMAccountName of the object.
-        [Parameter(Mandatory = $true, ParameterSetName = 'SAM')]
-        [ValidateNotNullOrEmpty()]
-        [Alias('SAM')]
-        [String]
-        $SAMAccountName,
 
         # Whether to return deleted objects in the search results.
         [Parameter(Mandatory = $false)]
@@ -108,12 +92,8 @@ function Get-DSSObject {
 
         if ($PSBoundParameters.ContainsKey('DistinguishedName')) {
             $Directory_Search_LDAPFilter = '(distinguishedname={0})' -f $DistinguishedName
-        } elseif ($PSBoundParameters.ContainsKey('ObjectSID')) {
-            $Directory_Search_LDAPFilter = '(objectsid={0})' -f $ObjectSID
         } elseif ($PSBoundParameters.ContainsKey('ObjectGUID')) {
             $Directory_Search_LDAPFilter = '(objectguid={0})' -f (Convert-GuidToHex -Guid $ObjectGUID)
-        } elseif ($PSBoundParameters.ContainsKey('SAMAccountName')) {
-            $Directory_Search_LDAPFilter = '(samaccountname={0})' -f $SAMAccountName
         }
         Write-Verbose ('{0}|LDAPFilter: {1}' -f $Function_Name, $Directory_Search_LDAPFilter)
         $Directory_Search_Parameters['LDAPFilter'] = $Directory_Search_LDAPFilter

@@ -18,13 +18,24 @@ function Get-DSSDirectoryEntry {
         http://www.selfadsi.org/bind.htm
     #>
 
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName = 'Search')]
     param(
+        # The base OU to start the search from.
+        [Parameter(Mandatory = $false, ParameterSetName = 'Search')]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $SearchBase,
+
+        # The full path to the object.
+        [Parameter(Mandatory = $true, ParameterSetName = 'Path')]
+        [String]
+        $Path,
+
         # The context to search - Domain or Forest.
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory = $false)]
         [ValidateSet('Domain', 'Forest')]
         [String]
-        $Context,
+        $Context = 'Domain',
 
         # The server/domain/forest to run the query on.
         [Parameter(Mandatory = $false)]
@@ -32,12 +43,6 @@ function Get-DSSDirectoryEntry {
         [Alias('Forest', 'Domain')]
         [String]
         $Server,
-
-        # The base OU to start the search from.
-        [Parameter(Mandatory = $false)]
-        [ValidateNotNullOrEmpty()]
-        [String]
-        $SearchBase,
 
         # The credential to use for access.
         [Parameter(Mandatory = $false)]
@@ -52,45 +57,50 @@ function Get-DSSDirectoryEntry {
 
     try {
         $Directory_Entry_Path = New-Object -TypeName 'System.Text.StringBuilder'
-        if ($Context -eq 'Forest') {
-            Write-Verbose ('{0}|Forest context' -f $Function_Name)
-            [void]$Directory_Entry_Path.Append('GC://')
+        if ($PSBoundParameters.ContainsKey('Path')) {
+            Write-Verbose ('{0}|Full path specified' -f $Function_Name)
+            [void]$Directory_Entry_Path.Append($Path)
         } else {
-            Write-Verbose ('{0}|Domain context' -f $Function_Name)
-            [void]$Directory_Entry_Path.Append('LDAP://')
-        }
-        if ($PSBoundParameters.ContainsKey('Server')) {
-            Write-Verbose ('{0}|Using server: {1}' -f $Function_Name, $Server)
-            [void]$Directory_Entry_Path.Append(('{0}' -f $Server))
-        } else {
-            try {
-                Write-Verbose ('{0}|No Server specified, attempting to find current {1} to use instead...' -f $Function_Name, $Context)
-                if ($Context -eq 'Forest') {
-                    $Check_For_Context = [System.DirectoryServices.ActiveDirectory.Forest]::GetCurrentForest()
-                } else {
-                    $Check_For_Context = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
-                }
-                Write-Verbose ('{0}|Found {1}: {2}' -f $Function_Name, $Context, $Check_For_Context.Name)
-                [void]$Directory_Entry_Path.Append($Check_For_Context.Name)
-            } catch {
-                $Terminating_ErrorRecord_Parameters = @{
-                    'Exception'      = 'System.DirectoryServices.ActiveDirectory.ActiveDirectoryOperationException'
-                    'ID'             = 'DSS-Active Directory'
-                    'Category'       = 'InvalidOperation'
-                    'TargetObject'   = $Check_For_Context
-                    'Message'        = $_.Exception.InnerException.Message
-                    'InnerException' = $_.Exception
-                }
-                $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
-                $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+            if ($Context -eq 'Forest') {
+                Write-Verbose ('{0}|Forest context' -f $Function_Name)
+                [void]$Directory_Entry_Path.Append('GC://')
+            } else {
+                Write-Verbose ('{0}|Domain context' -f $Function_Name)
+                [void]$Directory_Entry_Path.Append('LDAP://')
             }
-        }
-        if ($PSBoundParameters.ContainsKey('SearchBase')) {
-            Write-Verbose ('{0}|Using custom SearchBase: {1}' -f $Function_Name, $SearchBase)
-            if (-not $Directory_Entry_Path.ToString().EndsWith('/')) {
-                [void]$Directory_Entry_Path.Append('/')
+            if ($PSBoundParameters.ContainsKey('Server')) {
+                Write-Verbose ('{0}|Using server: {1}' -f $Function_Name, $Server)
+                [void]$Directory_Entry_Path.Append(('{0}' -f $Server))
+            } else {
+                try {
+                    Write-Verbose ('{0}|No Server specified, attempting to find current {1} to use instead...' -f $Function_Name, $Context)
+                    if ($Context -eq 'Forest') {
+                        $Check_For_Context = [System.DirectoryServices.ActiveDirectory.Forest]::GetCurrentForest()
+                    } else {
+                        $Check_For_Context = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
+                    }
+                    Write-Verbose ('{0}|Found {1}: {2}' -f $Function_Name, $Context, $Check_For_Context.Name)
+                    [void]$Directory_Entry_Path.Append($Check_For_Context.Name)
+                } catch {
+                    $Terminating_ErrorRecord_Parameters = @{
+                        'Exception'      = 'System.DirectoryServices.ActiveDirectory.ActiveDirectoryOperationException'
+                        'ID'             = 'DSS-Active Directory'
+                        'Category'       = 'InvalidOperation'
+                        'TargetObject'   = $Check_For_Context
+                        'Message'        = $_.Exception.InnerException.Message
+                        'InnerException' = $_.Exception
+                    }
+                    $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+                    $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+                }
             }
-            [void]$Directory_Entry_Path.Append($SearchBase)
+            if ($PSBoundParameters.ContainsKey('SearchBase')) {
+                Write-Verbose ('{0}|Using custom SearchBase: {1}' -f $Function_Name, $SearchBase)
+                if (-not $Directory_Entry_Path.ToString().EndsWith('/')) {
+                    [void]$Directory_Entry_Path.Append('/')
+                }
+                [void]$Directory_Entry_Path.Append($SearchBase)
+            }
         }
         Write-Verbose ('{0}|Directory_Entry_Path: {1}' -f $Function_Name, $Directory_Entry_Path)
 

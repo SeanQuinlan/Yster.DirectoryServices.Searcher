@@ -12,7 +12,7 @@
     RootModule        = 'Yster.DirectoryServices.Searcher.psm1'
 
     # Version number of this module.
-    ModuleVersion     = '0.1'
+    ModuleVersion     = '0.2'
 
     # Supported PSEditions
     # CompatiblePSEditions = @()
@@ -33,7 +33,7 @@
     Description       = 'Module to search and retrieve data from Active Directory using .NET System.DirectoryServices'
 
     # Minimum version of the Windows PowerShell engine required by this module
-    # PowerShellVersion = ''
+    PowerShellVersion = '3.0'
 
     # Name of the Windows PowerShell host required by this module
     # PowerShellHostName = ''
@@ -120,5 +120,3 @@
     # DefaultCommandPrefix = ''
 
 }
-
-

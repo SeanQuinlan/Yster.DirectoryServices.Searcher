@@ -246,7 +246,7 @@ function Find-DSSDomainController {
                                 $Partition_Property_Value = $NTDS_Settings['invocationid']
                             }
                             'isglobalcatalog' {
-                                $NTDS_Options_Flags = [Enum]::Parse('NTDSDSAOption', $NTDS_Settings['options'])
+                                $NTDS_Options_Flags = [Enum]::Parse('NTDSDSAOption', $NTDS_Settings['options'], $true)
                                 if ($NTDS_Options_Flags -match 'IS_GC') {
                                     $Partition_Property_Value = $true
                                 } else {

@@ -9,7 +9,7 @@ function Find-DSSGroup {
 
         Returns basic properties from the Domain Admins group.
     .EXAMPLE
-        Find-DSSGroup -Name 'grp' -SearchBase 'OU=RootOU,DC=root,DC=lab' -Properties *
+        Find-DSSGroup -Name 'grp' -SearchBase 'OU=UserGroups,DC=contoso,DC=com' -Properties *
 
         Returns all properties for any groups with "grp" in a common indexed attribute, only if found under the specified OU.
     .NOTES
@@ -44,17 +44,17 @@ function Find-DSSGroup {
         [String]
         $SearchScope,
 
+        # The group category to search. Must be one of: Security, Distribution.
+        [Parameter(Mandatory = $false)]
+        [ValidateSet('Security', 'Distribution')]
+        [String]
+        $GroupCategory,
+
         # The group scope to search. Must be one of: DomainLocal, Global, Universal.
         [Parameter(Mandatory = $false)]
         [ValidateSet('DomainLocal', 'Global', 'Universal')]
         [String]
         $GroupScope,
-
-        # The group type to search. Must be one of: Security, Distribution.
-        [Parameter(Mandatory = $false)]
-        [ValidateSet('Security', 'Distribution')]
-        [String]
-        $GroupType,
 
         # Whether to return deleted objects in the search results.
         [Parameter(Mandatory = $false)]
@@ -129,7 +129,9 @@ function Find-DSSGroup {
         'lastknownparent'
         'mail'
         'managedby'
+        'member'
         'memberof'
+        'members'
         'modified'
         'modifytimestamp'
         'msds-lastknownrdn'
@@ -196,21 +198,15 @@ function Find-DSSGroup {
             $Default_Group_LDAPFilter = '(objectcategory=group)'
         }
 
-        # Add any filtering on GroupScope and/or GroupType
+        # Add any filtering on GroupScope and/or GroupCategory
         # See: https://ldapwiki.com/wiki/Active%20Directory%20Group%20Related%20Searches
         if ($PSBoundParameters.ContainsKey('GroupScope')) {
             Write-Verbose ('{0}|GroupScope: {1}' -f $Function_Name, $GroupScope)
-            if ($GroupScope -eq 'DomainLocal') {
-                $Addtional_LDAPFilter = '(grouptype:1.2.840.113556.1.4.804:=4)'
-            } elseif ($GroupScope -eq 'Global') {
-                $Addtional_LDAPFilter = '(grouptype:1.2.840.113556.1.4.804:=2)'
-            } else {
-                $Addtional_LDAPFilter = '(grouptype:1.2.840.113556.1.4.804:=8)'
-            }
+            $Addtional_LDAPFilter = ('(grouptype:1.2.840.113556.1.4.804:={0})' -f [int]$ADGroupTypes[$GroupScope])
         }
-        if ($PSBoundParameters.ContainsKey('GroupType')) {
-            Write-Verbose ('{0}|GroupType: {1}' -f $Function_Name, $GroupType)
-            if ($GroupType -eq 'Security') {
+        if ($PSBoundParameters.ContainsKey('GroupCategory')) {
+            Write-Verbose ('{0}|GroupCategory: {1}' -f $Function_Name, $GroupCategory)
+            if ($GroupCategory -eq 'Security') {
                 $Addtional_LDAPFilter = $Addtional_LDAPFilter + '(groupType:1.2.840.113556.1.4.803:=2147483648)'
             } else {
                 $Addtional_LDAPFilter = $Addtional_LDAPFilter + '(!(groupType:1.2.840.113556.1.4.803:=2147483648))'

@@ -90,6 +90,7 @@ function Get-DSSDomain {
 
     # All the remaining properties as per Get-ADDomain.
     [String[]]$Wildcard_Properties = @(
+        'alloweddnssuffixes'
         'childdomains'
         'computerscontainer'
         'deletedobjectscontainer'
