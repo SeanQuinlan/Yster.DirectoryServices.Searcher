@@ -5,6 +5,8 @@ $Module_Name = $Module_Path | Select-Object -ExpandProperty 'BaseName'
 $Module_Information = Import-Module -Name $Module_Path.PSPath -Force -ErrorAction 'Stop' -PassThru
 $Module_ExportedFunctions = $Module_Information.ExportedFunctions.Values.Name
 
+$Public_Common_Parameters = @('Context', 'Credential', 'Server')
+
 Describe ('{0} Function Validation' -f $Module_Name) -Tags 'Module' {
     foreach ($Function in $Module_ExportedFunctions) {
         $Function_Contents = Get-Content -Path function:$Function
@@ -45,10 +47,26 @@ Describe ('{0} Function Validation' -f $Module_Name) -Tags 'Module' {
                 }
             }
 
-            # Any function ending in Object or OrganizationalUnit should not have SAMAccountName or ObjectSID parameters.
+            # Any function ending in Object or OrganizationalUnit should not have SAMAccountName parameter.
             if ($Function -match 'Object$|OrganizationalUnit$') {
-                It 'Does not have ObjectSID or SAMAccountName parameters' {
-                    ($Function_ParameterNames -notcontains 'ObjectSID') -and ($Function_ParameterNames -notcontains 'SAMAccountName') | Should Be $true
+                It 'Does not have SAMAccountName parameter' {
+                    $Function_ParameterNames -notcontains 'SAMAccountName' | Should Be $true
+                }
+            }
+            # OrganizationalUnits do not have SIDs, so ensure that no relevant function has that as a parameter.
+            if ($Function -match 'OrganizationalUnit$') {
+                It 'Does not have ObjectSID parameter' {
+                    $Function_ParameterNames -notcontains 'ObjectSID' | Should Be $true
+                }
+            }
+
+            # All Public functions should have the common parameters.
+            $Public_Common_Parameters_Exclude_Context = @('Get-DSSDomain', 'Get-DSSRootDSE')
+            foreach ($Public_Common_Parameter in $Public_Common_Parameters) {
+                if (($Public_Common_Parameter -eq 'Context') -and ($Public_Common_Parameters_Exclude_Context -notcontains $Function)) {
+                    It ('Has common parameter: {0}' -f $Public_Common_Parameter) {
+                        $Function_ParameterNames -contains $Public_Common_Parameter | Should Be $true
+                    }
                 }
             }
         }
