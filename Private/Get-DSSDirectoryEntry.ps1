@@ -116,8 +116,24 @@ function Get-DSSDirectoryEntry {
             $Directory_Entry_Arguments += $Credential.GetNetworkCredential().Password
         }
 
-        # Return the DirectoryEntry object
-        New-Object -TypeName 'System.DirectoryServices.DirectoryEntry' -ArgumentList $Directory_Entry_Arguments
+        try {
+            # See here for error handling of this object - https://stackoverflow.com/questions/43145567/powershell-directoryservice-object-error-neither-caught-nor-trapped
+            $Directory_Entry_Object = New-Object -TypeName 'System.DirectoryServices.DirectoryEntry' -ArgumentList $Directory_Entry_Arguments
+            [void]$Directory_Entry_Object.ToString()
+            Write-Verbose ('{0}|Found directory entry with distinguishedname: {1}' -f $Function_Name, $($Directory_Entry_Object.'distinguishedname'))
+            # Return the DirectoryEntry object
+            $Directory_Entry_Object
+        } catch {
+            $Terminating_ErrorRecord_Parameters = @{
+                'Exception'    = 'Microsoft.ActiveDirectory.Management.ADServerDownException'
+                'ID'           = 'DSS-{0}' -f $Function_Name
+                'Category'     = 'ResourceUnavailable'
+                'TargetObject' = $Directory_Entry_Object
+                'Message'      = 'Unable to contact the server. This may be because this server does not exist, it is currently down, or it does not have the Active Directory Web Services running.'
+            }
+            $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+            $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+        }
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
             $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_
