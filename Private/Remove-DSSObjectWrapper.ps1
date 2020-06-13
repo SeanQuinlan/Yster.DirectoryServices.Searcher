@@ -1,16 +1,16 @@
-function Set-DSSObjectWrapper {
+function Remove-DSSObjectWrapper {
     <#
     .SYNOPSIS
-        A wrapper function to check any Set-DSS cmdlet for valid parameters and then perform the modification to Active Directory.
+        A wrapper function to reduce code duplication for all Remove-DSS cmdlets
     .DESCRIPTION
-        This will check through the PSBoundParameters of the calling function and confirm their validity and that the referenced object to modify exists.
-        If all tests pass, it will call Set-DSSRawObject to actually perform the modification of the property or properties in Active Directory.
+        This will perform some validation on the incoming parameters.
+        If all tests pass, it will call Set-DSSRawObject to actually perform the removal of the object from Active Directory.
 
         This is not meant to be used as an interactive function; it is a wrapper function around the Set-DSS cmdlets, in order to reduce reuse of code.
     .EXAMPLE
-        Set-DSSObjectWrapper -ObjectType 'User' -BoundParameters $PSBoundParameters
+        Remove-DSSObjectWrapper -ObjectType 'User' -BoundParameters $PSBoundParameters
 
-        Sets the user object with the supplied parameters.
+        Removes the user object with the supplied parameters.
     #>
 
     [CmdletBinding(SupportsShouldProcess = $true)]
@@ -20,8 +20,10 @@ function Set-DSSObjectWrapper {
         [ValidateSet(
             'Computer',
             'Group',
+            'GroupMember',
             'Object',
             'OrganizationalUnit',
+            'PrincipalGroupMembership',
             'User'
         )]
         [String]
@@ -60,18 +62,31 @@ function Set-DSSObjectWrapper {
         switch ($ObjectType) {
             'Computer' {
                 $Default_LDAPFilter = '(objectclass=computer)'
+                $Set_Action = 'RemoveObject'
             }
             'Group' {
                 $Default_LDAPFilter = '(objectclass=group)'
+                $Set_Action = 'RemoveObject'
+            }
+            'GroupMember' {
+                $Default_LDAPFilter = '(objectclass=group)'
+                $Set_Action = 'RemoveGroupMember'
             }
             'Object' {
                 $Default_LDAPFilter = ''
+                $Set_Action = 'RemoveObject'
             }
             'OrganizationalUnit' {
                 $Default_LDAPFilter = '(objectclass=organizationalunit)'
+                $Set_Action = 'RemoveObject'
+            }
+            'PrincipalGroupMembership' {
+                $Default_LDAPFilter = ''
+                $Set_Action = 'RemovePrincipalGroupMembership'
             }
             'User' {
                 $Default_LDAPFilter = '(objectclass=user)'
+                $Set_Action = 'RemoveObject'
             }
         }
 
@@ -89,8 +104,20 @@ function Set-DSSObjectWrapper {
             if ($BoundParameters.ContainsKey($Parameter)) {
                 $Directory_Search_Type = $Parameter
                 $Directory_Search_Value = $BoundParameters[$Parameter]
-                $LDAPFilter = '(&{0}({1}={2}))' -f $Default_LDAPFilter, $Directory_Search_Type, $Directory_Search_Value
-                [void]$BoundParameters.Remove($Parameter)
+                if (($Directory_Search_Type -eq 'SAMAccountName') -and ($Directory_Search_Value -match '\*')) {
+                    $Terminating_ErrorRecord_Parameters = @{
+                        'Exception'    = 'System.ArgumentException'
+                        'ID'           = 'DSS-{0}' -f $Function_Name
+                        'Category'     = 'SyntaxError'
+                        'TargetObject' = $Directory_Search_Type
+                        'Message'      = 'SAMAccountName cannot include wildcards'
+                    }
+                    $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+                    $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+                } else {
+                    $LDAPFilter = '(&{0}({1}={2}))' -f $Default_LDAPFilter, $Directory_Search_Type, $Directory_Search_Value
+                    [void]$BoundParameters.Remove($Parameter)
+                }
             }
         }
         $Directory_Search_Parameters = @{
@@ -100,16 +127,12 @@ function Set-DSSObjectWrapper {
 
         $Object_Directory_Entry = Find-DSSRawObject @Common_Search_Parameters @Directory_Search_Parameters
         if ($Object_Directory_Entry) {
-            $Set_Parameters = Confirm-DSSObjectParameters -BoundParameters $BoundParameters
-
-            if ($Set_Parameters.Count) {
-                $Set_Parameters['Action'] = 'Set'
-                $Set_Parameters['Object'] = $Object_Directory_Entry
-                Write-Verbose ('{0}|Calling Set-DSSRawObject' -f $Function_Name)
-                Set-DSSRawObject @$Common_Search_Parameters @Set_Parameters
-            } else {
-                Write-Verbose ('{0}|No Set parameters provided, so doing nothing' -f $Function_Name)
+            $Set_Parameters = @{
+                'Action' = $Set_Action
+                'Object' = $Object_Directory_Entry
             }
+            Write-Verbose ('{0}|Calling Set-DSSRawObject' -f $Function_Name)
+            Set-DSSRawObject @$Common_Search_Parameters @Set_Parameters @BoundParameters
         } else {
             $Terminating_ErrorRecord_Parameters = @{
                 'Exception'    = 'System.DirectoryServices.ActiveDirectory.ActiveDirectoryObjectNotFoundException'
