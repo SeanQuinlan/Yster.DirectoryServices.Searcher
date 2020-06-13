@@ -31,26 +31,7 @@ function Set-DSSObjectWrapper {
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         [HashTable]
-        $BoundParameters,
-
-        # The context to search - Domain or Forest.
-        [Parameter(Mandatory = $false)]
-        [ValidateSet('Domain', 'Forest')]
-        [String]
-        $Context = 'Domain',
-
-        # The server to connect to.
-        [Parameter(Mandatory = $false)]
-        [ValidateNotNullOrEmpty()]
-        [String]
-        $Server,
-
-        # The credential to use for access.
-        [Parameter(Mandatory = $false)]
-        [ValidateNotNull()]
-        [System.Management.Automation.PSCredential]
-        [System.Management.Automation.Credential()]
-        $Credential = [System.Management.Automation.PSCredential]::Empty
+        $BoundParameters
     )
 
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
@@ -100,7 +81,7 @@ function Set-DSSObjectWrapper {
 
         $Object_Directory_Entry = Find-DSSRawObject @Common_Search_Parameters @Directory_Search_Parameters
         if ($Object_Directory_Entry) {
-            $Set_Parameters = Confirm-DSSObjectParameters -BoundParameters $BoundParameters
+            $Set_Parameters = Confirm-DSSObjectParameters -BoundParameters $BoundParameters -Type 'Set'
 
             if ($Set_Parameters.Count) {
                 $Set_Parameters['Action'] = 'Set'
