@@ -30,13 +30,10 @@ function Set-DSSRawObject {
         [ValidateSet(
             'AddGroupMember',
             'AddPrincipalGroupMembership',
-            'Enable',
-            'Disable',
             'RemoveObject',
             'RemoveGroupMember',
             'RemovePrincipalGroupMembership',
-            'Set',
-            'Unlock'
+            'Set'
         )]
         [Alias('Type')]
         [String]
@@ -145,42 +142,6 @@ function Set-DSSRawObject {
 
         try {
             switch -Regex ($Action) {
-                'Enable' {
-                    $Whatif_Statement = 'Performing the operation "Enable" on target "{0}".' -f $($Object.'distinguishedname')
-                    $Confirm_Statement = $Whatif_Statement
-                    if ($PSCmdlet.ShouldProcess($Whatif_Statement, $Confirm_Statement, $Confirm_Header.ToString())) {
-                        Write-Verbose ('{0}|Found object, attempting enable' -f $Function_Name)
-                        $UAC_AccountDisabledFlag = '0x02'
-                        $UAC_Current_Value = $Object.InvokeGet('useraccountcontrol')
-                        if (($UAC_Current_Value -band $UAC_AccountDisabledFlag) -eq $UAC_AccountDisabledFlag) {
-                            Write-Verbose ('{0}|Account is Disabled, enabling' -f $Function_Name)
-                            $Object.Put('useraccountcontrol', ($UAC_Current_Value -bxor $UAC_AccountDisabledFlag))
-                            $Object.SetInfo()
-                            Write-Verbose ('{0}|Enable successful' -f $Function_Name)
-                        } else {
-                            Write-Verbose ('{0}|Account is already Enabled, doing nothing' -f $Function_Name)
-                        }
-                    }
-                }
-
-                'Disable' {
-                    $Whatif_Statement = 'Performing the operation "Disable" on target "{0}".' -f $($Object.'distinguishedname')
-                    $Confirm_Statement = $Whatif_Statement
-                    if ($PSCmdlet.ShouldProcess($Whatif_Statement, $Confirm_Statement, $Confirm_Header.ToString())) {
-                        Write-Verbose ('{0}|Found object, attempting disable' -f $Function_Name)
-                        $UAC_AccountDisabledFlag = '0x02'
-                        $UAC_Current_Value = $Object.InvokeGet('useraccountcontrol')
-                        if (($UAC_Current_Value -band $UAC_AccountDisabledFlag) -ne $UAC_AccountDisabledFlag) {
-                            Write-Verbose ('{0}|Account is Enabled, disabling' -f $Function_Name)
-                            $Object.Put('useraccountcontrol', ($UAC_Current_Value -bxor $UAC_AccountDisabledFlag))
-                            $Object.SetInfo()
-                            Write-Verbose ('{0}|Disable successful' -f $Function_Name)
-                        } else {
-                            Write-Verbose ('{0}|Account is already Disabled, doing nothing' -f $Function_Name)
-                        }
-                    }
-                }
-
                 'GroupMember' {
                     $GroupMember_ShouldProcess = New-Object -TypeName 'System.Text.StringBuilder'
                     foreach ($GroupMember_Object in $GroupMember_Objects) {
