@@ -548,6 +548,32 @@ function Set-DSSRawObject {
                                         }
                                     }
 
+                                } elseif ($Property.Name -eq 'unlock') {
+                                    if ($Property.Value -isnot [boolean]) {
+                                        $Terminating_ErrorRecord_Parameters = @{
+                                            'Exception'      = 'System.ArgumentException'
+                                            'ID'             = 'DSS-{0}' -f $Function_Name
+                                            'Category'       = 'InvalidType'
+                                            'TargetObject'   = $Object
+                                            'Message'        = 'Specified property must be a boolean: {0}' -f $Property.Name
+                                            'InnerException' = $_.Exception
+                                        }
+                                        $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+                                        $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+                                    }
+
+                                    $Object_LockoutTime = $Object.InvokeGet('lockouttime')
+                                    if ($Object_LockoutTime) {
+                                        if ($Object.ConvertLargeIntegerToInt64($Object_LockoutTime) -gt 0) {
+                                            Write-Verbose ('{0}|Account is Locked, unlocking by settting "lockouttime" to 0' -f $Function_Name)
+                                            $Object.Put('lockouttime', 0)
+                                        } else {
+                                            Write-Verbose ('{0}|Account is already Unlocked, doing nothing' -f $Function_Name)
+                                        }
+                                    } else {
+                                        Write-Verbose ('{0}|Account has never been logged in, doing nothing' -f $Function_Name)
+                                    }
+
                                 } else {
                                     if ($Set_Alias_Properties_Full -contains $Property.Name) {
                                         $Property_Name = ($Set_Alias_Properties.GetEnumerator() | Where-Object { $_.Value -eq $Property.Name }).Name
@@ -775,28 +801,8 @@ function Set-DSSRawObject {
                         Write-Verbose ('{0}|Delete successful' -f $Function_Name)
                     }
                 }
-
-                'Unlock' {
-                    $Whatif_Statement = 'Performing the operation "Unlock" on target "{0}".' -f $($Object.'distinguishedname')
-                    $Confirm_Statement = $Whatif_Statement
-                    if ($PSCmdlet.ShouldProcess($Whatif_Statement, $Confirm_Statement, $Confirm_Header.ToString())) {
-                        Write-Verbose ('{0}|Found object, attempting unlock' -f $Function_Name)
-                        if ($Object.lockouttime.Value) {
-                            # Taken from jrv's answer here: https://social.technet.microsoft.com/Forums/lync/en-US/349c0b3e-f4d6-4a65-8218-60901488855e/getting-user-quotlockouttimequot-using-adsi-interface-or-other-method-not-using-module?forum=ITCG
-                            if ($Object.ConvertLargeIntegerToInt64($Object.lockouttime.Value) -gt 0) {
-                                Write-Verbose ('{0}|Account is Locked, unlocking' -f $Function_Name)
-                                $Object.lockouttime.Value = 0
-                                $Object.SetInfo()
-                                Write-Verbose ('{0}|Unlock successful' -f $Function_Name)
-                            } else {
-                                Write-Verbose ('{0}|Account is already Unlocked, doing nothing' -f $Function_Name)
-                            }
-                        } else {
-                            Write-Verbose ('{0}|Account has never been logged in, doing nothing' -f $Function_Name)
-                        }
-                    }
-                }
             }
+
         } catch [System.UnauthorizedAccessException] {
             $Terminating_ErrorRecord_Parameters = @{
                 'Exception'      = 'System.UnauthorizedAccessException'
