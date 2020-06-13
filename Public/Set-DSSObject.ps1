@@ -173,7 +173,7 @@ function Set-DSSObject {
 
     try {
         Write-Verbose ('{0}|Calling Set-DSSObjectWrapper' -f $Function_Name)
-        Set-DSSObjectWrapper -ObjectType 'User' -BoundParameters $PSBoundParameters
+        Set-DSSObjectWrapper -ObjectType 'Object' -BoundParameters $PSBoundParameters
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
             $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_
