@@ -43,6 +43,7 @@ $Microsoft_Alias_Properties = @{
     'whencreated'                  = @('created', 'createtimestamp')
     'wwwhomepage'                  = 'homepage'
 }
+$Microsoft_Alias_Names = $Microsoft_Alias_Properties.GetEnumerator() | ForEach-Object { $_.Value }
 
 # The Microsoft AD cmdlets also add a number of other useful properties based on calculations of other properties.
 # Like creating a datetime object from an integer property.

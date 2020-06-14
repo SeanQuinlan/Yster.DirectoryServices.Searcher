@@ -119,7 +119,7 @@ function Set-DSSRawObject {
 
     try {
         $Common_Parameters = @('Context', 'Server', 'Credential')
-        $Common_Search_Parameters = @{ }
+        $Common_Search_Parameters = @{}
         foreach ($Parameter in $Common_Parameters) {
             if ($PSBoundParameters.ContainsKey($Parameter)) {
                 $Common_Search_Parameters[$Parameter] = Get-Variable -Name $Parameter -ValueOnly

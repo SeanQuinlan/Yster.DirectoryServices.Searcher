@@ -110,7 +110,7 @@ function Find-DSSRawObject {
 
     try {
         $Common_Parameters = @('Context', 'Server', 'Credential', 'SearchBase')
-        $Common_Search_Parameters = @{ }
+        $Common_Search_Parameters = @{}
         foreach ($Parameter in $Common_Parameters) {
             if ($PSBoundParameters.ContainsKey($Parameter)) {
                 $Common_Search_Parameters[$Parameter] = Get-Variable -Name $Parameter -ValueOnly
@@ -186,7 +186,7 @@ function Find-DSSRawObject {
                 $Directory_Searcher_Result_To_Return = New-Object -TypeName 'System.Collections.Generic.List[PSObject]'
                 foreach ($Directory_Searcher_Result in $Directory_Searcher_Results) {
                     Write-Verbose ('{0}|Reformatting result properties order' -f $Function_Name)
-                    $Reformatted_Directory_Searcher_Result = [Ordered]@{ }
+                    $Reformatted_Directory_Searcher_Result = [Ordered]@{}
                     # In order to keep the logic in the main part of this script, I need to process any paged properties before their regular counterparts, otherwise they get overwritten by null values.
                     $Directory_Searcher_Result.Properties.GetEnumerator() | ForEach-Object {
                         if ($Returned_Properties_To_Process_First -contains $_.Name) {
@@ -204,7 +204,7 @@ function Find-DSSRawObject {
                         }
                     }
 
-                    $Result_Object = @{ }
+                    $Result_Object = @{}
                     foreach ($Current_Searcher_Result in $Reformatted_Directory_Searcher_Result.GetEnumerator().Name) {
                         $Current_Searcher_Result_Property = $Current_Searcher_Result
                         $Current_Searcher_Result_Value = $($Reformatted_Directory_Searcher_Result[$Current_Searcher_Result])
@@ -338,7 +338,7 @@ function Find-DSSRawObject {
                                                 # Convert this to a SID, which can then be looked up in Active Directory to find the DistinguishedName.
                                                 $Computer_Object = $_.'IdentityReference'
                                                 $Computer_SID = $Computer_Object.Translate([Security.Principal.SecurityIdentifier])
-                                                $Computer_Search_Parameters = @{ }
+                                                $Computer_Search_Parameters = @{}
                                                 $Computer_Search_Parameters['ObjectSID'] = $Computer_SID
                                                 $Computer_Search_Result = (Get-DSSComputer @Common_Search_Parameters @Computer_Search_Parameters).'distinguishedname'
                                                 $Delegation_Principals.Add($Computer_Search_Result)
@@ -397,7 +397,7 @@ function Find-DSSRawObject {
                                         'primarygroup' {
                                             # Convert the PrimaryGroupID to a full ObjectSID property, by using the AccountDomainSid sub-property of the ObjectSID property of the user and appending the PrimaryGroupID.
                                             $PrimaryGroup_SID = '{0}-{1}' -f $Result_Object['objectsid'].AccountDomainSid.Value, $Current_Searcher_Result_Value
-                                            $Group_Search_Parameters = @{ }
+                                            $Group_Search_Parameters = @{}
                                             $Group_Search_Parameters['ObjectSID'] = $PrimaryGroup_SID
                                             $Useful_Calculated_Property_Value = (Get-DSSGroup @Common_Search_Parameters @Group_Search_Parameters).'distinguishedname'
                                         }

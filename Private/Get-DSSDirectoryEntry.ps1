@@ -158,7 +158,7 @@ function Get-DSSDirectoryEntry {
                 $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
                 $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
             } else {
-                throw $_
+                throw $_.Exception.InnerException
             }
         }
     } catch {
