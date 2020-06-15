@@ -64,7 +64,7 @@ function New-DSSObject {
         #
         # -Name 'jsmith'
         # -Name 'SRVSALES05N'
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory = $true, Position = 0)]
         [String]
         $Name,
 
@@ -127,6 +127,7 @@ function New-DSSObject {
 
     try {
         Write-Verbose ('{0}|Calling New-DSSObjectWrapper' -f $Function_Name)
+        [void]$PSBoundParameters.Remove('Type')
         New-DSSObjectWrapper -ObjectType $Type -BoundParameters $PSBoundParameters
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
