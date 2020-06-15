@@ -76,6 +76,9 @@ function New-DSSRawObject {
 
     try {
         $Common_Parameters = @('Context', 'Server', 'Credential')
+        $Post_Creation_Properties = @('protectedfromaccidentaldeletion')
+        $Managed_Keys = @('managedby', 'manager')
+
         $Common_Search_Parameters = @{}
         foreach ($Parameter in $Common_Parameters) {
             if ($PSBoundParameters.ContainsKey($Parameter)) {
@@ -88,10 +91,13 @@ function New-DSSRawObject {
             $New_Object_Parameters['SearchBase'] = $Path
         }
         $New_Object_Directory_Entry = Get-DSSDirectoryEntry @Common_Search_Parameters @New_Object_Parameters
+        if ($Type -eq 'Group') {
+            # Global Security group is the default if no GroupScope or GroupCategory is defined (as per New-ADObject).
+            $GroupType_Scope = 2
+            $GroupType_Category = -2147483648
+        }
 
-        $Post_Creation_Properties = @('protectedfromaccidentaldeletion')
         $Post_Creation_Parameters = @{}
-
         try {
             Write-Verbose ('{0}|Creating "{1}" object with CN={2}' -f $Function_Name, $Type, $Name)
             $New_Object = $New_Object_Directory_Entry.Create($Type, ('CN={0}' -f $Name))
@@ -100,11 +106,29 @@ function New-DSSRawObject {
                     if ($Post_Creation_Properties -contains $Property.Name) {
                         Write-Verbose ('{0}|Adding post-creation property "{1}" with value: {2}' -f $Function_Name, $Property.Name, $Property.Value)
                         $Post_Creation_Parameters[$Property.Name] = $Property.Value
+                    } elseif ($Managed_Keys -contains $Property.Name) {
+                        Write-Verbose ('{0}|Resolving {1} "{2}" to DistinguishedName' -f $Function_Name, $Property.Name, $Property.Value)
+                        $Resolved_Key = Get-DSSResolvedObject @Common_Search_Parameters -InputSet $Property.Value
+                        Write-Verbose ('{0}|Adding resolved property "{1}" with value: {2}' -f $Function_Name, $Property.Name, $Resolved_Key.'Name')
+                        $New_Object.Put($Property.Name, $Resolved_Key.'Name')
+                    } elseif ($Property.Name -eq 'GroupCategory') {
+                        if ($Property.Value -eq 'Distribution') {
+                            Write-Verbose ('{0}|Setting Group Category to: Distribution' -f $Function_Name)
+                            $GroupType_Category = 0
+                        }
+                    } elseif ($Property.Name -eq 'GroupScope') {
+                        Write-Verbose ('{0}|Setting Group Scope to: {1}' -f $Function_Name, $Property.Value)
+                        $GroupType_Scope = [int]$ADGroupTypes[$Property.Value]
                     } else {
                         Write-Verbose ('{0}|Adding property "{1}" with value: {2}' -f $Function_Name, $Property.Name, $Property.Value)
                         $New_Object.Put($Property.Name, $Property.Value)
                     }
                 }
+            }
+            if ($Type -eq 'Group') {
+                $GroupType_Value = $GroupType_Category + $GroupType_Scope
+                Write-Verbose ('{0}|Adding property "{1}" with value: {2}' -f $Function_Name, 'grouptype', $GroupType_Value)
+                $New_Object.Put('grouptype', $GroupType_Value)
             }
             $New_Object.SetInfo()
             Write-Verbose ('{0}|Object created successfully' -f $Function_Name)

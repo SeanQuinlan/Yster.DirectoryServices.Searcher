@@ -40,7 +40,7 @@ function New-DSSObjectWrapper {
             }
         }
 
-        $Non_Property_Parameters = @('Name', 'Path', 'Type')
+        $Non_Property_Parameters = @('Name', 'Path')
         $Other_Parameters = @{}
         foreach ($Parameter in $Non_Property_Parameters) {
             if ($BoundParameters.ContainsKey($Parameter)) {
@@ -49,10 +49,13 @@ function New-DSSObjectWrapper {
             }
         }
 
-        $New_Parameters = Confirm-DSSObjectParameters -BoundParameters $BoundParameters -Type 'New'
+        $New_Parameters = @{}
+        if ($BoundParameters.Count) {
+            $New_Parameters = Confirm-DSSObjectParameters -BoundParameters $BoundParameters -Type 'New'
+        }
 
         Write-Verbose ('{0}|Calling New-DSSRawObject' -f $Function_Name)
-        New-DSSRawObject @Common_Search_Parameters @New_Parameters @Other_Parameters
+        New-DSSRawObject @Common_Search_Parameters @New_Parameters @Other_Parameters -Type $ObjectType
 
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
