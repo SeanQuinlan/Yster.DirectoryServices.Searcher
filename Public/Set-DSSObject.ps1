@@ -60,6 +60,16 @@ function Set-DSSObject {
         [HashTable]
         $Add,
 
+        # Indicates whether reversible password encryption is allowed for the account.
+        # This sets the AllowReversiblePasswordEncryption flag of the UserAccountControl attribute of the account.
+        # An example of using this property is:
+        #
+        # -AllowReversiblePasswordEncryption $true
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Boolean]
+        $AllowReversiblePasswordEncryption,
+
         # A property or an array of properties to clear.
         # See below for some examples:
         #
