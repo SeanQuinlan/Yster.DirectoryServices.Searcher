@@ -145,14 +145,25 @@ $Set_Alias_Properties = @{
     'pwdlastset'                    = 'changepasswordatlogon'
 }
 
+# A list of properties to New-XXX cmdlets that can only be set once the object exists
+$New_Object_Post_Creation_Properties = @(
+    'accountnotdelegated'
+    'allowreversiblepasswordencryption'
+    'cannotchangepassword'
+    'changepasswordatlogon'
+    'compoundidentitysupported'
+    'kerberosencryptiontype'
+    'protectedfromaccidentaldeletion'
+)
+
 # An Enum to determine KerberosEncryptionType.
 # Taken from https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-kile/6cfc7b50-11ed-4b4d-846d-6f08f0812919
+# Microsoft only allow for a DES type, which sets both DES_CRC and DES_MD5
 Add-Type -TypeDefinition @'
     [System.Flags]
     public enum ADKerberosEncryptionType {
         None    = 0x00,
-        DES_CRC = 0x01,
-        DES_MD5 = 0x02,
+        DES     = 0x03,
         RC4     = 0x04,
         AES128  = 0x08,
         AES256  = 0x10
