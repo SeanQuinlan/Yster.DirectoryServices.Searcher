@@ -76,7 +76,7 @@ function New-DSSRawObject {
 
     try {
         $Common_Parameters = @('Context', 'Server', 'Credential')
-        $Post_Creation_Properties = @('protectedfromaccidentaldeletion')
+        $Post_Creation_Properties = @('protectedfromaccidentaldeletion', 'accountnotdelegated')
         $Managed_Keys = @('managedby', 'manager')
 
         $Common_Search_Parameters = @{}

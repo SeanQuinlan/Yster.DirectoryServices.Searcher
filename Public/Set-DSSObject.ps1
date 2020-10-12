@@ -32,6 +32,16 @@ function Set-DSSObject {
         [String]
         $ObjectGUID,
 
+        # Indicates whether the security context of the object is delegated to a service or not.
+        # This sets the AccountNotDelegated flag of the UserAccountControl attribute.
+        # An example of using this property is:
+        #
+        # -AccountNotDelegated $true
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Boolean]
+        $AccountNotDelegated,
+
         # A property name and a value or set of values that will be added to the existing property values.
         # Multiple values for the same property can be separated by commas.
         # Multiple properties can also be specified by separating them with semi-colons.
