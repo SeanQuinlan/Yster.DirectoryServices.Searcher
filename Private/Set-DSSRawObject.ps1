@@ -119,6 +119,8 @@ function Set-DSSRawObject {
 
     try {
         $Common_Parameters = @('Context', 'Server', 'Credential')
+        $Managed_Keys = @('managedby', 'manager')
+
         $Common_Search_Parameters = @{}
         foreach ($Parameter in $Common_Parameters) {
             if ($PSBoundParameters.ContainsKey($Parameter)) {
@@ -257,7 +259,6 @@ function Set-DSSRawObject {
                                 $Replace['countrycode'] = $Countries[$Country_FullName]['CountryCode']
                             }
                         }
-                        $Managed_Keys = @('managedby', 'manager')
                         foreach ($Managed_Key in $Managed_Keys) {
                             if ($Replace.Keys -contains $Managed_Key) {
                                 Write-Verbose ('{0}|Resolving {1} "{2}" to DistinguishedName' -f $Function_Name, $Managed_Key, $Replace[$Managed_Key])
@@ -427,6 +428,7 @@ function Set-DSSRawObject {
                                             )
                                             $ChangePassword_AccessRule = New-Object 'System.DirectoryServices.ActiveDirectoryAccessRule' -ArgumentList $ChangePassword_AccessRule_Arguments
                                             $Object.ObjectSecurity.SetAccessRule($ChangePassword_AccessRule)
+                                            $Object.psbase.Options.SecurityMasks = [System.DirectoryServices.SecurityMasks]::Dacl
                                             $Object.CommitChanges()
                                         }
                                         'SetDeny' {
@@ -446,6 +448,7 @@ function Set-DSSRawObject {
                                                 $ChangePassword_AccessRule_Arguments.AddRange($ChangePassword_AccessRule_Common)
                                                 $ChangePassword_AccessRule = New-Object 'System.DirectoryServices.ActiveDirectoryAccessRule' -ArgumentList $ChangePassword_AccessRule_Arguments
                                                 $Object.ObjectSecurity.SetAccessRule($ChangePassword_AccessRule)
+                                                $Object.psbase.Options.SecurityMasks = [System.DirectoryServices.SecurityMasks]::Dacl
                                                 $Object.CommitChanges()
                                             }
                                         }
@@ -489,6 +492,7 @@ function Set-DSSRawObject {
                                         'RemoveDeny' {
                                             Write-Verbose ('{0}|AccidentalDeletion: Removing DENY permission for "Everyone" group: {1}' -f $Function_Name, $Localised_Identity_Everyone_Object.Value)
                                             [void]$Object.ObjectSecurity.RemoveAccessRule($AccidentalDeletion_Rule)
+                                            $Object.psbase.Options.SecurityMasks = [System.DirectoryServices.SecurityMasks]::Dacl
                                             $Object.CommitChanges()
                                         }
                                         'SetDeny' {
@@ -502,6 +506,7 @@ function Set-DSSRawObject {
                                             )
                                             $AccidentalDeletion_AccessRule = New-Object 'System.DirectoryServices.ActiveDirectoryAccessRule' -ArgumentList $AccidentalDeletion_AccessRule_Arguments
                                             $Object.ObjectSecurity.SetAccessRule($AccidentalDeletion_AccessRule)
+                                            $Object.psbase.Options.SecurityMasks = [System.DirectoryServices.SecurityMasks]::Dacl
                                             $Object.CommitChanges()
                                         }
                                         'None' {
