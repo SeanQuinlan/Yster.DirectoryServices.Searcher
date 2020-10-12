@@ -1,7 +1,7 @@
 function Move-DSSObject {
     <#
     .SYNOPSIS
-        Modifies an Active Directory object or container of objects.
+        Moves an Active Directory object or container of objects.
     .DESCRIPTION
         Moves the specified object to the supplied target path.
         The object can be specified using one of the following:
@@ -117,7 +117,7 @@ function Move-DSSObject {
             'OutputFormat' = 'DirectoryEntry'
         }
 
-        $global:Object_Directory_Entry = Find-DSSRawObject @Common_Search_Parameters @Directory_Search_Parameters
+        $Object_Directory_Entry = Find-DSSRawObject @Common_Search_Parameters @Directory_Search_Parameters
         if ($Object_Directory_Entry) {
             Write-Verbose ('{0}|Checking if TargetPath exists')
             $Check_TargetPath = Get-DSSOrganizationalUnit @Common_Search_Parameters -DistinguishedName $TargetPath
