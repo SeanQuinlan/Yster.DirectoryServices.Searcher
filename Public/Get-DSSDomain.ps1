@@ -23,11 +23,11 @@ function Get-DSSDomain {
     [CmdletBinding(DefaultParameterSetName = 'DNSName')]
     param(
         # The DNSName of the domain.
-        [Parameter(Mandatory = $true, Position = 0, ParameterSetName = 'DNSName')]
+        [Parameter(Mandatory = $false, Position = 0, ParameterSetName = 'DNSName')]
         [ValidateNotNullOrEmpty()]
         [Alias('DNS')]
         [String]
-        $DNSName,
+        $DNSName = $env:USERDNSDOMAIN,
 
         # The DistinguishedName of the domain.
         [Parameter(Mandatory = $true, ParameterSetName = 'DistinguishedName')]
@@ -184,9 +184,7 @@ function Get-DSSDomain {
         $Directory_Search_Parameters['Properties'] = $Function_Search_Properties
 
         $Default_Domain_LDAPFilter = '(objectclass=domain)'
-        if ($PSBoundParameters.ContainsKey('DNSName')) {
-            $Directory_Search_LDAPFilter = $Default_Domain_LDAPFilter
-        } elseif ($PSBoundParameters.ContainsKey('DistinguishedName')) {
+        if ($PSBoundParameters.ContainsKey('DistinguishedName')) {
             $Directory_Search_LDAPFilter = $Default_Domain_LDAPFilter
             $Directory_Search_Parameters['SearchBase'] = $DistinguishedName
         } elseif ($PSBoundParameters.ContainsKey('ObjectSID')) {
@@ -213,6 +211,8 @@ function Get-DSSDomain {
             $Directory_Search_LDAPFilter = $Default_Domain_LDAPFilter
             $Directory_Search_Parameters['SearchBase'] = $NetBIOSName_Result_To_Return['ncname']
             Write-Verbose ('{0}|NetBIOSName: Using DN: {1}' -f $Function_Name, $NetBIOSName_Result_To_Return['ncname'])
+        } else {
+            $Directory_Search_LDAPFilter = $Default_Domain_LDAPFilter
         }
         Write-Verbose ('{0}|LDAPFilter: {1}' -f $Function_Name, $Directory_Search_LDAPFilter)
         $Directory_Search_Parameters['LDAPFilter'] = $Directory_Search_LDAPFilter
