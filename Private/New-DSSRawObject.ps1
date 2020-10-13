@@ -76,7 +76,6 @@ function New-DSSRawObject {
 
     try {
         $Common_Parameters = @('Context', 'Server', 'Credential')
-        $Post_Creation_Properties = @('protectedfromaccidentaldeletion', 'accountnotdelegated', 'allowreversiblepasswordencryption')
         $Managed_Keys = @('managedby', 'manager')
 
         $Common_Search_Parameters = @{}
@@ -103,7 +102,7 @@ function New-DSSRawObject {
             $New_Object = $New_Object_Directory_Entry.Create($Type, ('CN={0}' -f $Name))
             if ($PSBoundParameters.ContainsKey('Properties')) {
                 foreach ($Property in $Properties.GetEnumerator()) {
-                    if ($Post_Creation_Properties -contains $Property.Name) {
+                    if ($New_Object_Post_Creation_Properties -contains $Property.Name) {
                         Write-Verbose ('{0}|Adding post-creation property "{1}" with value: {2}' -f $Function_Name, $Property.Name, $Property.Value)
                         $Post_Creation_Parameters[$Property.Name] = $Property.Value
                     } elseif ($Managed_Keys -contains $Property.Name) {
