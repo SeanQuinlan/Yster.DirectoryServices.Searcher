@@ -70,6 +70,24 @@ function Set-DSSObject {
         [Boolean]
         $AllowReversiblePasswordEncryption,
 
+        # Specifies whether an account's password can be changed.
+        # An example of using this property is:
+        #
+        # -CannotChangePassword $true
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Boolean]
+        $CannotChangePassword,
+
+        # Specifies whether an account is required to change it's password when next logging on.
+        # An example of using this property is:
+        #
+        # -ChangePasswordAtLogon $true
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Boolean]
+        $ChangePasswordAtLogon,
+
         # A property or an array of properties to clear.
         # See below for some examples:
         #
@@ -85,6 +103,15 @@ function Set-DSSObject {
         [ValidateNotNullOrEmpty()]
         [Array]
         $Clear,
+
+        # Indicates whether an account supports Kerberos service tickets which includes the authorization data for the user's device.
+        # An example of using this property is:
+        #
+        # -CompoundIdentitySupported $true
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Boolean]
+        $CompoundIdentitySupported,
 
         # The directory context to search - Domain or Forest. By default this will search within the domain only.
         # If you want to search the entire directory, specify "Forest" for this parameter and the search will be performed on a Global Catalog server, targetting the entire forest.
@@ -129,6 +156,53 @@ function Set-DSSObject {
         [ValidateNotNullOrEmpty()]
         [String]
         $DisplayName,
+
+        # Specifies whether an object is enabled.
+        # This sets the Enabled flag of the UserAccountControl attribute of the object.
+        # An example of using this property is:
+        #
+        # -Enabled $false
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Boolean]
+        $Enabled,
+
+        # The Kerberos Encryption Types supported by the account. Must be one or more of the following: DES, RC4, AES128, AES256 or None.
+        # Setting this value to "None" will remove the other encryption types.
+        # Some examples of using this property are:
+        #
+        # -KerberosEncryptionType None
+        # -KerberosEncryptionType 'AES128','AES256'
+        [Parameter(Mandatory = $false)]
+        [ValidateSet(
+            'None',
+            'DES',
+            'RC4',
+            'AES128',
+            'AES256'
+        )]
+        [String[]]
+        $KerberosEncryptionType,
+
+        # Specifies that the account password does not expire.
+        # This sets the PasswordNeverExpires flag of the UserAccountControl attribute of the account.
+        # An example of using this property is:
+        #
+        # -PasswordNeverExpires $true
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Boolean]
+        $PasswordNeverExpires,
+
+        # Specifies whether the account requires a password.
+        # This sets the PasswordNotRequired flag of the UserAccountControl attribute.
+        # An example of using this property is:
+        #
+        # -PasswordNotRequired $true
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Boolean]
+        $PasswordNotRequired,
 
         # Specifies whether the object is protected from accidental deletion.
         # An example of using this property is:
@@ -185,7 +259,44 @@ function Set-DSSObject {
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         [String]
-        $Server
+        $Server,
+
+        # A hashtable that defines the ServicePrincipalNames to add, remove or replace on the object.
+        # Add and remove will add or remove individual entries (if found). Replace will replace all entries with just those specified.
+        # The hashtable KEY has to be add, remove or replace.
+        # The corresponding hashtable VALUE can be a single string or multiple strings (separated by commas).
+        #
+        # See below for some examples:
+        # -ServicePrincipalNames @{Add='HOST/SERVER01'}
+        # -ServicePrincipalNames @{Add='HOST/SERVER01','HOST/SERVER01.contoso.com'}
+        # -ServicePrincipalNames @{Remove='HOST/SERVER01'}
+        # -ServicePrincipalNames @{Replace='HOST/SERVER02','HOST/SERVER02.contoso.com'}
+        #
+        # Multiple actions can also be specified by providing multiple lines within the hashtable. For example:
+        # -ServicePrincipalNames @{Remove='HOST/SERVER01'; Add='HOST/SERVER02'}
+        #
+        # You can clear all entries with this:
+        # -ServicePrincipalNames $null
+        #
+        # If specifying the Add, Remove and Replace parameters together, they are processed in this order:
+        # ..Remove
+        # ..Add
+        # ..Replace
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Alias('ServicePrincipalName')]
+        [HashTable]
+        $ServicePrincipalNames,
+
+        # Specifies whether an account is trusted for Kerberos delegation.
+        # This sets the TrustedForDelegation flag of the UserAccountControl attribute.
+        # An example of using this property is:
+        #
+        # -TrustedForDelegation $true
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Boolean]
+        $TrustedForDelegation
     )
 
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
