@@ -36,6 +36,16 @@ function New-DSSComputer {
         [Boolean]
         $AccountNotDelegated,
 
+        # The value to set as the account password for the object.
+        # An example of using this property is:
+        #
+        # $AccPass = ConvertTo-SecureString -String 'P@ssw0rd' -AsPlainText -Force
+        # -AccountPassword $AccPasss
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [System.Security.SecureString]
+        $AccountPassword,
+
         # Indicates whether reversible password encryption is allowed for the account.
         # This sets the AllowReversiblePasswordEncryption flag of the UserAccountControl attribute of the account.
         # An example of using this property is:
@@ -276,6 +286,17 @@ function New-DSSComputer {
         [Boolean]
         $ProtectedFromAccidentalDeletion,
 
+        # The value to set for the SAMAccountName.
+        # By default, this is set to the same as the Name field, with a "$" appended, eg. COMP001$ for the Name "COMP001"
+        #
+        # An example of using this property is:
+        #
+        # -SAMAccountName 'WIN-SRV01$'
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $SAMAccountName,
+
         # The server or domain to connect to.
         # See below for some examples:
         #
@@ -321,19 +342,18 @@ function New-DSSComputer {
 
     # Parameters to add:
     # -----------------
-    # AccountPassword
     # AuthenticationPolicy
     # AuthenticationPolicySilo
     # Certificates
     # PrincipalsAllowedToDelegateToAccount
 
-    # set default samaccountname
-    # set default enabled
-
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
 
     try {
+        if (-not $SAMAccountName) {
+            $PSBoundParameters['SAMAccountName'] = ('{0}$' -f $Name)
+        }
         Write-Verbose ('{0}|Calling New-DSSObjectWrapper' -f $Function_Name)
         New-DSSObjectWrapper -ObjectType 'Computer' -BoundParameters $PSBoundParameters
     } catch {
