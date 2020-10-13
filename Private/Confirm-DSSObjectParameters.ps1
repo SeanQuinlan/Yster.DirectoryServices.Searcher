@@ -76,13 +76,8 @@ function Confirm-DSSObjectParameters {
                             } else {
                                 $LDAP_Parameter_Key = $Parameter_Key
                             }
-                            if ($Type -eq 'New') {
-                                $Return_Key_Name = $Parameter_Default
-                            } else {
-                                $Return_Key_Name = $Key_Name
-                            }
-                            Write-Verbose ('{0}|Adding "{1}" with values: {2} - {3}' -f $Function_Name, $Return_Key_Name, $LDAP_Parameter_Key, $BoundParameters[$Parameter_Key][$Key_Name])
-                            $Return_Parameters[$Return_Key_Name] += @{
+                            Write-Verbose ('{0}|Adding "{1}" with values: {2} - {3}' -f $Function_Name, $Key_Name, $LDAP_Parameter_Key, $BoundParameters[$Parameter_Key][$Key_Name])
+                            $Return_Parameters[$Key_Name] += @{
                                 $LDAP_Parameter_Key = $BoundParameters[$Parameter_Key][$Key_Name]
                             }
                         }
