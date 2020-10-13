@@ -96,10 +96,28 @@ function New-DSSRawObject {
             $GroupType_Category = -2147483648
         }
 
+        # Some defaults for certain types of accounts. These match the same accounts created by the Microsoft New-ADXXX cmdlets.
+        # - https://docs.microsoft.com/en-us/troubleshoot/windows-server/identity/useraccountcontrol-manipulate-account-properties
+        switch ($Type) {
+            'Computer' {
+                # 0x1000 = WORKSTATION_TRUST_ACCOUNT
+                $Default_UserAccountControl = 0x1000
+            }
+            'User' {
+                # 0x200 = NORMAL_ACCOUNT
+                # 0x002 = ACCOUNTDISABLE
+                $Default_UserAccountControl = 0x202
+            }
+        }
+
         $Post_Creation_Parameters = @{}
         try {
             Write-Verbose ('{0}|Creating "{1}" object with CN={2}' -f $Function_Name, $Type, $Name)
             $New_Object = $New_Object_Directory_Entry.Create($Type, ('CN={0}' -f $Name))
+            if ($Default_UserAccountControl) {
+                Write-Verbose ('{0}|Setting default UserAccountControl for type "{1}" to: {2}' -f $Function_Name, $Type, $Default_UserAccountControl)
+                $New_Object.Put('useraccountcontrol', $Default_UserAccountControl)
+            }
             if ($PSBoundParameters.ContainsKey('Properties')) {
                 foreach ($Property in $Properties.GetEnumerator()) {
                     if ($New_Object_Post_Creation_Properties -contains $Property.Name) {
@@ -118,6 +136,11 @@ function New-DSSRawObject {
                     } elseif ($Property.Name -eq 'GroupScope') {
                         Write-Verbose ('{0}|Setting Group Scope to: {1}' -f $Function_Name, $Property.Value)
                         $GroupType_Scope = [int]$ADGroupTypes[$Property.Value]
+                    } elseif ($Property.Name -eq 'AccountPassword') {
+                        $Set_Account_Password = $true
+                        $Account_Passsword = $Property.Value
+                    } elseif (($Property.Name -eq 'Enabled') -and ($Property.Value -eq $true)) {
+                        $Set_Account_Enabled = $true
                     } else {
                         Write-Verbose ('{0}|Adding property "{1}" with value: {2}' -f $Function_Name, $Property.Name, $Property.Value)
                         $New_Object.Put($Property.Name, $Property.Value)
@@ -129,11 +152,22 @@ function New-DSSRawObject {
                 Write-Verbose ('{0}|Adding property "{1}" with value: {2}' -f $Function_Name, 'grouptype', $GroupType_Value)
                 $New_Object.Put('grouptype', $GroupType_Value)
             }
+            Write-Verbose ('{0}|Creating object in AD...' -f $Function_Name)
             $New_Object.SetInfo()
             Write-Verbose ('{0}|Object created successfully' -f $Function_Name)
             if ($Post_Creation_Parameters.Count) {
                 Write-Verbose ('{0}|Adding post-creation parameters' -f $Function_Name)
                 Set-DSSObject -DistinguishedName $New_Object.'distinguishedname' @Common_Search_Parameters @Post_Creation_Parameters
+            }
+            if ($Set_Account_Password) {
+                Write-Verbose ('{0}|Setting password' -f $Function_Name)
+                $Account_Password_Text = ConvertFrom-SecureString -SecureString $Account_Password -AsPlainText
+                $New_Object.SetPassword($Account_Password_Text)
+            }
+            # Need to wait until the password has been set before enabling an account.
+            if ($Set_Account_Enabled) {
+                Write-Verbose ('{0}|Enabling account' -f $Function_Name)
+                Set-DSSObject -DistinguishedName $New_Object.'distinguishedname' @Common_Search_Parameters -Enabled $true
             }
 
         } catch {
@@ -155,7 +189,7 @@ function New-DSSRawObject {
                     'ID'             = 'DSS-{0}' -f $Function_Name
                     'Category'       = 'InvalidData'
                     'TargetObject'   = $New_Object
-                    'Message'        = $_.Exception.Innerexception.Message
+                    'Message'        = $_.Exception.InnerException.Message
                     'InnerException' = $_.Exception
                 }
                 $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
@@ -167,7 +201,7 @@ function New-DSSRawObject {
                     'ID'             = 'DSS-{0}' -f $Function_Name
                     'Category'       = 'InvalidData'
                     'TargetObject'   = $New_Object
-                    'Message'        = $_.Exception.Innerexception.Message
+                    'Message'        = $_.Exception.InnerException.Message
                     'InnerException' = $_.Exception
                 }
                 $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
