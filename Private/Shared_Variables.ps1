@@ -145,15 +145,21 @@ $Set_Alias_Properties = @{
     'pwdlastset'                    = 'changepasswordatlogon'
 }
 
-# A list of properties to New-XXX cmdlets that can only be set once the object exists
+# A list of properties to New-XXX cmdlets that can only be set once the object exists.
 $New_Object_Post_Creation_Properties = @(
     'accountnotdelegated'
     'allowreversiblepasswordencryption'
     'cannotchangepassword'
     'changepasswordatlogon'
     'compoundidentitysupported'
+    'enabled'
     'kerberosencryptiontype'
+    'passwordneverexpires'
+    'passwordnotrequired'
+    'principalsallowedtodelegatetoaccount'
     'protectedfromaccidentaldeletion'
+    'serviceprincipalnames'
+    'trustedfordelegation'
 )
 
 # An Enum to determine KerberosEncryptionType.
