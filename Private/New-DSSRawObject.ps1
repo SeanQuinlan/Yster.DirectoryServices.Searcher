@@ -88,6 +88,15 @@ function New-DSSRawObject {
         $New_Object_Parameters = @{}
         if ($PSBoundParameters.ContainsKey('Path')) {
             $New_Object_Parameters['SearchBase'] = $Path
+        } else {
+            switch ($Type) {
+                'Computer' {
+                    $New_Object_Parameters['SearchBase'] = (Get-DSSDomain @Common_Search_Parameters -Properties 'computerscontainer').'computerscontainer'
+                }
+                'User' {
+                    $New_Object_Parameters['SearchBase'] = (Get-DSSDomain @Common_Search_Parameters -Properties 'userscontainer').'userscontainer'
+                }
+            }
         }
         $New_Object_Directory_Entry = Get-DSSDirectoryEntry @Common_Search_Parameters @New_Object_Parameters
         if ($Type -eq 'Group') {
@@ -158,11 +167,13 @@ function New-DSSRawObject {
             if ($Post_Creation_Parameters.Count) {
                 Write-Verbose ('{0}|Adding post-creation parameters' -f $Function_Name)
                 Set-DSSObject -DistinguishedName $New_Object.'distinguishedname' @Common_Search_Parameters @Post_Creation_Parameters
+                $New_Object.RefreshCache()
             }
             if ($Set_Account_Password) {
                 Write-Verbose ('{0}|Setting password' -f $Function_Name)
-                $Account_Password_Text = ConvertFrom-SecureString -SecureString $Account_Password -AsPlainText
+                $Account_Password_Text = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($Account_Passsword))
                 $New_Object.SetPassword($Account_Password_Text)
+                $New_Object.SetInfo()
             }
             # Need to wait until the password has been set before enabling an account.
             if ($Set_Account_Enabled) {
