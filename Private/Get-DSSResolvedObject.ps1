@@ -72,11 +72,12 @@ function Get-DSSResolvedObject {
                 $Input_Object_Result = Find-DSSRawObject @Common_Search_Parameters @Object_Search_Parameters
                 if ($Input_Object_Result.Count) {
                     $Output_Object = @{
-                        'Object' = $Input_Object_Result
-                        'Path'   = $Input_Object_Result.'adspath'
-                        'Name'   = $($Input_Object_Result.'distinguishedname')
+                        'Object'            = $Input_Object_Result
+                        'adspath'           = $Input_Object_Result.'adspath'
+                        'distinguishedname' = $($Input_Object_Result.'distinguishedname')
+                        'objectsid'         = New-Object -TypeName 'System.Security.Principal.SecurityIdentifier' -ArgumentList @($($Input_Object_Result.'objectsid'), 0)
                     }
-                    Write-Verbose ('{0}|Found object: {1}' -f $Function_Name, $Output_Object['Name'])
+                    Write-Verbose ('{0}|Found object: {1}' -f $Function_Name, $Output_Object['distinguishedname'])
                     break
                 }
             }
