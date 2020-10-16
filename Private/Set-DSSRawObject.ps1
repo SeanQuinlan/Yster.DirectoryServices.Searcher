@@ -726,8 +726,19 @@ function Set-DSSRawObject {
 
                         if ($Clear) {
                             foreach ($Property in $Clear) {
-                                Write-Verbose ('{0}|Clear property: {1}' -f $Function_Name, $Property)
-                                $Object.PutEx($ADS_PROPERTY_CLEAR, $Property, @())
+                                if ($Property -eq 'principalsallowedtodelegatetoaccount') {
+                                    $Principal_Search_Parameters = @{}
+                                    $Principal_Search_Parameters['DistinguishedName'] = $Object.InvokeGet('distinguishedname')
+                                    $Principal_Search_Parameters['Properties'] = @('msds-allowedtoactonbehalfofotheridentity', 'principalsallowedtodelegatetoaccount')
+                                    $Principal_Search = Get-DSSComputer @Common_Search_Parameters @Principal_Search_Parameters
+                                    $Existing_Rules = $Principal_Search.'msds-allowedtoactonbehalfofotheridentity'
+                                    $Existing_Rules.Access | ForEach-Object { [void]$Existing_Rules.RemoveAccessRule($_) }
+                                    Write-Verbose ('{0}|Clear: Setting "msds-allowedtoactonbehalfofotheridentity"' -f $Function_Name)
+                                    $Object.Put('msds-allowedtoactonbehalfofotheridentity', $Existing_Rules.GetSecurityDescriptorBinaryForm())
+                                } else {
+                                    Write-Verbose ('{0}|Clear property: {1}' -f $Function_Name, $Property)
+                                    $Object.PutEx($ADS_PROPERTY_CLEAR, $Property, @())
+                                }
                             }
                         }
 
@@ -747,7 +758,6 @@ function Set-DSSRawObject {
                                     $Principal_Search_Parameters['DistinguishedName'] = $Object.InvokeGet('distinguishedname')
                                     $Principal_Search_Parameters['Properties'] = @('msds-allowedtoactonbehalfofotheridentity', 'principalsallowedtodelegatetoaccount')
                                     $Principal_Search = Get-DSSComputer @Common_Search_Parameters @Principal_Search_Parameters
-                                    #$Existing_Principals = $Principal_Search.'principalsallowedtodelegatetoaccount'
                                     $Existing_Rules = $Principal_Search.'msds-allowedtoactonbehalfofotheridentity'
 
                                     # If there is a Replace value, simply ignore Add and Remove.
