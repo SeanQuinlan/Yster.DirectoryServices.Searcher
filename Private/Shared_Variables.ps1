@@ -138,11 +138,12 @@ $Useful_Calculated_SubProperties = @{
 
 # A set of arguments/properties to Set-ADXXX which simply set a different LDAP property.
 $Set_Alias_Properties = @{
-    'grouptype'                     = @('groupcategory', 'groupscope')
-    'lockouttime'                   = 'unlock'
-    'msds-supportedencryptiontypes' = @('compoundidentitysupported', 'kerberosencryptiontype')
-    'ntsecuritydescriptor'          = @('cannotchangepassword', 'protectedfromaccidentaldeletion')
-    'pwdlastset'                    = 'changepasswordatlogon'
+    'grouptype'                                = @('groupcategory', 'groupscope')
+    'lockouttime'                              = 'unlock'
+    'msds-supportedencryptiontypes'            = @('compoundidentitysupported', 'kerberosencryptiontype')
+    'ntsecuritydescriptor'                     = @('cannotchangepassword', 'protectedfromaccidentaldeletion')
+    'msds-allowedtoactonbehalfofotheridentity' = 'principalsallowedtodelegatetoaccount'
+    'pwdlastset'                               = 'changepasswordatlogon'
 }
 
 # A list of properties to New-XXX cmdlets that can only be set once the object exists.
@@ -158,7 +159,6 @@ $New_Object_Post_Creation_Properties = @(
     'passwordnotrequired'
     'principalsallowedtodelegatetoaccount'
     'protectedfromaccidentaldeletion'
-    'serviceprincipalnames'
     'trustedfordelegation'
 )
 
