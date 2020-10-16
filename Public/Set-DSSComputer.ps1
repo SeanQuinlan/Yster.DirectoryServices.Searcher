@@ -330,7 +330,6 @@ function Set-DSSComputer {
         # ..Add
         # ..Replace
         [Parameter(Mandatory = $false)]
-        [ValidateNotNullOrEmpty()]
         [HashTable]
         $PrincipalsAllowedToDelegateToAccount,
 
@@ -413,7 +412,6 @@ function Set-DSSComputer {
         # ..Add
         # ..Replace
         [Parameter(Mandatory = $false)]
-        [ValidateNotNullOrEmpty()]
         [Alias('ServicePrincipalName')]
         [HashTable]
         $ServicePrincipalNames,
@@ -453,6 +451,15 @@ function Set-DSSComputer {
         if ($PSBoundParameters.ContainsKey('SAMAccountName')) {
             if (-not $PSBoundParameters['SAMAccountName'].EndsWith('$')) {
                 $PSBoundParameters['SAMAccountName'] = ('{0}$' -f $PSBoundParameters['SAMAccountName'])
+            }
+        }
+        $Null_Equal_Clear_Parameters = @('ServicePrincipalNames', 'PrincipalsAllowedToDelegateToAccount')
+        $Null_Equal_Clear_Parameters | ForEach-Object {
+            if ($PSBoundParameters.ContainsKey($_)) {
+                if ($null -eq $PSBoundParameters[$_]) {
+                    $PSBoundParameters['Clear'] += $_
+                    [void]$PSBoundParameters.Remove($_)
+                }
             }
         }
         Write-Verbose ('{0}|Calling Set-DSSObjectWrapper' -f $Function_Name)
