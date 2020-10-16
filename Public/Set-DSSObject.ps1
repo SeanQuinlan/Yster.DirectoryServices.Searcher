@@ -261,33 +261,6 @@ function Set-DSSObject {
         [String]
         $Server,
 
-        # A hashtable that defines the ServicePrincipalNames to add, remove or replace on the object.
-        # Add and remove will add or remove individual entries (if found). Replace will replace all entries with just those specified.
-        # The hashtable KEY has to be add, remove or replace.
-        # The corresponding hashtable VALUE can be a single string or multiple strings (separated by commas).
-        #
-        # See below for some examples:
-        # -ServicePrincipalNames @{Add='HOST/SERVER01'}
-        # -ServicePrincipalNames @{Add='HOST/SERVER01','HOST/SERVER01.contoso.com'}
-        # -ServicePrincipalNames @{Remove='HOST/SERVER01'}
-        # -ServicePrincipalNames @{Replace='HOST/SERVER02','HOST/SERVER02.contoso.com'}
-        #
-        # Multiple actions can also be specified by providing multiple lines within the hashtable. For example:
-        # -ServicePrincipalNames @{Remove='HOST/SERVER01'; Add='HOST/SERVER02'}
-        #
-        # You can clear all entries with this:
-        # -ServicePrincipalNames $null
-        #
-        # If specifying the Add, Remove and Replace parameters together, they are processed in this order:
-        # ..Remove
-        # ..Add
-        # ..Replace
-        [Parameter(Mandatory = $false)]
-        [ValidateNotNullOrEmpty()]
-        [Alias('ServicePrincipalName')]
-        [HashTable]
-        $ServicePrincipalNames,
-
         # Specifies whether an account is trusted for Kerberos delegation.
         # This sets the TrustedForDelegation flag of the UserAccountControl attribute.
         # An example of using this property is:
