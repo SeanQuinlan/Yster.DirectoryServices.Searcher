@@ -470,6 +470,36 @@ function Set-DSSUser {
         [String]
         $PostalCode,
 
+        # A hashtable that defines the PrincipalsAllowedToDelegateToAccount to add, remove or replace on the object.
+        # Add and remove will add or remove individual entries (if found). Replace will replace all entries with just those specified.
+        # The hashtable KEY has to be add, remove or replace.
+        # The corresponding hashtable VALUE can be a single string or multiple strings (separated by commas).
+        # The VALUE references a user object, and can be supplied in one of the following forms:
+        # ..DistinguishedName
+        # ..ObjectSID (SID)
+        # ..ObjectGUID (GUID)
+        # ..SAMAccountName
+        #
+        # See below for some examples:
+        # -PrincipalsAllowedToDelegateToAccount @{Add='SVC_Acc'}
+        # -PrincipalsAllowedToDelegateToAccount @{Add='0911f77e-862a-4bd7-a073-282289ad51ab','S-1-5-21-739503189-1020924195-124678973-1172'}
+        # -PrincipalsAllowedToDelegateToAccount @{Remove='0911f77e-862a-4bd7-a073-282289ad51ab'}
+        # -PrincipalsAllowedToDelegateToAccount @{Replace='S-1-5-21-739503189-1020924195-124678973-1172','rsmith'}
+        #
+        # Multiple actions can also be specified by providing multiple lines within the hashtable. For example:
+        # -PrincipalsAllowedToDelegateToAccount @{Remove='0911f77e-862a-4bd7-a073-282289ad51ab'; Add='S-1-5-21-739503189-1020924195-124678973-1172'}
+        #
+        # You can clear all entries with this:
+        # -PrincipalsAllowedToDelegateToAccount $null
+        #
+        # If specifying the Add, Remove and Replace parameters together, they are processed in this order:
+        # ..Remove
+        # ..Add
+        # ..Replace
+        [Parameter(Mandatory = $false)]
+        [HashTable]
+        $PrincipalsAllowedToDelegateToAccount,
+
         # The value that will be set as the ProfilePath of the user. This should be a local path or a UNC path with with a server and share specified.
         # Some examples of using this property are:
         #
@@ -570,7 +600,6 @@ function Set-DSSUser {
         # ..Add
         # ..Replace
         [Parameter(Mandatory = $false)]
-        [ValidateNotNullOrEmpty()]
         [Alias('ServicePrincipalName')]
         [HashTable]
         $ServicePrincipalNames,
@@ -653,17 +682,22 @@ function Set-DSSUser {
     # ------------------
     # AuthenticationPolicy
     # AuthenticationPolicySilo
-    # AuthType
     # Certificates
-    # Instance
-    # Partition
     # PassThru
-    # PrincipalsAllowedToDelegateToAccount
 
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
 
     try {
+        $Null_Equal_Clear_Parameters = @('ServicePrincipalNames', 'PrincipalsAllowedToDelegateToAccount')
+        $Null_Equal_Clear_Parameters | ForEach-Object {
+            if ($PSBoundParameters.ContainsKey($_)) {
+                if ($null -eq $PSBoundParameters[$_]) {
+                    $PSBoundParameters['Clear'] += $_
+                    [void]$PSBoundParameters.Remove($_)
+                }
+            }
+        }
         Write-Verbose ('{0}|Calling Set-DSSObjectWrapper' -f $Function_Name)
         Set-DSSObjectWrapper -ObjectType 'User' -BoundParameters $PSBoundParameters
     } catch {
