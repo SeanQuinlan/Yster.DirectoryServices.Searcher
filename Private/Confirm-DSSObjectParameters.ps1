@@ -133,10 +133,9 @@ function Confirm-DSSObjectParameters {
         # Add the parameters in $Parameter_Choices.
         foreach ($Parameter_Choice in $Parameter_Choices) {
             if ($BoundParameters.ContainsKey($Parameter_Choice)) {
-                $Parameter_Choice_Values = Get-Variable -Name $Parameter_Choice -ValueOnly
+                $Parameter_Choice_Values = $BoundParameters[$Parameter_Choice]
 
                 if ($Parameter_Choice -eq 'Clear') {
-                    $New_Parameter_Choice_Values = New-Object -TypeName 'System.Collections.Generic.List[Object]'
                     foreach ($Current_Value in $Parameter_Choice_Values) {
                         if ($Combined_Calculated_Properties.Values -contains $Current_Value) {
                             $LDAP_Property = ($Combined_Calculated_Properties.GetEnumerator() | Where-Object { $_.Value -eq $Current_Value }).'Name'
@@ -147,10 +146,8 @@ function Confirm-DSSObjectParameters {
                         if ($Return_Parameters[$Parameter_Default].Keys -contains $Property_To_Add) {
                             $Conflicting_Parameter = $Property_To_Add
                         }
-                        $New_Parameter_Choice_Values.Add($Property_To_Add)
                     }
                 } else {
-                    $New_Parameter_Choice_Values = @{}
                     foreach ($Current_Value in $Parameter_Choice_Values.GetEnumerator()) {
                         if ($Combined_Calculated_Properties.Values -contains $Current_Value.Name) {
                             $LDAP_Property = ($Combined_Calculated_Properties.GetEnumerator() | Where-Object { $_.Value -eq $Current_Value.Name }).'Name'
@@ -165,7 +162,6 @@ function Confirm-DSSObjectParameters {
                         if ($Return_Parameters[$Parameter_Default].Keys -contains $Property_To_Add.Keys) {
                             $Conflicting_Parameter = $($Property_To_Add.Keys)
                         }
-                        $New_Parameter_Choice_Values += $Property_To_Add
                     }
                 }
                 if ($Conflicting_Parameter) {
