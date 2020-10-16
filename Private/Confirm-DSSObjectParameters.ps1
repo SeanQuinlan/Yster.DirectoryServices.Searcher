@@ -137,6 +137,7 @@ function Confirm-DSSObjectParameters {
 
                 if ($Parameter_Choice -eq 'Clear') {
                     foreach ($Current_Value in $Parameter_Choice_Values) {
+                        Write-Verbose ('{0}|Clear: Processing parameter: {1}' -f $Function_Name, $Current_Value)
                         if ($Combined_Calculated_Properties.Values -contains $Current_Value) {
                             $LDAP_Property = ($Combined_Calculated_Properties.GetEnumerator() | Where-Object { $_.Value -eq $Current_Value }).'Name'
                             $Property_To_Add = $LDAP_Property
@@ -146,7 +147,26 @@ function Confirm-DSSObjectParameters {
                         if ($Return_Parameters[$Parameter_Default].Keys -contains $Property_To_Add) {
                             $Conflicting_Parameter = $Property_To_Add
                         }
+                        if ($Conflicting_Parameter) {
+                            # Get the Microsoft Alias property as well (if there is one), to make the error message better.
+                            if ($Combined_Calculated_Properties.Keys -contains $Conflicting_Parameter) {
+                                $Conflicting_Parameter = ($Conflicting_Parameter, ($Combined_Calculated_Properties[$Conflicting_Parameter])) -join '/'
+                            }
+                            $Terminating_ErrorRecord_Parameters = @{
+                                'Exception'    = 'System.ArgumentException'
+                                'ID'           = 'DSS-{0}' -f $Function_Name
+                                'Category'     = 'InvalidArgument'
+                                'TargetObject' = $Object_Directory_Entry
+                                'Message'      = 'Cannot specify attribute "{0}" as a direct parameter and via the {1} as well' -f $Conflicting_Parameter, ("{0} parameters" -f ($Parameter_Choices -join '/'))
+                            }
+                            $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+                            $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+                        } else {
+                            Write-Verbose ('{0}|Adding "{1}" with value: {2}' -f $Function_Name, $Parameter_Choice, ($Property_To_Add -join ' '))
+                            $Return_Parameters[$Parameter_Choice] += $Property_To_Add
+                        }
                     }
+
                 } else {
                     foreach ($Current_Value in $Parameter_Choice_Values.GetEnumerator()) {
                         if ($Combined_Calculated_Properties.Values -contains $Current_Value.Name) {
@@ -162,26 +182,27 @@ function Confirm-DSSObjectParameters {
                         if ($Return_Parameters[$Parameter_Default].Keys -contains $Property_To_Add.Keys) {
                             $Conflicting_Parameter = $($Property_To_Add.Keys)
                         }
+                        if ($Conflicting_Parameter) {
+                            # Get the Microsoft Alias property as well (if there is one), to make the error message better.
+                            if ($Combined_Calculated_Properties.Keys -contains $Conflicting_Parameter) {
+                                $Conflicting_Parameter = ($Conflicting_Parameter, ($Combined_Calculated_Properties[$Conflicting_Parameter])) -join '/'
+                            }
+                            $Terminating_ErrorRecord_Parameters = @{
+                                'Exception'    = 'System.ArgumentException'
+                                'ID'           = 'DSS-{0}' -f $Function_Name
+                                'Category'     = 'InvalidArgument'
+                                'TargetObject' = $Object_Directory_Entry
+                                'Message'      = 'Cannot specify attribute "{0}" as a direct parameter and via the {1} as well' -f $Conflicting_Parameter, ("{0} parameters" -f ($Parameter_Choices -join '/'))
+                            }
+                            $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+                            $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+                        } else {
+                            Write-Verbose ('{0}|Adding "{1}" with values: {2}' -f $Function_Name, $Parameter_Choice, ($Property_To_Add -join ' '))
+                            $Return_Parameters[$Parameter_Choice] += $Property_To_Add
+                        }
                     }
                 }
-                if ($Conflicting_Parameter) {
-                    # Get the Microsoft Alias property as well (if there is one), to make the error message better.
-                    if ($Combined_Calculated_Properties.Keys -contains $Conflicting_Parameter) {
-                        $Conflicting_Parameter = ($Conflicting_Parameter, ($Combined_Calculated_Properties[$Conflicting_Parameter])) -join '/'
-                    }
-                    $Terminating_ErrorRecord_Parameters = @{
-                        'Exception'    = 'System.ArgumentException'
-                        'ID'           = 'DSS-{0}' -f $Function_Name
-                        'Category'     = 'InvalidArgument'
-                        'TargetObject' = $Object_Directory_Entry
-                        'Message'      = 'Cannot specify attribute "{0}" as a direct parameter and via the {1} as well' -f $Conflicting_Parameter, ("{0} parameters" -f ($Parameter_Choices -join '/'))
-                    }
-                    $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
-                    $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
-                } else {
-                    Write-Verbose ('{0}|Adding "{1}" with values: {2}' -f $Function_Name, $Parameter_Choice, ($Parameter_Choice_Values -join ' '))
-                    $Return_Parameters[$Parameter_Choice] += $Parameter_Choice_Values
-                }
+
             }
         }
 
