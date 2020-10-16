@@ -8,7 +8,7 @@ function Set-DSSRawObject {
         This is not meant to be used as an interactive function; it is used as a worker function by many of the other higher-level functions.
     .EXAMPLE
         $FindObject = Find-DSSRawObject -LDAPFilter '(objectsid=S-1-5-21-3515480276-2049723633-1306762111-1103)' -OutputFormat 'DirectoryEntry'
-        Set-DSSRawObject -Action Remove -Object $FindObject
+        Set-DSSRawObject -Action RemoveObject -Object $FindObject
 
         Removes (deletes) the object with the above SID.
     .NOTES
@@ -110,7 +110,7 @@ function Set-DSSRawObject {
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
     $PSBoundParameters.GetEnumerator() | ForEach-Object {
         if ($_.Value -is [hashtable]) {
-            $Value = ($_.Value.GetEnumerator() | ForEach-Object { '{0} = {1}' -f $_.Name, $_.Value }) -join ' ; '
+            $Value = ($_.Value.GetEnumerator() | ForEach-Object { '{0} = {1}' -f $_.Name, ($_.Value -join ' ') }) -join ' ; '
         } else {
             $Value = $_.Value -join ' '
         }
@@ -121,21 +121,15 @@ function Set-DSSRawObject {
         $Common_Parameters = @('Context', 'Server', 'Credential')
         $Managed_Keys = @('managedby', 'manager')
 
+        # These are some special properties where the values need to be resolved and manipulated before they can be written back.
+        $Special_Resolved_Properties = @('principalsallowedtodelegatetoaccount')
+        $Special_Resolved_Properties_List = @{}
+
         $Common_Search_Parameters = @{}
         foreach ($Parameter in $Common_Parameters) {
             if ($PSBoundParameters.ContainsKey($Parameter)) {
                 $Common_Search_Parameters[$Parameter] = Get-Variable -Name $Parameter -ValueOnly
             }
-        }
-
-        if ($Action -match 'GroupMember') {
-            Write-Verbose ('{0}|Getting GroupMembers or PrincipalGroups first' -f $Function_Name)
-            if ($Action -match 'PrincipalGroupMembership') {
-                $Member_Set = $MemberOf
-            } else {
-                $Member_Set = $Members
-            }
-            $GroupMember_Objects = Get-DSSResolvedObject @Common_Search_Parameters -InputSet $Member_Set
         }
 
         $Confirm_Header = New-Object -TypeName 'System.Text.StringBuilder'
@@ -145,16 +139,24 @@ function Set-DSSRawObject {
         try {
             switch -Regex ($Action) {
                 'GroupMember' {
+                    Write-Verbose ('{0}|Getting GroupMembers or PrincipalGroups first' -f $Function_Name)
+                    if ($Action -match 'PrincipalGroupMembership') {
+                        $Member_Set = $MemberOf
+                    } else {
+                        $Member_Set = $Members
+                    }
+                    $GroupMember_Objects = Get-DSSResolvedObject @Common_Search_Parameters -InputSet $Member_Set
+
                     $GroupMember_ShouldProcess = New-Object -TypeName 'System.Text.StringBuilder'
                     foreach ($GroupMember_Object in $GroupMember_Objects) {
                         if ($Action -eq 'AddGroupMember') {
-                            $ShouldProcess_Line = 'Add group member "{0}" to target: "{1}".' -f $GroupMember_Object['Name'], $($Object.'distinguishedname')
+                            $ShouldProcess_Line = 'Add group member "{0}" to target: "{1}".' -f $GroupMember_Object['distinguishedname'], $($Object.'distinguishedname')
                         } elseif ($Action -eq 'AddPrincipalGroupMembership') {
-                            $ShouldProcess_Line = 'Add target "{0}" to group: "{1}".' -f $($Object.'distinguishedname'), $GroupMember_Object['Name']
+                            $ShouldProcess_Line = 'Add target "{0}" to group: "{1}".' -f $($Object.'distinguishedname'), $GroupMember_Object['distinguishedname']
                         } elseif ($Action -eq 'RemoveGroupMember') {
-                            $ShouldProcess_Line = 'Remove group member "{0}" from target: "{1}".' -f $GroupMember_Object['Name'], $($Object.'distinguishedname')
+                            $ShouldProcess_Line = 'Remove group member "{0}" from target: "{1}".' -f $GroupMember_Object['distinguishedname'], $($Object.'distinguishedname')
                         } elseif ($Action -eq 'RemovePrincipalGroupMembership') {
-                            $ShouldProcess_Line = 'Remove target "{0}" from group: "{1}".' -f $($Object.'distinguishedname'), $GroupMember_Object['Name']
+                            $ShouldProcess_Line = 'Remove target "{0}" from group: "{1}".' -f $($Object.'distinguishedname'), $GroupMember_Object['distinguishedname']
                         }
                         [void]$GroupMember_ShouldProcess.AppendLine($ShouldProcess_Line)
                     }
@@ -167,26 +169,26 @@ function Set-DSSRawObject {
                         foreach ($GroupMember_Object in $GroupMember_Objects) {
                             try {
                                 if ($Action -eq 'AddGroupMember') {
-                                    $Object.Add($GroupMember_Object['Path'])
+                                    $Object.Add($GroupMember_Object['adspath'])
                                 } elseif ($Action -eq 'AddPrincipalGroupMembership') {
                                     $GroupMember_Object['Object'].Add($Object.'adspath')
                                 } elseif ($Action -eq 'RemoveGroupMember') {
-                                    $Object.Remove($GroupMember_Object['Path'])
+                                    $Object.Remove($GroupMember_Object['adspath'])
                                 } elseif ($Action -eq 'RemovePrincipalGroupMembership') {
                                     $GroupMember_Object['Object'].Remove($Object.'adspath')
                                 }
                             } catch [System.DirectoryServices.DirectoryServicesCOMException] {
                                 if ($_.Exception.Message -eq 'The server is unwilling to process the request. (Exception from HRESULT: 0x80072035)') {
                                     if ($Action -eq 'RemoveGroupMember') {
-                                        Write-Verbose ('{0}|Not actually a group member: {1}' -f $Function_Name, $GroupMember_Object['Name'])
+                                        Write-Verbose ('{0}|Not actually a group member: {1}' -f $Function_Name, $GroupMember_Object['distinguishedname'])
                                     } elseif ($Action -eq 'RemovePrincipalGroupMembership') {
-                                        Write-Verbose ('{0}|Not actually member of group: {1}' -f $Function_Name, $GroupMember_Object['Name'])
+                                        Write-Verbose ('{0}|Not actually member of group: {1}' -f $Function_Name, $GroupMember_Object['distinguishedname'])
                                     }
                                 } elseif ($_.Exception.Message -eq 'The object already exists. (Exception from HRESULT: 0x80071392)') {
                                     if ($Action -eq 'AddGroupMember') {
-                                        Write-Verbose ('{0}|Already a group member: {1}' -f $Function_Name, $GroupMember_Object['Name'])
+                                        Write-Verbose ('{0}|Already a group member: {1}' -f $Function_Name, $GroupMember_Object['distinguishedname'])
                                     } elseif ($Action -eq 'AddPrincipalGroupMembership') {
-                                        Write-Verbose ('{0}|Already a member of group: {1}' -f $Function_Name, $GroupMember_Object['Name'])
+                                        Write-Verbose ('{0}|Already a member of group: {1}' -f $Function_Name, $GroupMember_Object['distinguishedname'])
                                     }
                                 } else {
                                     throw
@@ -206,6 +208,10 @@ function Set-DSSRawObject {
                     $Set_AllProperties = New-Object -TypeName 'System.Collections.Generic.List[String]'
 
                     if ($Remove) {
+                        $Remove.GetEnumerator() | Where-Object { $Special_Resolved_Properties -contains $_.Name } | ForEach-Object {
+                            $Special_Resolved_Properties_List[$_.Name] = @{'Remove' = $_.Value }
+                        }
+
                         $Remove.GetEnumerator() | ForEach-Object {
                             $ShouldProcess_Line = 'Removing value "{0}" from property: "{1}"' -f ($_.Value -join ','), $_.Name
                             $Set_AllProperties.Add($_.Name)
@@ -214,6 +220,10 @@ function Set-DSSRawObject {
                     }
 
                     if ($Add) {
+                        $Add.GetEnumerator() | Where-Object { $Special_Resolved_Properties -contains $_.Name } | ForEach-Object {
+                            $Special_Resolved_Properties_List[$_.Name] = @{'Add' = $_.Value }
+                        }
+
                         $Add.GetEnumerator() | ForEach-Object {
                             $ShouldProcess_Line = 'Adding value "{0}" to property: "{1}"' -f ($_.Value -join ','), $_.Name
                             $Set_AllProperties.Add($_.Name)
@@ -263,9 +273,14 @@ function Set-DSSRawObject {
                             if ($Replace.Keys -contains $Managed_Key) {
                                 Write-Verbose ('{0}|Resolving {1} "{2}" to DistinguishedName' -f $Function_Name, $Managed_Key, $Replace[$Managed_Key])
                                 $Resolved_Key = Get-DSSResolvedObject @Common_Search_Parameters -InputSet $Replace[$Managed_Key]
-                                $Replace[$Managed_Key] = $Resolved_Key.'Name'
+                                $Replace[$Managed_Key] = $Resolved_Key.'distinguishedname'
                             }
                         }
+
+                        $Replace.GetEnumerator() | Where-Object { $Special_Resolved_Properties -contains $_.Name } | ForEach-Object {
+                            $Special_Resolved_Properties_List[$_.Name] = @{'Replace' = $_.Value }
+                        }
+
                         $Replace.GetEnumerator() | ForEach-Object {
                             $ShouldProcess_Line = 'Replace value of property "{0}" with value: "{1}"' -f $_.Name, ($_.Value -join ',')
                             $Set_AllProperties.Add($_.Name)
@@ -310,21 +325,21 @@ function Set-DSSRawObject {
                         $ADS_PROPERTY_DELETE = 4
 
                         if ($Remove) {
-                            foreach ($Property in $Remove.GetEnumerator()) {
+                            foreach ($Property in ($Remove.GetEnumerator() | Where-Object { $Special_Resolved_Properties -notcontains $_.Name })) {
                                 Write-Verbose ('{0}|Remove: "{1}" removed from "{2}"' -f $Function_Name, ($Property.Value -join ','), $Property.Name)
                                 $Object.PutEx($ADS_PROPERTY_DELETE, $Property.Name, @($Property.Value))
                             }
                         }
 
                         if ($Add) {
-                            foreach ($Property in $Add.GetEnumerator()) {
+                            foreach ($Property in ($Add.GetEnumerator() | Where-Object { $Special_Resolved_Properties -notcontains $_.Name })) {
                                 Write-Verbose ('{0}|Add: "{1}" added to "{2}"' -f $Function_Name, ($Property.Value -join ','), $Property.Name)
                                 $Object.PutEx($ADS_PROPERTY_APPEND, $Property.Name, @($Property.Value))
                             }
                         }
 
                         if ($Replace) {
-                            foreach ($Property in $Replace.GetEnumerator()) {
+                            foreach ($Property in ($Replace.GetEnumerator() | Where-Object { $Special_Resolved_Properties -notcontains $_.Name })) {
                                 Write-Verbose ('{0}|Checking property: {1}' -f $Function_Name, $Property.Name)
                                 if ($Calculated_SubProperties_List -contains $Property.Name) {
                                     $Parent_SubProperty = $Useful_Calculated_SubProperties.GetEnumerator() | Where-Object { $_.Value.GetEnumerator().Name -eq $Property.Name }
@@ -716,6 +731,80 @@ function Set-DSSRawObject {
                             }
                         }
 
+                        if ($Special_Resolved_Properties_List.Count) {
+                            Write-Verbose ('{0}|Processing special properties' -f $Function_Name)
+                            foreach ($Property in $Special_Resolved_Properties_List.GetEnumerator()) {
+                                Write-Verbose ('{0}|Special: Checking property: {1}' -f $Function_Name, $Property.Name)
+                                if ($Property.Name -eq 'principalsallowedtodelegatetoaccount') {
+                                    # References:
+                                    # https://devblogs.microsoft.com/scripting/use-powershell-to-set-security-permissions-for-remoting/
+                                    # http://www.gabescode.com/active-directory/2019/07/25/nt-security-descriptors.html
+                                    #
+                                    # It would be nice to get the 'msds-allowedtoactonbehalfofotheridentity' property directly from the $Object via $Object.InvokeGet('msds-allowedtoactonbehalfofotheridentity')
+                                    # Doing this returns the property as a System.__ComObject, and I am not able to find a method to convert this COMObject into the byte array that is returned from a search
+                                    # So will have to make another call to get this property in the correct format
+                                    $Principal_Search_Parameters = @{}
+                                    $Principal_Search_Parameters['DistinguishedName'] = $Object.InvokeGet('distinguishedname')
+                                    $Principal_Search_Parameters['Properties'] = @('msds-allowedtoactonbehalfofotheridentity', 'principalsallowedtodelegatetoaccount')
+                                    $Principal_Search = Get-DSSComputer @Common_Search_Parameters @Principal_Search_Parameters
+                                    #$Existing_Principals = $Principal_Search.'principalsallowedtodelegatetoaccount'
+                                    $Existing_Rules = $Principal_Search.'msds-allowedtoactonbehalfofotheridentity'
+
+                                    # If there is a Replace value, simply ignore Add and Remove.
+                                    if ($Special_Resolved_Properties_List[$Property.Name]['Replace']) {
+                                        # Remove all current rules first, then add all the specified computers.
+                                        Write-Verbose ('{0}|Special: Replace: Removing all existing rules' -f $Function_Name)
+                                        $Existing_Rules.Access | ForEach-Object { [void]$Existing_Rules.RemoveAccessRule($_) }
+                                        Get-DSSResolvedObject @Common_Search_Parameters -InputSet $Special_Resolved_Properties_List[$Property.Name]['Replace'] | ForEach-Object {
+                                            $Delegation_AccessRule_Arguments = @(
+                                                [System.Security.Principal.IdentityReference] $_.'objectsid'
+                                                [System.DirectoryServices.ActiveDirectoryRights]::GenericAll
+                                                [System.Security.AccessControl.AccessControlType]::Allow
+                                            )
+                                            $Delegation_AccessRule = New-Object 'System.DirectoryServices.ActiveDirectoryAccessRule' -ArgumentList $Delegation_AccessRule_Arguments
+                                            Write-Verbose ('{0}|Special: Replace: Adding computer: {1}' -f $Function_Name, $_.'distinguishedname')
+                                            [void]$Existing_Rules.AddAccessRule($Delegation_AccessRule)
+                                        }
+                                        Write-Verbose ('{0}|Special: Replace: Setting "msds-allowedtoactonbehalfofotheridentity"' -f $Function_Name)
+                                        $Object.Put('msds-allowedtoactonbehalfofotheridentity', $Existing_Rules.GetSecurityDescriptorBinaryForm())
+
+                                    } else {
+                                        if ($Special_Resolved_Properties_List[$Property.Name]['Remove']) {
+                                            Get-DSSResolvedObject @Common_Search_Parameters -InputSet $Special_Resolved_Properties_List[$Property.Name]['Remove'] | ForEach-Object {
+                                                foreach ($Existing_Rule in $Existing_Rules.Access) {
+                                                    $Computer_Domain, $Computer_Name = $Existing_Rule.IdentityReference.Value.Split('\')
+                                                    $Computer_SID = [System.Security.Principal.NTAccount]::New($Computer_Domain, $Computer_Name).Translate([System.Security.Principal.SecurityIdentifier]).Value
+                                                    if ($Computer_SID -eq $_.'objectsid'.Value) {
+                                                        Write-Verbose ('{0}|Special: Remove: Removing computer: {1}\{2}' -f $Function_Name, $Computer_Domain, $Computer_Name)
+                                                        [void]$Existing_Rules.RemoveAccessRule($Existing_Rule)
+                                                        $Rule_Removed = $true
+                                                    }
+                                                }
+                                            }
+                                            if ($Rule_Removed) {
+                                                Write-Verbose ('{0}|Special: Remove: Setting "msds-allowedtoactonbehalfofotheridentity"' -f $Function_Name)
+                                                $Object.Put('msds-allowedtoactonbehalfofotheridentity', $Existing_Rules.GetSecurityDescriptorBinaryForm())
+                                            }
+                                        }
+                                        if ($Special_Resolved_Properties_List[$Property.Name]['Add']) {
+                                            Get-DSSResolvedObject @Common_Search_Parameters -InputSet $Special_Resolved_Properties_List[$Property.Name]['Add'] | ForEach-Object {
+                                                $Delegation_AccessRule_Arguments = @(
+                                                    [System.Security.Principal.IdentityReference] $_.'objectsid'
+                                                    [System.DirectoryServices.ActiveDirectoryRights]::GenericAll
+                                                    [System.Security.AccessControl.AccessControlType]::Allow
+                                                )
+                                                $Delegation_AccessRule = New-Object 'System.DirectoryServices.ActiveDirectoryAccessRule' -ArgumentList $Delegation_AccessRule_Arguments
+                                                Write-Verbose ('{0}|Special: Add: Adding computer: {1}' -f $Function_Name, $_.'distinguishedname')
+                                                [void]$Existing_Rules.AddAccessRule($Delegation_AccessRule)
+                                            }
+                                            Write-Verbose ('{0}|Special: Add: Setting "msds-allowedtoactonbehalfofotheridentity"' -f $Function_Name)
+                                            $Object.Put('msds-allowedtoactonbehalfofotheridentity', $Existing_Rules.GetSecurityDescriptorBinaryForm())
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
                         Write-Verbose ('{0}|Applying properties on object' -f $Function_Name)
                         $Object.SetInfo()
                         Write-Verbose ('{0}|Properties applied successfully' -f $Function_Name)
@@ -781,10 +870,10 @@ function Set-DSSRawObject {
             $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
             $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
         } catch [System.DirectoryServices.DirectoryServicesCOMException] {
-            # This exception is thrown when a disabled account has an unsuitable password, or no password.
-            # LDAP response here: https://ldapwiki.com/wiki/ERROR_PASSWORD_RESTRICTION
-            # Microsoft Error Code: https://docs.microsoft.com/en-gb/windows/win32/debug/system-error-codes--1300-1699-
             if ($_.Exception.ExtendedError -eq 1325) {
+                # This exception is thrown when a disabled account has an unsuitable password, or no password.
+                # LDAP response here: https://ldapwiki.com/wiki/ERROR_PASSWORD_RESTRICTION
+                # Microsoft Error Code: https://docs.microsoft.com/en-gb/windows/win32/debug/system-error-codes--1300-1699-
                 $Terminating_ErrorRecord_Parameters = @{
                     'Exception'      = 'System.DirectoryServices.DirectoryServicesCOMException'
                     'ID'             = 'DSS-{0}' -f $Function_Name
