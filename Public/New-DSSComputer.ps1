@@ -245,7 +245,7 @@ function New-DSSComputer {
         # -OtherAttributes @{givenname='John'; sn='Smith'; displayname='Smith, John'}
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
-        [HashTable]
+        [Hashtable]
         $OtherAttributes,
 
         # Specifies that the account password does not expire.
@@ -276,6 +276,22 @@ function New-DSSComputer {
         [ValidateNotNullOrEmpty()]
         [String]
         $Path,
+
+        # A list of PrincipalsAllowedToDelegateToAccount for the object.
+        # The VALUE references an AD object, and can be supplied in one of the following forms:
+        # ..DistinguishedName
+        # ..ObjectSID (SID)
+        # ..ObjectGUID (GUID)
+        # ..SAMAccountName
+        #
+        # See below for some examples:
+        #
+        # -PrincipalsAllowedToDelegateToAccount 'WINSRV01$'
+        # -PrincipalsAllowedToDelegateToAccount '0911f77e-862a-4bd7-a073-282289ad51ab', 'S-1-5-21-739503189-1020924195-124678973-1172'
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Array]
+        $PrincipalsAllowedToDelegateToAccount,
 
         # Specifies whether the object is protected from accidental deletion.
         # An example of using this property is:
@@ -345,7 +361,6 @@ function New-DSSComputer {
     # AuthenticationPolicy
     # AuthenticationPolicySilo
     # Certificates
-    # PrincipalsAllowedToDelegateToAccount
 
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
@@ -353,6 +368,14 @@ function New-DSSComputer {
     try {
         if (-not $SAMAccountName) {
             $PSBoundParameters['SAMAccountName'] = ('{0}$' -f $Name)
+        }
+        $Convert_To_Hashtable_Parameters = @('ServicePrincipalNames', 'PrincipalsAllowedToDelegateToAccount')
+        $Convert_To_Hashtable_Parameters | ForEach-Object {
+            if ($PSBoundParameters.ContainsKey($_)) {
+                $Parameter_New_Value = @{'Replace' = $PSBoundParameters[$_] }
+                [void]$PSBoundParameters.Remove($_)
+                [void]$PSBoundParameters.Add($_, $Parameter_New_Value)
+            }
         }
         Write-Verbose ('{0}|Calling New-DSSObjectWrapper' -f $Function_Name)
         New-DSSObjectWrapper -ObjectType 'Computer' -BoundParameters $PSBoundParameters
