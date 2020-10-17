@@ -13,7 +13,7 @@ function New-DSSObject {
         https://docs.microsoft.com/en-us/powershell/module/addsadministration/new-adobject
     #>
 
-    [CmdletBinding(DefaultParameterSetName = 'DistinguishedName', SupportsShouldProcess = $true)]
+    [CmdletBinding(SupportsShouldProcess = $true)]
     param(
         # The directory context to search - Domain or Forest. By default this will search within the domain only.
         # If you want to search the entire directory, specify "Forest" for this parameter and the search will be performed on a Global Catalog server, targetting the entire forest.

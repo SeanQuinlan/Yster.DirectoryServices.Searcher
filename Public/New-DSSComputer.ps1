@@ -13,7 +13,7 @@ function New-DSSComputer {
         https://docs.microsoft.com/en-us/powershell/module/addsadministration/new-adcomputer
     #>
 
-    [CmdletBinding(DefaultParameterSetName = 'DistinguishedName', SupportsShouldProcess = $true)]
+    [CmdletBinding(SupportsShouldProcess = $true)]
     param(
         # A date and time value that specifies when the account expires.
         # If no time is specified, then the time will be set to 00:00:00 on the supplied date.
