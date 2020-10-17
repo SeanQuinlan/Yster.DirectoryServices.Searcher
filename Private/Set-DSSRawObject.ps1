@@ -66,19 +66,19 @@ function Set-DSSRawObject {
         # The values to remove from an existing property.
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
-        [HashTable]
+        [Hashtable]
         $Remove,
 
         # The values to add to an existing property.
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
-        [HashTable]
+        [Hashtable]
         $Add,
 
         # Values to use to replace the existing property.
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
-        [HashTable]
+        [Hashtable]
         $Replace,
 
         # An array of properties to clear.
@@ -726,19 +726,11 @@ function Set-DSSRawObject {
 
                         if ($Clear) {
                             foreach ($Property in $Clear) {
-                                if ($Property -eq 'principalsallowedtodelegatetoaccount') {
-                                    $Principal_Search_Parameters = @{}
-                                    $Principal_Search_Parameters['DistinguishedName'] = $Object.InvokeGet('distinguishedname')
-                                    $Principal_Search_Parameters['Properties'] = @('msds-allowedtoactonbehalfofotheridentity', 'principalsallowedtodelegatetoaccount')
-                                    $Principal_Search = Get-DSSComputer @Common_Search_Parameters @Principal_Search_Parameters
-                                    $Existing_Rules = $Principal_Search.'msds-allowedtoactonbehalfofotheridentity'
-                                    $Existing_Rules.Access | ForEach-Object { [void]$Existing_Rules.RemoveAccessRule($_) }
-                                    Write-Verbose ('{0}|Clear: Setting "msds-allowedtoactonbehalfofotheridentity"' -f $Function_Name)
-                                    $Object.Put('msds-allowedtoactonbehalfofotheridentity', $Existing_Rules.GetSecurityDescriptorBinaryForm())
-                                } else {
-                                    Write-Verbose ('{0}|Clear property: {1}' -f $Function_Name, $Property)
-                                    $Object.PutEx($ADS_PROPERTY_CLEAR, $Property, @())
+                                if ($Combined_Calculated_Properties.Values -contains $Property) {
+                                    $Property = ($Combined_Calculated_Properties.GetEnumerator() | Where-Object { $_.Value -eq $Current_Value }).'Name'
                                 }
+                                Write-Verbose ('{0}|Clear property: {1}' -f $Function_Name, $Property)
+                                $Object.PutEx($ADS_PROPERTY_CLEAR, $Property, @())
                             }
                         }
 
@@ -759,6 +751,11 @@ function Set-DSSRawObject {
                                     $Principal_Search_Parameters['Properties'] = @('msds-allowedtoactonbehalfofotheridentity', 'principalsallowedtodelegatetoaccount')
                                     $Principal_Search = Get-DSSComputer @Common_Search_Parameters @Principal_Search_Parameters
                                     $Existing_Rules = $Principal_Search.'msds-allowedtoactonbehalfofotheridentity'
+                                    # If msds-allowedtoactonbehalfofotheridentity has never been set, it will be null, so set it as a blank ActiveDirectorySecurity object, so we can add to it.
+                                    if ($Existing_Rules -isnot [System.DirectoryServices.ActiveDirectorySecurity]) {
+                                        $Existing_Rules = New-Object -TypeName 'System.DirectoryServices.ActiveDirectorySecurity'
+                                        $Existing_Rules.SetSecurityDescriptorSddlForm('O:BAD:') # Sets BUILTIN\Administrators as the owner.
+                                    }
 
                                     # If there is a Replace value, simply ignore Add and Remove.
                                     if ($Special_Resolved_Properties_List[$Property.Name]['Replace']) {
