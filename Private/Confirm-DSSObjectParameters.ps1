@@ -18,7 +18,7 @@ function Confirm-DSSObjectParameters {
         # A hashtable of parameters to validate.
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [HashTable]
+        [Hashtable]
         $BoundParameters,
 
         # The type of parameter validation to perform.
@@ -29,7 +29,13 @@ function Confirm-DSSObjectParameters {
     )
 
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
-    $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
+    $PSBoundParameters.GetEnumerator() | ForEach-Object {
+        if ($_.Value -is [Hashtable]) {
+            Write-Verbose ("{0}|Arguments: {1}:`n{2}" -f $Function_Name, $_.Key, ($_.Value | Format-Table -AutoSize | Out-String).Trim())
+        } else {
+            Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' '))
+        }
+    }
 
     try {
         $Return_Parameters = @{}
@@ -53,7 +59,7 @@ function Confirm-DSSObjectParameters {
         foreach ($Parameter_Key in $BoundParameters.Keys) {
             if (($All_CommonParameters + $Parameter_Choices) -notcontains $Parameter_Key) {
                 # Any parameters that are supplied as hashtables will be "broken down" into their relevant key-value pairs.
-                if ($BoundParameters[$Parameter_Key] -is [HashTable]) {
+                if ($BoundParameters[$Parameter_Key] -is [Hashtable]) {
                     if ($Hashtable_Validkeys) {
                         Write-Verbose ('{0}|Checking parameter hashtable for valid keys: {1}' -f $Function_Name, $Parameter_Key)
                         foreach ($Key_Name in $BoundParameters[$Parameter_Key].Keys) {
@@ -76,9 +82,19 @@ function Confirm-DSSObjectParameters {
                             } else {
                                 $LDAP_Parameter_Key = $Parameter_Key
                             }
-                            Write-Verbose ('{0}|Adding "{1}" with values: {2} - {3}' -f $Function_Name, $Key_Name, $LDAP_Parameter_Key, ($BoundParameters[$Parameter_Key][$Key_Name] -join ' '))
-                            $Return_Parameters[$Key_Name] += @{
-                                $LDAP_Parameter_Key = $BoundParameters[$Parameter_Key][$Key_Name]
+                            if ($Type -eq 'New') {
+                                if (-not $Return_Parameters[$Parameter_Default]) {
+                                    $Return_Parameters[$Parameter_Default] = @{}
+                                }
+                                Write-Verbose ('{0}|Adding Property: "{1}" with values: {2} - {3}' -f $Function_Name, $Key_Name, $LDAP_Parameter_Key, ($BoundParameters[$Parameter_Key][$Key_Name] -join ' '))
+                                $Return_Parameters[$Parameter_Default][$Key_Name] += @{
+                                    $LDAP_Parameter_Key = $BoundParameters[$Parameter_Key][$Key_Name]
+                                }
+                            } else {
+                                Write-Verbose ('{0}|Adding "{1}" with values: {2} - {3}' -f $Function_Name, $Key_Name, $LDAP_Parameter_Key, ($BoundParameters[$Parameter_Key][$Key_Name] -join ' '))
+                                $Return_Parameters[$Key_Name] += @{
+                                    $LDAP_Parameter_Key = $BoundParameters[$Parameter_Key][$Key_Name]
+                                }
                             }
                         }
                     } else {
@@ -117,8 +133,9 @@ function Confirm-DSSObjectParameters {
                         }
                     }
                 } else {
-                    if ($Combined_Calculated_Properties.Values -contains $Parameter_Key) {
-                        $Parameter_Name = ($Combined_Calculated_Properties.GetEnumerator() | Where-Object { $_.Value -eq $Parameter_Key }).'Name'
+                    if ($Microsoft_Alias_Properties.Values -contains $Parameter_Key) {
+                        $Parameter_Name = ($Microsoft_Alias_Properties.GetEnumerator() | Where-Object { $_.Value -eq $Parameter_Key }).'Name'
+
                     } else {
                         $Parameter_Name = $Parameter_Key
                     }
@@ -138,8 +155,8 @@ function Confirm-DSSObjectParameters {
                 if ($Parameter_Choice -eq 'Clear') {
                     foreach ($Current_Value in $Parameter_Choice_Values) {
                         Write-Verbose ('{0}|Clear: Processing parameter: {1}' -f $Function_Name, $Current_Value)
-                        if ($Combined_Calculated_Properties.Values -contains $Current_Value) {
-                            $LDAP_Property = ($Combined_Calculated_Properties.GetEnumerator() | Where-Object { $_.Value -eq $Current_Value }).'Name'
+                        if ($Microsoft_Alias_Properties.Values -contains $Current_Value) {
+                            $LDAP_Property = ($Microsoft_Alias_Properties.GetEnumerator() | Where-Object { $_.Value -eq $Current_Value }).'Name'
                             $Property_To_Add = $LDAP_Property
                         } else {
                             $Property_To_Add = $Current_Value
@@ -169,8 +186,8 @@ function Confirm-DSSObjectParameters {
 
                 } else {
                     foreach ($Current_Value in $Parameter_Choice_Values.GetEnumerator()) {
-                        if ($Combined_Calculated_Properties.Values -contains $Current_Value.Name) {
-                            $LDAP_Property = ($Combined_Calculated_Properties.GetEnumerator() | Where-Object { $_.Value -eq $Current_Value.Name }).'Name'
+                        if ($Microsoft_Alias_Properties.Values -contains $Current_Value.Name) {
+                            $LDAP_Property = ($Microsoft_Alias_Properties.GetEnumerator() | Where-Object { $_.Value -eq $Current_Value.Name }).'Name'
                             $Property_To_Add = @{
                                 $LDAP_Property = $Current_Value.Value
                             }
