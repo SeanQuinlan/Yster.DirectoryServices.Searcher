@@ -157,8 +157,8 @@ $New_Object_Post_Creation_Properties = @(
     'kerberosencryptiontype'
     'passwordneverexpires'
     'passwordnotrequired'
-    'principalsallowedtodelegatetoaccount'
     'protectedfromaccidentaldeletion'
+    'replace'
     'trustedfordelegation'
 )
 
