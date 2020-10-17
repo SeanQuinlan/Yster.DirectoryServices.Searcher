@@ -3,14 +3,13 @@ function New-DSSRawObject {
     .SYNOPSIS
         Creates a new object in Active Directory.
     .DESCRIPTION
-        Performs the required modification to the object that is passed in via the $Object parameter.
+        Creates a new Active Directory object of the type specified and sets any additional properties that are supplied.
 
         This is not meant to be used as an interactive function; it is used as a worker function by many of the other higher-level functions.
     .EXAMPLE
-        $FindObject = Find-DSSRawObject -LDAPFilter '(objectsid=S-1-5-21-3515480276-2049723633-1306762111-1103)' -OutputFormat 'DirectoryEntry'
-        Set-DSSRawObject -Action Remove -Object $FindObject
+        New-DSSRawObject -Type 'computer' -Name 'WINSRV01' -Path 'OU=Computers,OU=Company,DC=contoso,DC=com'
 
-        Removes (deletes) the object with the above SID.
+        Creates the above computer object in the specified OU.
     .NOTES
         References:
         https://docs.microsoft.com/en-us/powershell/module/addsadministration/new-adobject
@@ -135,8 +134,8 @@ function New-DSSRawObject {
                     } elseif ($Managed_Keys -contains $Property.Name) {
                         Write-Verbose ('{0}|Resolving {1} "{2}" to DistinguishedName' -f $Function_Name, $Property.Name, $Property.Value)
                         $Resolved_Key = Get-DSSResolvedObject @Common_Search_Parameters -InputSet $Property.Value
-                        Write-Verbose ('{0}|Adding resolved property "{1}" with value: {2}' -f $Function_Name, $Property.Name, $Resolved_Key.'Name')
-                        $New_Object.Put($Property.Name, $Resolved_Key.'Name')
+                        Write-Verbose ('{0}|Adding resolved property "{1}" with value: {2}' -f $Function_Name, $Property.Name, $Resolved_Key.'distinguishedname')
+                        $New_Object.Put($Property.Name, $Resolved_Key.'distinguishedname')
                     } elseif ($Property.Name -eq 'GroupCategory') {
                         if ($Property.Value -eq 'Distribution') {
                             Write-Verbose ('{0}|Setting Group Category to: Distribution' -f $Function_Name)
