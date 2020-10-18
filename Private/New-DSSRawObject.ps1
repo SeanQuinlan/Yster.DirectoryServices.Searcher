@@ -120,8 +120,13 @@ function New-DSSRawObject {
 
         $Post_Creation_Parameters = @{}
         try {
-            Write-Verbose ('{0}|Creating "{1}" object with CN={2}' -f $Function_Name, $Type, $Name)
-            $New_Object = $New_Object_Directory_Entry.Create($Type, ('CN={0}' -f $Name))
+            if ($Type -eq 'OrganizationalUnit') {
+                $Object_Name = 'OU={0}' -f $Name
+            } else {
+                $Object_Name = 'CN={0}' -f $Name
+            }
+            Write-Verbose ('{0}|Creating "{1}" object with {2}' -f $Function_Name, $Type, $Object_Name)
+            $New_Object = $New_Object_Directory_Entry.Create($Type, $Object_Name)
             if ($Default_UserAccountControl) {
                 Write-Verbose ('{0}|Setting default UserAccountControl for type "{1}" to: {2}' -f $Function_Name, $Type, $Default_UserAccountControl)
                 $New_Object.Put('useraccountcontrol', $Default_UserAccountControl)
@@ -187,7 +192,7 @@ function New-DSSRawObject {
                     'ID'             = 'DSS-{0}' -f $Function_Name
                     'Category'       = 'ResourceExists'
                     'TargetObject'   = $New_Object
-                    'Message'        = ('The object "{0}" already exists in the path: {1}' -f $Name, $($New_Object_Directory_Entry.'distinguishedname'))
+                    'Message'        = 'The object "{0}" already exists in the path: {1}' -f $Name, $($New_Object_Directory_Entry.'distinguishedname')
                     'InnerException' = $_.Exception
                 }
                 $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
@@ -199,7 +204,7 @@ function New-DSSRawObject {
                     'ID'             = 'DSS-{0}' -f $Function_Name
                     'Category'       = 'InvalidData'
                     'TargetObject'   = $New_Object
-                    'Message'        = $_.Exception.InnerException.Message
+                    'Message'        = "Property name or type is invalid.`nServer Error: {0}" -f $_.Exception.InnerException.Message
                     'InnerException' = $_.Exception
                 }
                 $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
@@ -211,7 +216,19 @@ function New-DSSRawObject {
                     'ID'             = 'DSS-{0}' -f $Function_Name
                     'Category'       = 'InvalidData'
                     'TargetObject'   = $New_Object
-                    'Message'        = $_.Exception.InnerException.Message
+                    'Message'        = "Unable to modify a property that is system owned or otherwise not allowed.`nServer Error: {0}" -f $_.Exception.InnerException.Message
+                    'InnerException' = $_.Exception
+                }
+                $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+                $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+            } elseif ($_.Exception.InnerException.ErrorCode -eq '-2147016684') {
+                # This error is thrown when trying to add a property that is not available for that class of object.
+                $Terminating_ErrorRecord_Parameters = @{
+                    'Exception'      = 'System.DirectoryServices.ActiveDirectory.ActiveDirectoryOperationException'
+                    'ID'             = 'DSS-{0}' -f $Function_Name
+                    'Category'       = 'InvalidData'
+                    'TargetObject'   = $New_Object
+                    'Message'        = "One or more of the OtherAttributes is not valid for this type of object.`nServer Error: {0}" -f $_.Exception.InnerException.Message
                     'InnerException' = $_.Exception
                 }
                 $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
