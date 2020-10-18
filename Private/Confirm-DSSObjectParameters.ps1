@@ -60,7 +60,41 @@ function Confirm-DSSObjectParameters {
             if (($All_CommonParameters + $Parameter_Choices) -notcontains $Parameter_Key) {
                 # Any parameters that are supplied as hashtables will be "broken down" into their relevant key-value pairs.
                 if ($BoundParameters[$Parameter_Key] -is [Hashtable]) {
-                    if ($Hashtable_Validkeys) {
+                    if ($Parameter_Key -eq 'otherattributes') {
+                        Write-Verbose ('{0}|Breaking down parameter: {1}' -f $Function_Name, $Parameter_Key)
+                        foreach ($Key_Name in $BoundParameters[$Parameter_Key].Keys) {
+                            Write-Verbose ('{0}|Parameter: {1}|Key: {2}' -f $Function_Name, $Parameter_Key, $Key_Name)
+                            if ($Microsoft_Alias_Names -contains $Key_Name) {
+                                $LDAP_Parameter_Key = ($Microsoft_Alias_Properties.GetEnumerator() | Where-Object { $_.Value -eq $Key_Name }).'Name'
+                            } else {
+                                $LDAP_Parameter_Key = $Key_Name
+                            }
+                            if (-not $Return_Parameters[$Parameter_Default]) {
+                                $Return_Parameters[$Parameter_Default] = @{}
+                            }
+                            if ($Return_Parameters[$Parameter_Default][$LDAP_Parameter_Key]) {
+                                $Conflicting_Parameter = $Key_Name
+                                # Get the Microsoft Alias property as well (if there is one), to make the error message better.
+                                if ($Combined_Calculated_Properties.Keys -contains $Conflicting_Parameter) {
+                                    $Conflicting_Parameter = ($Conflicting_Parameter, ($Combined_Calculated_Properties[$Conflicting_Parameter])) -join '/'
+                                }
+                                $Terminating_ErrorRecord_Parameters = @{
+                                    'Exception'    = 'System.ArgumentException'
+                                    'ID'           = 'DSS-{0}' -f $Function_Name
+                                    'Category'     = 'InvalidArgument'
+                                    'TargetObject' = $Object_Directory_Entry
+                                    'Message'      = 'Cannot specify attribute "{0}" as a direct parameter and via the {1} as well' -f $Conflicting_Parameter, ("{0} parameters" -f ($Parameter_Choices -join '/'))
+                                }
+                                $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+                                $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+                            } else {
+                                Write-Verbose ('{0}|Adding "{1}" with values: {2} - {3}' -f $Function_Name, $Parameter_Default, $LDAP_Parameter_Key, ($BoundParameters[$Parameter_Key][$Key_Name] -join ' '))
+                                $Return_Parameters[$Parameter_Default] += @{
+                                    $LDAP_Parameter_Key = $BoundParameters[$Parameter_Key][$Key_Name]
+                                }
+                            }
+                        }
+                    } else {
                         Write-Verbose ('{0}|Checking parameter hashtable for valid keys: {1}' -f $Function_Name, $Parameter_Key)
                         foreach ($Key_Name in $BoundParameters[$Parameter_Key].Keys) {
                             if ($Hashtable_Validkeys -notcontains $Key_Name) {
@@ -97,47 +131,25 @@ function Confirm-DSSObjectParameters {
                                 }
                             }
                         }
-                    } else {
-                        Write-Verbose ('{0}|Breaking down parameter: {1}' -f $Function_Name, $Parameter_Key)
-                        foreach ($Key_Name in $BoundParameters[$Parameter_Key].Keys) {
-                            Write-Verbose ('{0}|Parameter: {1}|Key: {2}' -f $Function_Name, $Parameter_Key, $Key_Name)
-                            if ($Microsoft_Alias_Names -contains $Key_Name) {
-                                $LDAP_Parameter_Key = ($Microsoft_Alias_Properties.GetEnumerator() | Where-Object { $_.Value -eq $Key_Name }).'Name'
-                            } else {
-                                $LDAP_Parameter_Key = $Key_Name
-                            }
-                            if (-not $Return_Parameters[$Parameter_Default]) {
-                                $Return_Parameters[$Parameter_Default] = @{}
-                            }
-                            if ($Return_Parameters[$Parameter_Default][$LDAP_Parameter_Key]) {
-                                $Conflicting_Parameter = $Key_Name
-                                # Get the Microsoft Alias property as well (if there is one), to make the error message better.
-                                if ($Combined_Calculated_Properties.Keys -contains $Conflicting_Parameter) {
-                                    $Conflicting_Parameter = ($Conflicting_Parameter, ($Combined_Calculated_Properties[$Conflicting_Parameter])) -join '/'
-                                }
-                                $Terminating_ErrorRecord_Parameters = @{
-                                    'Exception'    = 'System.ArgumentException'
-                                    'ID'           = 'DSS-{0}' -f $Function_Name
-                                    'Category'     = 'InvalidArgument'
-                                    'TargetObject' = $Object_Directory_Entry
-                                    'Message'      = 'Cannot specify attribute "{0}" as a direct parameter and via the {1} as well' -f $Conflicting_Parameter, ("{0} parameters" -f ($Parameter_Choices -join '/'))
-                                }
-                                $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
-                                $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
-                            } else {
-                                Write-Verbose ('{0}|Adding "{1}" with values: {2} - {3}' -f $Function_Name, $Parameter_Default, $LDAP_Parameter_Key, ($BoundParameters[$Parameter_Key][$Key_Name] -join ' '))
-                                $Return_Parameters[$Parameter_Default] += @{
-                                    $LDAP_Parameter_Key = $BoundParameters[$Parameter_Key][$Key_Name]
-                                }
-                            }
-                        }
                     }
                 } else {
                     if ($Microsoft_Alias_Properties.Values -contains $Parameter_Key) {
                         $Parameter_Name = ($Microsoft_Alias_Properties.GetEnumerator() | Where-Object { $_.Value -eq $Parameter_Key }).'Name'
-
                     } else {
                         $Parameter_Name = $Parameter_Key
+                    }
+                    if ($Return_Parameters[$Parameter_Default]) {
+                        if ($Return_Parameters[$Parameter_Default][$Parameter_Name]) {
+                            $Terminating_ErrorRecord_Parameters = @{
+                                'Exception'    = 'System.ArgumentException'
+                                'ID'           = 'DSS-{0}' -f $Function_Name
+                                'Category'     = 'InvalidArgument'
+                                'TargetObject' = $Object_Directory_Entry
+                                'Message'      = 'Cannot specify attribute "{0}" as a direct parameter and via OtherAttributes as well' -f $Parameter_Name
+                            }
+                            $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+                            $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+                        }
                     }
                     Write-Verbose ('{0}|Adding bound parameter: {1} - {2}' -f $Function_Name, $Parameter_Name, $BoundParameters[$Parameter_Key])
                     $Return_Parameters[$Parameter_Default] += @{
