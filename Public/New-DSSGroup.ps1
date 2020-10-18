@@ -117,9 +117,9 @@ function New-DSSGroup {
         # Multiple properties can also be specified by separating them with semi-colons.
         # See below for some examples:
         #
-        # -OtherAttributes @{description='All Sales Users'}
-        # -OtherAttributes @{otherTelephone='000-0000-0000','111-1111-1111'}
-        # -OtherAttributes @{givenname='John'; sn='Smith'; displayname='Smith, John'}
+        # -OtherAttributes @{wwwhomepage='www.contoso.com'}
+        # -OtherAttributes @{secretary='rsmith','bjones','krichards'}
+        # -OtherAttributes @{wwwhomepage='www.contoso.com'; telephonenumber='000-000-0000'; displayname='Marketing Users'}
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         [HashTable]
