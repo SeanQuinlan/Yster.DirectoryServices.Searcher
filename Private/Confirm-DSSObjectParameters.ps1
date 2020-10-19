@@ -241,7 +241,7 @@ function Confirm-DSSObjectParameters {
                 foreach ($Key in @($Return_Parameters[$Validation_Choice].Keys)) {
                     switch -Regex ($Key) {
                         'homedrive' {
-                            if ($Key -notmatch '^[A-Z]{1}:') {
+                            if ($Return_Parameters[$Validation_Choice][$Key] -notmatch '^[A-Z]{1}:') {
                                 $Terminating_ErrorRecord_Parameters = @{
                                     'Exception'    = 'System.ArgumentException'
                                     'ID'           = 'DSS-{0}' -f $Function_Name
