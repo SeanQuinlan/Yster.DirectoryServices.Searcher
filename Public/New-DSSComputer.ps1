@@ -40,7 +40,7 @@ function New-DSSComputer {
         # An example of using this property is:
         #
         # $AccPass = ConvertTo-SecureString -String 'P@ssw0rd' -AsPlainText -Force
-        # -AccountPassword $AccPasss
+        # -AccountPassword $AccPass
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         [System.Security.SecureString]
@@ -103,7 +103,7 @@ function New-DSSComputer {
         # The value that will be set as the Description of the object.
         # An example of using this property is:
         #
-        # -Description 'Sales Manager'
+        # -Description 'Marketing Server 02'
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         [String]
@@ -112,7 +112,7 @@ function New-DSSComputer {
         # The value that will be set as the DisplayName of the object.
         # An example of using this property is:
         #
-        # -DisplayName 'Smith, John'
+        # -DisplayName 'Marketing Server'
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         [String]
