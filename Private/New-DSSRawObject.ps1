@@ -149,7 +149,7 @@ function New-DSSRawObject {
                     } elseif ($Property.Name -eq 'GroupScope') {
                         Write-Verbose ('{0}|Setting Group Scope to: {1}' -f $Function_Name, $Property.Value)
                         $GroupType_Scope = [int]$ADGroupTypes[$Property.Value]
-                    } elseif ($Property.Name -eq 'accountexpirationdate') {
+                    } elseif ($Property.Name -eq 'AccountExpirationDate') {
                         Write-Verbose ('{0}|Converting DateTime to int64' -f $Function_Name)
                         $Account_Expires_Int64 = (Get-Date $Property.Value).ToFileTime()
                         $New_Object.Put('accountexpires', '{0}' -f $Account_Expires_Int64) # Value has to be a string for some reason.
@@ -158,6 +158,41 @@ function New-DSSRawObject {
                         $Account_Passsword = $Property.Value
                     } elseif (($Property.Name -eq 'Enabled') -and ($Property.Value -eq $true)) {
                         $Set_Account_Enabled = $true
+                    } elseif ($Property.Name -eq 'c') {
+                        $Country_Property = $Property.Value
+                        if (($Countries_Ambiguous_Alpha2 -contains $Country_Property) -or ($Countries_Ambiguous_CountryCodes -contains $Country_Property)) {
+                            $Terminating_ErrorRecord_Parameters = @{
+                                'Exception'    = 'System.ArgumentException'
+                                'ID'           = 'DSS-{0}' -f $Function_Name
+                                'Category'     = 'InvalidData'
+                                'TargetObject' = $Object
+                                'Message'      = 'The specified country code "{0}" can apply to multiple country names. Please supply full country name instead.' -f $Country_Property
+                            }
+                            $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+                            $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+                        } elseif (($Countries_Fullnames -notcontains $Country_Property) -and ($Countries_Alpha2 -notcontains $Country_Property) -and ($Countries_CountryCodes -notcontains $Country_Property)) {
+                            $Terminating_ErrorRecord_Parameters = @{
+                                'Exception'    = 'System.ArgumentException'
+                                'ID'           = 'DSS-{0}' -f $Function_Name
+                                'Category'     = 'InvalidData'
+                                'TargetObject' = $Object
+                                'Message'      = 'The specified country "{0}" cannot be matched to a full country name or country code.' -f $Country_Property
+                            }
+                            $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+                            $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+                        } else {
+                            if ($Countries_Fullnames -contains $Country_Property) {
+                                $Country_FullName = $Property
+                            } elseif ($Countries_Alpha2 -contains $Country_Property) {
+                                $Country_FullName = ($Countries.GetEnumerator() | Where-Object { $_.Value.'Alpha2' -eq $Country_Property }).Name
+                            } elseif ($Countries_CountryCodes -contains $Country_Property) {
+                                $Country_FullName = ($Countries.GetEnumerator() | Where-Object { $_.Value.'CountryCode' -eq $Country_Property }).Name
+                            }
+
+                            $New_Object.Put('co', $Country_FullName)
+                            $New_Object.Put('c', $Countries[$Country_FullName]['Alpha2'])
+                            $New_Object.Put('countrycode', $Countries[$Country_FullName]['CountryCode'])
+                        }
                     } else {
                         Write-Verbose ('{0}|Adding property "{1}" with value: {2}' -f $Function_Name, $Property.Name, $Property.Value)
                         $New_Object.Put($Property.Name, $Property.Value)
