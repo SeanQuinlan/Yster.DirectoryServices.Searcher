@@ -546,7 +546,6 @@ function Find-DSSRawObject {
                         }
                     }
 
-                    # Add the object to the return array.
                     $Directory_Searcher_Result_To_Return.Add($Result_Object)
                 }
 

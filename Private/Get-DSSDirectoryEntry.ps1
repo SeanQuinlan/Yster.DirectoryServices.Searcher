@@ -121,8 +121,10 @@ function Get-DSSDirectoryEntry {
             $Directory_Entry_Object = New-Object -TypeName 'System.DirectoryServices.DirectoryEntry' -ArgumentList $Directory_Entry_Arguments
             [void]$Directory_Entry_Object.ToString()
             Write-Verbose ('{0}|Found directory entry with distinguishedname: {1}' -f $Function_Name, $($Directory_Entry_Object.'distinguishedname'))
+
             # Return the DirectoryEntry object
             $Directory_Entry_Object
+
         } catch {
             if ($_.Exception.InnerException.ErrorCode -eq '-2147016646') {
                 $Terminating_ErrorRecord_Parameters = @{
