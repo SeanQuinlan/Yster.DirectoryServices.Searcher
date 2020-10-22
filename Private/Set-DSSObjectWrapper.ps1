@@ -87,7 +87,7 @@ function Set-DSSObjectWrapper {
                 $Set_Parameters['Action'] = 'Set'
                 $Set_Parameters['Object'] = $Object_Directory_Entry
                 Write-Verbose ('{0}|Calling Set-DSSRawObject' -f $Function_Name)
-                Set-DSSRawObject @$Common_Search_Parameters @Set_Parameters
+                Set-DSSRawObject @Common_Search_Parameters @Set_Parameters
             } else {
                 Write-Verbose ('{0}|No Set parameters provided, so doing nothing' -f $Function_Name)
             }
