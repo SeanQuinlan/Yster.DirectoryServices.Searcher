@@ -18,20 +18,6 @@ function Set-DSSOrganizationalUnit {
 
     [CmdletBinding(DefaultParameterSetName = 'DistinguishedName', SupportsShouldProcess = $true)]
     param(
-        # The DistinguishedName of the OU.
-        [Parameter(Mandatory = $true, ParameterSetName = 'DistinguishedName')]
-        [ValidateNotNullOrEmpty()]
-        [Alias('DN')]
-        [String]
-        $DistinguishedName,
-
-        # The ObjectGUID of the OU.
-        [Parameter(Mandatory = $true, ParameterSetName = 'GUID')]
-        [ValidateNotNullOrEmpty()]
-        [Alias('GUID')]
-        [String]
-        $ObjectGUID,
-
         # A property name and a value or set of values that will be added to the existing property values.
         # Multiple values for the same property can be separated by commas.
         # Multiple properties can also be specified by separating them with semi-colons.
@@ -133,6 +119,13 @@ function Set-DSSOrganizationalUnit {
         [String]
         $DisplayName,
 
+        # The DistinguishedName of the OU.
+        [Parameter(Mandatory = $true, ParameterSetName = 'DistinguishedName')]
+        [ValidateNotNullOrEmpty()]
+        [Alias('DN')]
+        [String]
+        $DistinguishedName,
+
         # Sets the ManagedBy property of the object. This value can be one of the following object types:
         # ..DistinguishedName
         # ..ObjectSID (SID)
@@ -149,6 +142,13 @@ function Set-DSSOrganizationalUnit {
         [ValidateNotNullOrEmpty()]
         [String]
         $ManagedBy,
+
+        # The ObjectGUID of the OU.
+        [Parameter(Mandatory = $true, ParameterSetName = 'GUID')]
+        [ValidateNotNullOrEmpty()]
+        [Alias('GUID')]
+        [String]
+        $ObjectGUID,
 
         # The value that will be set as the PostalCode of the object.
         # An example of using this property is:
@@ -246,6 +246,7 @@ function Set-DSSOrganizationalUnit {
     try {
         Write-Verbose ('{0}|Calling Set-DSSObjectWrapper' -f $Function_Name)
         Set-DSSObjectWrapper -ObjectType 'OrganizationalUnit' -BoundParameters $PSBoundParameters
+
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
             $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_

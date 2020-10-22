@@ -283,6 +283,7 @@ function Confirm-DSSObjectParameters {
 
         # Return the hashtable of updated and validated values.
         $Return_Parameters
+
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
             $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_

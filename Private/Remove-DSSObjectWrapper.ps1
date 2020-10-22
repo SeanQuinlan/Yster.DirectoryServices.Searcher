@@ -15,6 +15,25 @@ function Remove-DSSObjectWrapper {
 
     [CmdletBinding(SupportsShouldProcess = $true)]
     param(
+        # A hashtable of the PSBoundParameters that were passed from the calling function.
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [HashTable]
+        $BoundParameters,
+
+        # The context to search - Domain or Forest.
+        [Parameter(Mandatory = $false)]
+        [ValidateSet('Domain', 'Forest')]
+        [String]
+        $Context = 'Domain',
+
+        # The credential to use for access.
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNull()]
+        [System.Management.Automation.PSCredential]
+        [System.Management.Automation.Credential()]
+        $Credential = [System.Management.Automation.PSCredential]::Empty,
+
         # The type of AD object that has been wrapped.
         [Parameter(Mandatory = $true)]
         [ValidateSet(
@@ -29,30 +48,11 @@ function Remove-DSSObjectWrapper {
         [String]
         $ObjectType,
 
-        # A hashtable of the PSBoundParameters that were passed from the calling function.
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [HashTable]
-        $BoundParameters,
-
-        # The context to search - Domain or Forest.
-        [Parameter(Mandatory = $false)]
-        [ValidateSet('Domain', 'Forest')]
-        [String]
-        $Context = 'Domain',
-
         # The server to connect to.
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         [String]
-        $Server,
-
-        # The credential to use for access.
-        [Parameter(Mandatory = $false)]
-        [ValidateNotNull()]
-        [System.Management.Automation.PSCredential]
-        [System.Management.Automation.Credential()]
-        $Credential = [System.Management.Automation.PSCredential]::Empty
+        $Server
     )
 
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
@@ -144,6 +144,7 @@ function Remove-DSSObjectWrapper {
             $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
             $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
         }
+
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
             $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_

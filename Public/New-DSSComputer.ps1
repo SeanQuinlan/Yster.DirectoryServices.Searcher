@@ -379,6 +379,7 @@ function New-DSSComputer {
         }
         Write-Verbose ('{0}|Calling New-DSSObjectWrapper' -f $Function_Name)
         New-DSSObjectWrapper -ObjectType 'Computer' -BoundParameters $PSBoundParameters
+
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
             $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_

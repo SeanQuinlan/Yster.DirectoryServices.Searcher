@@ -3,7 +3,7 @@ function Get-DSSResolvedObject {
     .SYNOPSIS
         Takes a list of supplied strings and resolves them to Active Directory objects.
     .DESCRIPTION
-        Resolves the supplied list of strings and outputs an object or array of objects with adspath and distinguishedname properties.
+        Resolves the supplied list of strings and outputs an object or array of objects with a limited set of properties.
 
         This is used in other functions that need to resolve a subset of objects that are passed through another property, like a list of group members that are passed to Add-DSSGroupMember.
     .EXAMPLE
@@ -15,31 +15,31 @@ function Get-DSSResolvedObject {
 
     [CmdletBinding()]
     param(
-        # The input string or strings to resolve to Active Directory objects.
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [String[]]
-        $InputSet,
-
         # The context to search - Domain or Forest.
         [Parameter(Mandatory = $false)]
         [ValidateSet('Domain', 'Forest')]
         [String]
         $Context = 'Domain',
 
-        # The server/domain name/forest name to run the query on.
-        [Parameter(Mandatory = $false)]
-        [ValidateNotNullOrEmpty()]
-        [Alias('Forest', 'Domain')]
-        [String]
-        $Server,
-
         # The credential to use for access.
         [Parameter(Mandatory = $false)]
         [ValidateNotNull()]
         [System.Management.Automation.PSCredential]
         [System.Management.Automation.Credential()]
-        $Credential = [System.Management.Automation.PSCredential]::Empty
+        $Credential = [System.Management.Automation.PSCredential]::Empty,
+
+        # The input string or strings to resolve to Active Directory objects.
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [String[]]
+        $InputSet,
+
+        # The server/domain name/forest name to run the query on.
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Alias('Forest', 'Domain')]
+        [String]
+        $Server
     )
 
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name

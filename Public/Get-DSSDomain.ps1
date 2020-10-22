@@ -22,35 +22,57 @@ function Get-DSSDomain {
 
     [CmdletBinding(DefaultParameterSetName = 'DNSName')]
     param(
-        # The DNSName of the domain.
-        [Parameter(Mandatory = $false, Position = 0, ParameterSetName = 'DNSName')]
-        [ValidateNotNullOrEmpty()]
-        [Alias('DNS')]
-        [String]
-        $DNSName = $env:USERDNSDOMAIN,
+        # The credential to use for access to perform the required action.
+        # This credential can be provided in the form of a username, DOMAIN\username or as a PowerShell credential object.
+        # In the case of a username or DOMAIN\username, you will be prompted to supply the password.
+        # Some examples of using this property are:
+        #
+        # -Credential jsmith
+        # -Credential 'CONTOSO\jsmith'
+        #
+        # $Creds = Get-Credential
+        # -Credential $Creds
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNull()]
+        [System.Management.Automation.PSCredential]
+        [System.Management.Automation.Credential()]
+        $Credential = [System.Management.Automation.PSCredential]::Empty,
 
-        # The DistinguishedName of the domain.
+        # The DistinguishedName of the account.
         [Parameter(Mandatory = $true, ParameterSetName = 'DistinguishedName')]
         [ValidateNotNullOrEmpty()]
         [Alias('DN')]
         [String]
         $DistinguishedName,
 
-        # The ObjectSID of the domain.
-        [Parameter(Mandatory = $true, ParameterSetName = 'SID')]
+        # The DNSName of the domain.
+        # An example of using this property is:
+        #
+        # -DNSName 'contoso.com'
+        [Parameter(Mandatory = $false, Position = 0, ParameterSetName = 'DNSName')]
         [ValidateNotNullOrEmpty()]
-        [Alias('SID')]
+        [Alias('DNS')]
         [String]
-        $ObjectSID,
+        $DNSName = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain().Name,
 
-        # The ObjectGUID of the domain.
+        # The ObjectGUID of the account.
         [Parameter(Mandatory = $true, ParameterSetName = 'GUID')]
         [ValidateNotNullOrEmpty()]
         [Alias('GUID')]
         [String]
         $ObjectGUID,
 
+        # The ObjectSID of the account.
+        [Parameter(Mandatory = $true, ParameterSetName = 'SID')]
+        [ValidateNotNullOrEmpty()]
+        [Alias('SID')]
+        [String]
+        $ObjectSID,
+
         # The NetBIOS Name of the domain.
+        # An example of using this property is:
+        #
+        # -NetBIOSName 'contoso'
         [Parameter(Mandatory = $true, ParameterSetName = 'NetBIOSName')]
         [ValidateNotNullOrEmpty()]
         [Alias('NetBIOS')]
@@ -58,23 +80,25 @@ function Get-DSSDomain {
         $NetBIOSName,
 
         # The properties of any results to return.
+        # Some examples of using this property are:
+        #
+        # -Properties 'mail'
+        # -Properties 'created','enabled','displayname'
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         [String[]]
         $Properties,
 
-        # The server to connect to.
+        # The server or domain to connect to.
+        # See below for some examples:
+        #
+        # -Server DC01
+        # -Server 'dc01.contoso.com'
+        # -Server CONTOSO
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         [String]
-        $Server,
-
-        # The credential to use for access.
-        [Parameter(Mandatory = $false)]
-        [ValidateNotNull()]
-        [System.Management.Automation.PSCredential]
-        [System.Management.Automation.Credential()]
-        $Credential = [System.Management.Automation.PSCredential]::Empty
+        $Server
     )
 
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
@@ -312,6 +336,7 @@ function Get-DSSDomain {
 
             $Result_To_Return | ConvertTo-SortedPSObject
         }
+
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
             $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_

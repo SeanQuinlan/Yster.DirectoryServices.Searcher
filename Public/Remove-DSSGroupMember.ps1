@@ -103,6 +103,7 @@ function Remove-DSSGroupMember {
     try {
         Write-Verbose ('{0}|Calling Remove-DSSObjectWrapper' -f $Function_Name)
         Remove-DSSObjectWrapper -ObjectType 'GroupMember' -BoundParameters $PSBoundParameters
+
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
             $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_

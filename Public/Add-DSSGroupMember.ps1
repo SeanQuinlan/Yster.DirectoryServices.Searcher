@@ -19,12 +19,31 @@ function Add-DSSGroupMember {
 
     [CmdletBinding(DefaultParameterSetName = 'SAM', SupportsShouldProcess = $true)]
     param(
-        # The SAMAccountName of the group.
-        [Parameter(Mandatory = $true, ParameterSetName = 'SAM')]
-        [ValidateNotNullOrEmpty()]
-        [Alias('SAM')]
+        # The directory context to search - Domain or Forest. By default this will search within the domain only.
+        # If you want to search the entire directory, specify "Forest" for this parameter and the search will be performed on a Global Catalog server, targetting the entire forest.
+        # An example of using this property is:
+        #
+        # -Context 'Forest'
+        [Parameter(Mandatory = $false)]
+        [ValidateSet('Domain', 'Forest')]
         [String]
-        $SAMAccountName,
+        $Context = 'Domain',
+
+        # The credential to use for access to perform the required action.
+        # This credential can be provided in the form of a username, DOMAIN\username or as a PowerShell credential object.
+        # In the case of a username or DOMAIN\username, you will be prompted to supply the password.
+        # Some examples of using this property are:
+        #
+        # -Credential jsmith
+        # -Credential 'CONTOSO\jsmith'
+        #
+        # $Creds = Get-Credential
+        # -Credential $Creds
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNull()]
+        [System.Management.Automation.PSCredential]
+        [System.Management.Automation.Credential()]
+        $Credential = [System.Management.Automation.PSCredential]::Empty,
 
         # The DistinguishedName of the group.
         [Parameter(Mandatory = $true, ParameterSetName = 'DistinguishedName')]
@@ -33,12 +52,16 @@ function Add-DSSGroupMember {
         [String]
         $DistinguishedName,
 
-        # The ObjectSID of the group.
-        [Parameter(Mandatory = $true, ParameterSetName = 'SID')]
+        # A member or list of members to add to the group.
+        # Some examples of using this property are:
+        #
+        # -Members 'rsmith'
+        # -Members 'rsmith','jjones'
+        [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [Alias('SID')]
-        [String]
-        $ObjectSID,
+        [Alias('Member')]
+        [String[]]
+        $Members,
 
         # The ObjectGUID of the group.
         [Parameter(Mandatory = $true, ParameterSetName = 'GUID')]
@@ -47,31 +70,30 @@ function Add-DSSGroupMember {
         [String]
         $ObjectGUID,
 
-        # A member or list of members to add to the group.
-        [Parameter(Mandatory = $true)]
+        # The ObjectSID of the group.
+        [Parameter(Mandatory = $true, ParameterSetName = 'SID')]
         [ValidateNotNullOrEmpty()]
-        [Alias('Member')]
-        [String[]]
-        $Members,
-
-        # The context to search - Domain or Forest.
-        [Parameter(Mandatory = $false)]
-        [ValidateSet('Domain', 'Forest')]
+        [Alias('SID')]
         [String]
-        $Context = 'Domain',
+        $ObjectSID,
 
-        # The server to connect to.
+        # The SAMAccountName of the group.
+        [Parameter(Mandatory = $true, ParameterSetName = 'SAM')]
+        [ValidateNotNullOrEmpty()]
+        [Alias('SAM')]
+        [String]
+        $SAMAccountName,
+
+        # The server or domain to connect to.
+        # See below for some examples:
+        #
+        # -Server DC01
+        # -Server 'dc01.contoso.com'
+        # -Server CONTOSO
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         [String]
-        $Server,
-
-        # The credential to use for access.
-        [Parameter(Mandatory = $false)]
-        [ValidateNotNull()]
-        [System.Management.Automation.PSCredential]
-        [System.Management.Automation.Credential()]
-        $Credential = [System.Management.Automation.PSCredential]::Empty
+        $Server
     )
 
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
@@ -145,6 +167,7 @@ function Add-DSSGroupMember {
             $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
             $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
         }
+
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
             $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_

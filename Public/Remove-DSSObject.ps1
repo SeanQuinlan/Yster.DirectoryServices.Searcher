@@ -18,27 +18,6 @@ function Remove-DSSObject {
 
     [CmdletBinding(DefaultParameterSetName = 'DistinguishedName', SupportsShouldProcess = $true)]
     param(
-        # The DistinguishedName of the object.
-        [Parameter(Mandatory = $true, ParameterSetName = 'DistinguishedName')]
-        [ValidateNotNullOrEmpty()]
-        [Alias('DN')]
-        [String]
-        $DistinguishedName,
-
-        # The ObjectGUID of the object.
-        [Parameter(Mandatory = $true, ParameterSetName = 'GUID')]
-        [ValidateNotNullOrEmpty()]
-        [Alias('GUID')]
-        [String]
-        $ObjectGUID,
-
-        # The ObjectSID of the object.
-        [Parameter(Mandatory = $true, ParameterSetName = 'SID')]
-        [ValidateNotNullOrEmpty()]
-        [Alias('SID')]
-        [String]
-        $ObjectSID,
-
         # The directory context to search - Domain or Forest. By default this will search within the domain only.
         # If you want to search the entire directory, specify "Forest" for this parameter and the search will be performed on a Global Catalog server, targetting the entire forest.
         # An example of using this property is:
@@ -64,6 +43,27 @@ function Remove-DSSObject {
         [System.Management.Automation.PSCredential]
         [System.Management.Automation.Credential()]
         $Credential = [System.Management.Automation.PSCredential]::Empty,
+
+        # The DistinguishedName of the object.
+        [Parameter(Mandatory = $true, ParameterSetName = 'DistinguishedName')]
+        [ValidateNotNullOrEmpty()]
+        [Alias('DN')]
+        [String]
+        $DistinguishedName,
+
+        # The ObjectGUID of the object.
+        [Parameter(Mandatory = $true, ParameterSetName = 'GUID')]
+        [ValidateNotNullOrEmpty()]
+        [Alias('GUID')]
+        [String]
+        $ObjectGUID,
+
+        # The ObjectSID of the object.
+        [Parameter(Mandatory = $true, ParameterSetName = 'SID')]
+        [ValidateNotNullOrEmpty()]
+        [Alias('SID')]
+        [String]
+        $ObjectSID,
 
         # Whether to delete all child objects recursively.
         # An example of using this property is:
@@ -91,6 +91,7 @@ function Remove-DSSObject {
     try {
         Write-Verbose ('{0}|Calling Remove-DSSObjectWrapper' -f $Function_Name)
         Remove-DSSObjectWrapper -ObjectType 'Object' -BoundParameters $PSBoundParameters
+
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
             $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_

@@ -129,6 +129,7 @@ function New-DSSObject {
         Write-Verbose ('{0}|Calling New-DSSObjectWrapper' -f $Function_Name)
         [void]$PSBoundParameters.Remove('Type')
         New-DSSObjectWrapper -ObjectType $Type -BoundParameters $PSBoundParameters
+
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
             $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_

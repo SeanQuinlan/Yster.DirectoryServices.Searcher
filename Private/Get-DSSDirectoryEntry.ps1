@@ -20,36 +20,36 @@ function Get-DSSDirectoryEntry {
 
     [CmdletBinding(DefaultParameterSetName = 'Search')]
     param(
-        # The base OU to start the search from.
-        [Parameter(Mandatory = $false, ParameterSetName = 'Search')]
-        [ValidateNotNullOrEmpty()]
-        [String]
-        $SearchBase,
-
-        # The full path to the object.
-        [Parameter(Mandatory = $true, ParameterSetName = 'Path')]
-        [String]
-        $Path,
-
         # The context to search - Domain or Forest.
         [Parameter(Mandatory = $false)]
         [ValidateSet('Domain', 'Forest')]
         [String]
         $Context = 'Domain',
 
-        # The server/domain/forest to run the query on.
-        [Parameter(Mandatory = $false)]
-        [ValidateNotNullOrEmpty()]
-        [Alias('Forest', 'Domain')]
-        [String]
-        $Server,
-
         # The credential to use for access.
         [Parameter(Mandatory = $false)]
         [ValidateNotNull()]
         [System.Management.Automation.PSCredential]
         [System.Management.Automation.Credential()]
-        $Credential = [System.Management.Automation.PSCredential]::Empty
+        $Credential = [System.Management.Automation.PSCredential]::Empty,
+
+        # The full path to the object.
+        [Parameter(Mandatory = $true, ParameterSetName = 'Path')]
+        [String]
+        $Path,
+
+        # The base OU to start the search from.
+        [Parameter(Mandatory = $false, ParameterSetName = 'Search')]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $SearchBase,
+
+        # The server/domain/forest to run the query on.
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Alias('Forest', 'Domain')]
+        [String]
+        $Server
     )
 
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
@@ -161,6 +161,7 @@ function Get-DSSDirectoryEntry {
                 throw $_.Exception.InnerException
             }
         }
+
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
             $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_

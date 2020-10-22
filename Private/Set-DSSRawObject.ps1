@@ -39,47 +39,11 @@ function Set-DSSRawObject {
         [String]
         $Action,
 
-        # The Active Directory directory entry object to perform the modification on.
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [Object]
-        $Object,
-
-        # Delete all child objects recursively.
-        [Parameter(Mandatory = $false)]
-        [Switch]
-        $Recursive,
-
-        # A member or list of members to remove from the group.
-        [Parameter(Mandatory = $false)]
-        [ValidateNotNullOrEmpty()]
-        [Alias('Member')]
-        [String[]]
-        $Members,
-
-        # A group or list of groups to remove the object from.
-        [Parameter(Mandatory = $false)]
-        [ValidateNotNullOrEmpty()]
-        [String[]]
-        $MemberOf,
-
-        # The values to remove from an existing property.
-        [Parameter(Mandatory = $false)]
-        [ValidateNotNullOrEmpty()]
-        [Hashtable]
-        $Remove,
-
         # The values to add to an existing property.
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         [Hashtable]
         $Add,
-
-        # Values to use to replace the existing property.
-        [Parameter(Mandatory = $false)]
-        [ValidateNotNullOrEmpty()]
-        [Hashtable]
-        $Replace,
 
         # An array of properties to clear.
         [Parameter(Mandatory = $false)]
@@ -93,18 +57,54 @@ function Set-DSSRawObject {
         [String]
         $Context = 'Domain',
 
-        # The server to connect to.
-        [Parameter(Mandatory = $false)]
-        [ValidateNotNullOrEmpty()]
-        [String]
-        $Server,
-
         # The credential to use for access.
         [Parameter(Mandatory = $false)]
         [ValidateNotNull()]
         [System.Management.Automation.PSCredential]
         [System.Management.Automation.Credential()]
-        $Credential = [System.Management.Automation.PSCredential]::Empty
+        $Credential = [System.Management.Automation.PSCredential]::Empty,
+
+        # A group or list of groups to remove the object from.
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [String[]]
+        $MemberOf,
+
+        # A member or list of members to remove from the group.
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Alias('Member')]
+        [String[]]
+        $Members,
+
+        # The Active Directory directory entry object to perform the modification on.
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [Object]
+        $Object,
+
+        # Delete all child objects recursively.
+        [Parameter(Mandatory = $false)]
+        [Switch]
+        $Recursive,
+
+        # The values to remove from an existing property.
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Hashtable]
+        $Remove,
+
+        # Values to use to replace the existing property.
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Hashtable]
+        $Replace,
+
+        # The server to connect to.
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $Server
     )
 
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
@@ -237,7 +237,7 @@ function Set-DSSRawObject {
                             $Country_Property = $Replace['c']
                             if (($Countries_Ambiguous_Alpha2 -contains $Country_Property) -or ($Countries_Ambiguous_CountryCodes -contains $Country_Property)) {
                                 $Terminating_ErrorRecord_Parameters = @{
-                                    'Exception'    = 'Microsoft.ActiveDirectory.Management.ADException'
+                                    'Exception'    = 'System.ArgumentException'
                                     'ID'           = 'DSS-{0}' -f $Function_Name
                                     'Category'     = 'InvalidData'
                                     'TargetObject' = $Object
@@ -960,6 +960,7 @@ function Set-DSSRawObject {
                 throw
             }
         }
+
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
             $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_

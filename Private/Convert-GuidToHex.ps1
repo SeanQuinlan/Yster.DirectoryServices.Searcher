@@ -40,6 +40,4 @@ function Convert-GuidToHex {
         $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
         $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
     }
-
-
 }

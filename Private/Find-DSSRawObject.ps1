@@ -30,11 +30,49 @@ function Find-DSSRawObject {
 
     [CmdletBinding()]
     param(
+        # The context to search - Domain or Forest.
+        [Parameter(Mandatory = $false)]
+        [ValidateSet('Domain', 'Forest')]
+        [String]
+        $Context = 'Domain',
+
+        # The credential to use for access.
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNull()]
+        [System.Management.Automation.PSCredential]
+        [System.Management.Automation.Credential()]
+        $Credential = [System.Management.Automation.PSCredential]::Empty,
+
+        # Whether to return deleted objects in the search results.
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Switch]
+        $IncludeDeletedObjects,
+
         # The LDAP filter to use for the search.
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         [String]
         $LDAPFilter,
+
+        # The format of the output.
+        [Parameter(Mandatory = $false)]
+        [ValidateSet('DirectoryEntry', 'Hashtable')]
+        [String]
+        $OutputFormat = 'Hashtable',
+
+        # The number of results per page that is returned from the server. This is primarily to save server memory and bandwidth and does not affect the total number of results returned.
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Alias('ResultPageSize')]
+        [Int]
+        $PageSize = 500,
+
+        # The properties of any results to return.
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [String[]]
+        $Properties = @('distinguishedname', 'objectclass', 'objectguid'),
 
         # The base OU to start the search from.
         [Parameter(Mandatory = $false)]
@@ -48,49 +86,11 @@ function Find-DSSRawObject {
         [String]
         $SearchScope,
 
-        # Whether to return deleted objects in the search results.
-        [Parameter(Mandatory = $false)]
-        [ValidateNotNullOrEmpty()]
-        [Switch]
-        $IncludeDeletedObjects,
-
-        # The properties of any results to return.
-        [Parameter(Mandatory = $false)]
-        [ValidateNotNullOrEmpty()]
-        [String[]]
-        $Properties = @('distinguishedname', 'objectclass', 'objectguid'),
-
-        # The number of results per page that is returned from the server. This is primarily to save server memory and bandwidth and does not affect the total number of results returned.
-        [Parameter(Mandatory = $false)]
-        [ValidateNotNullOrEmpty()]
-        [Alias('ResultPageSize')]
-        [Int]
-        $PageSize = 500,
-
-        # The format of the output.
-        [Parameter(Mandatory = $false)]
-        [ValidateSet('DirectoryEntry', 'Hashtable')]
-        [String]
-        $OutputFormat = 'Hashtable',
-
-        # The context to search - Domain or Forest.
-        [Parameter(Mandatory = $false)]
-        [ValidateSet('Domain', 'Forest')]
-        [String]
-        $Context = 'Domain',
-
         # The server to connect to.
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         [String]
-        $Server,
-
-        # The credential to use for access.
-        [Parameter(Mandatory = $false)]
-        [ValidateNotNull()]
-        [System.Management.Automation.PSCredential]
-        [System.Management.Automation.Credential()]
-        $Credential = [System.Management.Automation.PSCredential]::Empty
+        $Server
     )
 
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
@@ -555,6 +555,7 @@ function Find-DSSRawObject {
         } else {
             Write-Verbose ('{0}|No results found!' -f $Function_Name)
         }
+
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
             $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_

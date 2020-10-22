@@ -17,16 +17,6 @@ function New-ErrorRecord {
 
     [CmdletBinding()]
     param(
-        # The exception used to describe the error.
-        [Parameter(Mandatory = $true)]
-        [String]
-        $Exception,
-
-        # The ID of the exception.
-        [Parameter(Mandatory = $true)]
-        [String]
-        $ID,
-
         # The category of the exception.
         [Parameter(Mandatory = $true)]
         [ValidateSet(
@@ -66,20 +56,29 @@ function New-ErrorRecord {
         [System.Management.Automation.ErrorCategory]
         $Category,
 
-        # The object against which the cmdlet was operating when the error occurred.
+        # The exception used to describe the error.
+        [Parameter(Mandatory = $true)]
+        [String]
+        $Exception,
+
+        # The ID of the exception.
+        [Parameter(Mandatory = $true)]
+        [String]
+        $ID,
+        # The inner exception that is the cause of this exception.
         [Parameter(Mandatory = $false)]
         [Object]
-        $TargetObject = $null,
+        $InnerException,
 
         # A custom error message to display with the error.
         [Parameter(Mandatory = $false)]
         [String]
         $Message,
 
-        # The inner exception that is the cause of this exception.
+        # The object against which the cmdlet was operating when the error occurred.
         [Parameter(Mandatory = $false)]
         [Object]
-        $InnerException
+        $TargetObject = $null
     )
 
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name

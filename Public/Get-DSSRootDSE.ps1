@@ -19,18 +19,32 @@ function Get-DSSRootDSE {
 
     [CmdletBinding()]
     param(
-        # The server to connect to.
-        [Parameter(Mandatory = $false)]
-        [ValidateNotNullOrEmpty()]
-        [String]
-        $Server,
-
-        # The credential to use for access.
+        # The credential to use for access to perform the required action.
+        # This credential can be provided in the form of a username, DOMAIN\username or as a PowerShell credential object.
+        # In the case of a username or DOMAIN\username, you will be prompted to supply the password.
+        # Some examples of using this property are:
+        #
+        # -Credential jsmith
+        # -Credential 'CONTOSO\jsmith'
+        #
+        # $Creds = Get-Credential
+        # -Credential $Creds
         [Parameter(Mandatory = $false)]
         [ValidateNotNull()]
         [System.Management.Automation.PSCredential]
         [System.Management.Automation.Credential()]
-        $Credential = [System.Management.Automation.PSCredential]::Empty
+        $Credential = [System.Management.Automation.PSCredential]::Empty,
+
+        # The server or domain to connect to.
+        # See below for some examples:
+        #
+        # -Server DC01
+        # -Server 'dc01.contoso.com'
+        # -Server CONTOSO
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $Server
     )
 
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
@@ -69,6 +83,7 @@ function Get-DSSRootDSE {
         }
 
         $Results_To_Return | ConvertTo-SortedPSObject
+
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
             $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_

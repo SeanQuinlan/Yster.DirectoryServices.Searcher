@@ -20,34 +20,6 @@ function Set-DSSUser {
 
     [CmdletBinding(DefaultParameterSetName = 'DistinguishedName', SupportsShouldProcess = $true)]
     param(
-        # The DistinguishedName of the user.
-        [Parameter(Mandatory = $true, ParameterSetName = 'DistinguishedName')]
-        [ValidateNotNullOrEmpty()]
-        [Alias('DN')]
-        [String]
-        $DistinguishedName,
-
-        # The ObjectGUID of the user.
-        [Parameter(Mandatory = $true, ParameterSetName = 'GUID')]
-        [ValidateNotNullOrEmpty()]
-        [Alias('GUID')]
-        [String]
-        $ObjectGUID,
-
-        # The ObjectSID of the user.
-        [Parameter(Mandatory = $true, ParameterSetName = 'SID')]
-        [ValidateNotNullOrEmpty()]
-        [Alias('SID')]
-        [String]
-        $ObjectSID,
-
-        # The SAMAccountName of the user.
-        [Parameter(Mandatory = $true, ParameterSetName = 'SAM')]
-        [ValidateNotNullOrEmpty()]
-        [Alias('SAM')]
-        [String]
-        $SAMAccountName,
-
         # A date and time value that specifies when the account expires.
         # If no time is specified, then the time will be set to 00:00:00 on the supplied date.
         # Some examples of using this property are:
@@ -225,6 +197,13 @@ function Set-DSSUser {
         [String]
         $DisplayName,
 
+        # The DistinguishedName of the user.
+        [Parameter(Mandatory = $true, ParameterSetName = 'DistinguishedName')]
+        [ValidateNotNullOrEmpty()]
+        [Alias('DN')]
+        [String]
+        $DistinguishedName,
+
         # The value that will be set as the Division of the object.
         # An example of using this property is:
         #
@@ -393,6 +372,20 @@ function Set-DSSUser {
         [String]
         $MobilePhone,
 
+        # The ObjectGUID of the user.
+        [Parameter(Mandatory = $true, ParameterSetName = 'GUID')]
+        [ValidateNotNullOrEmpty()]
+        [Alias('GUID')]
+        [String]
+        $ObjectGUID,
+
+        # The ObjectSID of the user.
+        [Parameter(Mandatory = $true, ParameterSetName = 'SID')]
+        [ValidateNotNullOrEmpty()]
+        [Alias('SID')]
+        [String]
+        $ObjectSID,
+
         # The value that will be set as the Office of the object.
         # An example of using this property is:
         #
@@ -556,6 +549,13 @@ function Set-DSSUser {
         [HashTable]
         $Replace,
 
+        # The SAMAccountName of the user.
+        [Parameter(Mandatory = $true, ParameterSetName = 'SAM')]
+        [ValidateNotNullOrEmpty()]
+        [Alias('SAM')]
+        [String]
+        $SAMAccountName,
+
         # The value that will be set as the ScriptPath of the user. This is the value of the user's log on script.
         # This should be a local path to a file or a UNC path with with a server, share and file path specified.
         # Some examples of using this property are:
@@ -683,7 +683,6 @@ function Set-DSSUser {
     # AuthenticationPolicy
     # AuthenticationPolicySilo
     # Certificates
-    # PassThru
 
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
@@ -700,6 +699,7 @@ function Set-DSSUser {
         }
         Write-Verbose ('{0}|Calling Set-DSSObjectWrapper' -f $Function_Name)
         Set-DSSObjectWrapper -ObjectType 'User' -BoundParameters $PSBoundParameters
+
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
             $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_

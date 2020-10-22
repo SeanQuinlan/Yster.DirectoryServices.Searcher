@@ -15,6 +15,12 @@ function Set-DSSObjectWrapper {
 
     [CmdletBinding(SupportsShouldProcess = $true)]
     param(
+        # A hashtable of the PSBoundParameters that were passed from the calling function.
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [HashTable]
+        $BoundParameters,
+
         # The type of AD object that has been wrapped.
         [Parameter(Mandatory = $true)]
         [ValidateSet(
@@ -25,13 +31,7 @@ function Set-DSSObjectWrapper {
             'User'
         )]
         [String]
-        $ObjectType,
-
-        # A hashtable of the PSBoundParameters that were passed from the calling function.
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [HashTable]
-        $BoundParameters
+        $ObjectType
     )
 
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
@@ -102,6 +102,7 @@ function Set-DSSObjectWrapper {
             $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
             $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
         }
+
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
             $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_

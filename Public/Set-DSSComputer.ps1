@@ -20,34 +20,6 @@ function Set-DSSComputer {
 
     [CmdletBinding(DefaultParameterSetName = 'DistinguishedName', SupportsShouldProcess = $true)]
     param(
-        # The DistinguishedName of the computer.
-        [Parameter(Mandatory = $true, ParameterSetName = 'DistinguishedName')]
-        [ValidateNotNullOrEmpty()]
-        [Alias('DN')]
-        [String]
-        $DistinguishedName,
-
-        # The ObjectGUID of the computer.
-        [Parameter(Mandatory = $true, ParameterSetName = 'GUID')]
-        [ValidateNotNullOrEmpty()]
-        [Alias('GUID')]
-        [String]
-        $ObjectGUID,
-
-        # The ObjectSID of the computer.
-        [Parameter(Mandatory = $true, ParameterSetName = 'SID')]
-        [ValidateNotNullOrEmpty()]
-        [Alias('SID')]
-        [String]
-        $ObjectSID,
-
-        # The SAMAccountName of the computer.
-        [Parameter(Mandatory = $true, ParameterSetName = 'SAM')]
-        [ValidateNotNullOrEmpty()]
-        [Alias('SAM')]
-        [String]
-        $SAMAccountName,
-
         # A date and time value that specifies when the account expires.
         # If no time is specified, then the time will be set to 00:00:00 on the supplied date.
         # Some examples of using this property are:
@@ -175,6 +147,13 @@ function Set-DSSComputer {
         [String]
         $DisplayName,
 
+        # The DistinguishedName of the computer.
+        [Parameter(Mandatory = $true, ParameterSetName = 'DistinguishedName')]
+        [ValidateNotNullOrEmpty()]
+        [Alias('DN')]
+        [String]
+        $DistinguishedName,
+
         # The value that will be set as the DNSHostName of the object.
         # An example of using this property is:
         #
@@ -246,6 +225,20 @@ function Set-DSSComputer {
         [ValidateNotNullOrEmpty()]
         [String]
         $ManagedBy,
+
+        # The ObjectGUID of the computer.
+        [Parameter(Mandatory = $true, ParameterSetName = 'GUID')]
+        [ValidateNotNullOrEmpty()]
+        [Alias('GUID')]
+        [String]
+        $ObjectGUID,
+
+        # The ObjectSID of the computer.
+        [Parameter(Mandatory = $true, ParameterSetName = 'SID')]
+        [ValidateNotNullOrEmpty()]
+        [Alias('SID')]
+        [String]
+        $ObjectSID,
 
         # The value that will be set as the OperatingSystem of the object.
         # An example of using this property is:
@@ -379,6 +372,13 @@ function Set-DSSComputer {
         [HashTable]
         $Replace,
 
+        # The SAMAccountName of the computer.
+        [Parameter(Mandatory = $true, ParameterSetName = 'SAM')]
+        [ValidateNotNullOrEmpty()]
+        [Alias('SAM')]
+        [String]
+        $SAMAccountName,
+
         # The server or domain to connect to.
         # See below for some examples:
         #
@@ -464,6 +464,7 @@ function Set-DSSComputer {
         }
         Write-Verbose ('{0}|Calling Set-DSSObjectWrapper' -f $Function_Name)
         Set-DSSObjectWrapper -ObjectType 'Computer' -BoundParameters $PSBoundParameters
+
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
             $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_

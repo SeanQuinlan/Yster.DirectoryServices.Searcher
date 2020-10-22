@@ -15,25 +15,7 @@ function New-DSSOrganizationalUnit {
 
     [CmdletBinding(SupportsShouldProcess = $true)]
     param(
-        # The name of the object to create. This will be the CN attribute for the object.
-        # An example of using this property is:
-        #
-        # -Name 'Users'
-        [Parameter(Mandatory = $true, Position = 0)]
-        [String]
-        $Name,
-
-        # An OU path to create the object in.
-        # An example of using this property is:
-        #
-        # -Path = 'OU=Groups,OU=Company,DC=contoso,DC=com'
-        [Parameter(Mandatory = $false)]
-        [ValidateNotNullOrEmpty()]
-        [String]
-        $Path,
-
-
-        # The value that will be set as the City of the organizational unit.
+        # The value that will be set as the City of the object.
         # An example of using this property is:
         #
         # -City 'San Francisco'
@@ -41,6 +23,16 @@ function New-DSSOrganizationalUnit {
         [ValidateNotNullOrEmpty()]
         [String]
         $City,
+
+        # The directory context to search - Domain or Forest. By default this will search within the domain only.
+        # If you want to search the entire directory, specify "Forest" for this parameter and the search will be performed on a Global Catalog server, targetting the entire forest.
+        # An example of using this property is:
+        #
+        # -Context 'Forest'
+        [Parameter(Mandatory = $false)]
+        [ValidateSet('Domain', 'Forest')]
+        [String]
+        $Context = 'Domain',
 
         # The value that will be set as the Country of the object. This sets 3 properties at once: co, country and countrycode.
         # This property can be set using the long country name, the short 2-letter country code or the numerical countrycode.
@@ -55,6 +47,22 @@ function New-DSSOrganizationalUnit {
         [Alias('CountryCode')]
         [String]
         $Country,
+
+        # The credential to use for access to perform the required action.
+        # This credential can be provided in the form of a username, DOMAIN\username or as a PowerShell credential object.
+        # In the case of a username or DOMAIN\username, you will be prompted to supply the password.
+        # Some examples of using this property are:
+        #
+        # -Credential jsmith
+        # -Credential 'CONTOSO\jsmith'
+        #
+        # $Creds = Get-Credential
+        # -Credential $Creds
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNull()]
+        [System.Management.Automation.PSCredential]
+        [System.Management.Automation.Credential()]
+        $Credential = [System.Management.Automation.PSCredential]::Empty,
 
         # The value that will be set as the Description of the object.
         # An example of using this property is:
@@ -91,6 +99,14 @@ function New-DSSOrganizationalUnit {
         [String]
         $ManagedBy,
 
+        # The name of the object to create. This will be the CN attribute for the object.
+        # An example of using this property is:
+        #
+        # -Name 'Users'
+        [Parameter(Mandatory = $true, Position = 0)]
+        [String]
+        $Name,
+
         # A hashtable of attributes/properties and values to set on the object.
         # Multiple values for the same property can be separated by commas.
         # Multiple properties can also be specified by separating them with semi-colons.
@@ -103,6 +119,15 @@ function New-DSSOrganizationalUnit {
         [ValidateNotNullOrEmpty()]
         [HashTable]
         $OtherAttributes,
+
+        # An OU path to create the object in.
+        # An example of using this property is:
+        #
+        # -Path = 'OU=Groups,OU=Company,DC=contoso,DC=com'
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $Path,
 
         # The value that will be set as the PostalCode of the object.
         # An example of using this property is:
@@ -121,6 +146,17 @@ function New-DSSOrganizationalUnit {
         [ValidateNotNullOrEmpty()]
         [Boolean]
         $ProtectedFromAccidentalDeletion,
+
+        # The server or domain to connect to.
+        # See below for some examples:
+        #
+        # -Server DC01
+        # -Server 'dc01.contoso.com'
+        # -Server CONTOSO
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $Server,
 
         # The value that will be set as the State of the object.
         # An example of using this property is:
@@ -143,45 +179,7 @@ function New-DSSOrganizationalUnit {
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         [String]
-        $StreetAddress,
-
-
-        # The directory context to search - Domain or Forest. By default this will search within the domain only.
-        # If you want to search the entire directory, specify "Forest" for this parameter and the search will be performed on a Global Catalog server, targetting the entire forest.
-        # An example of using this property is:
-        #
-        # -Context 'Forest'
-        [Parameter(Mandatory = $false)]
-        [ValidateSet('Domain', 'Forest')]
-        [String]
-        $Context = 'Domain',
-
-        # The credential to use for access to perform the required action.
-        # This credential can be provided in the form of a username, DOMAIN\username or as a PowerShell credential object.
-        # In the case of a username or DOMAIN\username, you will be prompted to supply the password.
-        # Some examples of using this property are:
-        #
-        # -Credential jsmith
-        # -Credential 'CONTOSO\jsmith'
-        #
-        # $Creds = Get-Credential
-        # -Credential $Creds
-        [Parameter(Mandatory = $false)]
-        [ValidateNotNull()]
-        [System.Management.Automation.PSCredential]
-        [System.Management.Automation.Credential()]
-        $Credential = [System.Management.Automation.PSCredential]::Empty,
-
-        # The server or domain to connect to.
-        # See below for some examples:
-        #
-        # -Server DC01
-        # -Server 'dc01.contoso.com'
-        # -Server CONTOSO
-        [Parameter(Mandatory = $false)]
-        [ValidateNotNullOrEmpty()]
-        [String]
-        $Server
+        $StreetAddress
     )
 
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
@@ -190,6 +188,7 @@ function New-DSSOrganizationalUnit {
     try {
         Write-Verbose ('{0}|Calling New-DSSObjectWrapper' -f $Function_Name)
         New-DSSObjectWrapper -ObjectType 'OrganizationalUnit' -BoundParameters $PSBoundParameters
+
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
             $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_

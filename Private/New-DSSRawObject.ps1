@@ -19,11 +19,18 @@ function New-DSSRawObject {
 
     [CmdletBinding(SupportsShouldProcess = $true)]
     param(
-        # The type of AD object to create.
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
+        # The context to search - Domain or Forest.
+        [Parameter(Mandatory = $false)]
+        [ValidateSet('Domain', 'Forest')]
         [String]
-        $Type,
+        $Context = 'Domain',
+
+        # The credential to use for access.
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNull()]
+        [System.Management.Automation.PSCredential]
+        [System.Management.Automation.Credential()]
+        $Credential = [System.Management.Automation.PSCredential]::Empty,
 
         # The name of the object.
         [Parameter(Mandatory = $true)]
@@ -31,23 +38,17 @@ function New-DSSRawObject {
         [String]
         $Name,
 
-        # A table of properties to apply to the object.
-        [Parameter(Mandatory = $false)]
-        [ValidateNotNullOrEmpty()]
-        [HashTable]
-        $Properties,
-
         # An OU path to create the object in.
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         [String]
         $Path,
 
-        # The context to search - Domain or Forest.
+        # A table of properties to apply to the object.
         [Parameter(Mandatory = $false)]
-        [ValidateSet('Domain', 'Forest')]
-        [String]
-        $Context = 'Domain',
+        [ValidateNotNullOrEmpty()]
+        [HashTable]
+        $Properties,
 
         # The server to connect to.
         [Parameter(Mandatory = $false)]
@@ -55,12 +56,11 @@ function New-DSSRawObject {
         [String]
         $Server,
 
-        # The credential to use for access.
-        [Parameter(Mandatory = $false)]
-        [ValidateNotNull()]
-        [System.Management.Automation.PSCredential]
-        [System.Management.Automation.Credential()]
-        $Credential = [System.Management.Automation.PSCredential]::Empty
+        # The type of AD object to create.
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $Type
     )
 
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
@@ -276,6 +276,7 @@ function New-DSSRawObject {
                 throw $_.Exception.InnerException
             }
         }
+
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
             $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_

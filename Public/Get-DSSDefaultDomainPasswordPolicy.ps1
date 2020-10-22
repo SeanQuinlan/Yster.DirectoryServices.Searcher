@@ -15,35 +15,67 @@ function Get-DSSDefaultDomainPasswordPolicy {
 
     [CmdletBinding(DefaultParameterSetName = 'DNSName')]
     param(
-        # The DNSName of the domain.
-        [Parameter(Mandatory = $true, Position = 0, ParameterSetName = 'DNSName')]
-        [ValidateNotNullOrEmpty()]
-        [Alias('DNS')]
+        # The directory context to search - Domain or Forest. By default this will search within the domain only.
+        # If you want to search the entire directory, specify "Forest" for this parameter and the search will be performed on a Global Catalog server, targetting the entire forest.
+        # An example of using this property is:
+        #
+        # -Context 'Forest'
+        [Parameter(Mandatory = $false)]
+        [ValidateSet('Domain', 'Forest')]
         [String]
-        $DNSName,
+        $Context = 'Domain',
 
-        # The DistinguishedName of the domain.
+        # The credential to use for access to perform the required action.
+        # This credential can be provided in the form of a username, DOMAIN\username or as a PowerShell credential object.
+        # In the case of a username or DOMAIN\username, you will be prompted to supply the password.
+        # Some examples of using this property are:
+        #
+        # -Credential jsmith
+        # -Credential 'CONTOSO\jsmith'
+        #
+        # $Creds = Get-Credential
+        # -Credential $Creds
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNull()]
+        [System.Management.Automation.PSCredential]
+        [System.Management.Automation.Credential()]
+        $Credential = [System.Management.Automation.PSCredential]::Empty,
+
+        # The DistinguishedName of the account.
         [Parameter(Mandatory = $true, ParameterSetName = 'DistinguishedName')]
         [ValidateNotNullOrEmpty()]
         [Alias('DN')]
         [String]
         $DistinguishedName,
 
-        # The ObjectSID of the domain.
-        [Parameter(Mandatory = $true, ParameterSetName = 'SID')]
+        # The DNSName of the domain.
+        # An example of using this property is:
+        #
+        # -DNSName 'contoso.com'
+        [Parameter(Mandatory = $false, Position = 0, ParameterSetName = 'DNSName')]
         [ValidateNotNullOrEmpty()]
-        [Alias('SID')]
+        [Alias('DNS')]
         [String]
-        $ObjectSID,
+        $DNSName = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain().Name,
 
-        # The ObjectGUID of the domain.
+        # The ObjectGUID of the account.
         [Parameter(Mandatory = $true, ParameterSetName = 'GUID')]
         [ValidateNotNullOrEmpty()]
         [Alias('GUID')]
         [String]
         $ObjectGUID,
 
+        # The ObjectSID of the account.
+        [Parameter(Mandatory = $true, ParameterSetName = 'SID')]
+        [ValidateNotNullOrEmpty()]
+        [Alias('SID')]
+        [String]
+        $ObjectSID,
+
         # The NetBIOS Name of the domain.
+        # An example of using this property is:
+        #
+        # -NetBIOSName 'contoso'
         [Parameter(Mandatory = $true, ParameterSetName = 'NetBIOSName')]
         [ValidateNotNullOrEmpty()]
         [Alias('NetBIOS')]
@@ -51,29 +83,25 @@ function Get-DSSDefaultDomainPasswordPolicy {
         $NetBIOSName,
 
         # The properties of any results to return.
+        # Some examples of using this property are:
+        #
+        # -Properties 'mail'
+        # -Properties 'created','enabled','displayname'
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         [String[]]
         $Properties,
 
-        # The context to search - Domain or Forest.
-        [Parameter(Mandatory = $false)]
-        [ValidateSet('Domain', 'Forest')]
-        [String]
-        $Context = 'Domain',
-
-        # The server to connect to.
+        # The server or domain to connect to.
+        # See below for some examples:
+        #
+        # -Server DC01
+        # -Server 'dc01.contoso.com'
+        # -Server CONTOSO
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         [String]
-        $Server,
-
-        # The credential to use for access.
-        [Parameter(Mandatory = $false)]
-        [ValidateNotNull()]
-        [System.Management.Automation.PSCredential]
-        [System.Management.Automation.Credential()]
-        $Credential = [System.Management.Automation.PSCredential]::Empty
+        $Server
     )
 
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
@@ -163,6 +191,7 @@ function Get-DSSDefaultDomainPasswordPolicy {
 
         Write-Verbose ('{0}|Calling Find-DSSRawObject' -f $Function_Name)
         Find-DSSRawObject @Common_Search_Parameters @Directory_Search_Parameters | ConvertTo-SortedPSObject
+
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
             $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_

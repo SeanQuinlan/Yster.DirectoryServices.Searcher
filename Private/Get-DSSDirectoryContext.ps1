@@ -20,19 +20,19 @@ function Get-DSSDirectoryContext {
         [String]
         $Context,
 
-        # The server/domain/forest to run the query on.
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [Alias('Forest', 'Domain')]
-        [String]
-        $Server,
-
         # The credential to use for access.
         [Parameter(Mandatory = $false)]
         [ValidateNotNull()]
         [System.Management.Automation.PSCredential]
         [System.Management.Automation.Credential()]
-        $Credential = [System.Management.Automation.PSCredential]::Empty
+        $Credential = [System.Management.Automation.PSCredential]::Empty,
+
+        # The server/domain/forest to run the query on.
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [Alias('Forest', 'Domain')]
+        [String]
+        $Server
     )
 
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
@@ -63,6 +63,7 @@ function Get-DSSDirectoryContext {
 
         # Return the DirectoryContext object
         New-Object -TypeName 'System.DirectoryServices.ActiveDirectory.DirectoryContext' -ArgumentList $Directory_Context_Arguments
+
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
             $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_

@@ -161,6 +161,7 @@ function New-DSSGroup {
     try {
         Write-Verbose ('{0}|Calling New-DSSObjectWrapper' -f $Function_Name)
         New-DSSObjectWrapper -ObjectType 'Group' -BoundParameters $PSBoundParameters
+
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
             $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_

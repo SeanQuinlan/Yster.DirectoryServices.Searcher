@@ -4,7 +4,7 @@
 $All_CommonParameters = [System.Management.Automation.PSCmdlet]::CommonParameters + [System.Management.Automation.PSCmdlet]::OptionalCommonParameters
 
 # The Microsoft AD Cmdlets add a number of "user-friendly" property names which are simply aliases of existing LDAP properties.
-# - LDAP property first, Microsoft alias(es) second.
+# - LDAP property as key, Microsoft alias(es) as value.
 $Microsoft_Alias_Properties = @{
     'badpwdcount'                  = 'badlogoncount'
     'distinguishedname'            = 'computerobjectdn'
@@ -47,7 +47,7 @@ $Microsoft_Alias_Names = $Microsoft_Alias_Properties.GetEnumerator() | ForEach-O
 
 # The Microsoft AD cmdlets also add a number of other useful properties based on calculations of other properties.
 # Like creating a datetime object from an integer property.
-# - LDAP property first, Microsoft alias(es) second.
+# - LDAP property as key, Microsoft alias(es) as value.
 $Useful_Calculated_Properties = @{
     # Delegation properties
     'msds-allowedtoactonbehalfofotheridentity' = 'principalsallowedtodelegatetoaccount'

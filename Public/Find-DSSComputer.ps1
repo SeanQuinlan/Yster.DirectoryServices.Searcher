@@ -20,67 +20,114 @@ function Find-DSSComputer {
 
     [CmdletBinding(DefaultParameterSetName = 'Name')]
     param(
-        # The name to use in the search.
-        [Parameter(Mandatory = $true, Position = 1, ParameterSetName = 'Name')]
-        [ValidateNotNullOrEmpty()]
-        [String]
-        $Name,
-
-        # The LDAP filter to use for the search.
-        [Parameter(Mandatory = $true, ParameterSetName = 'LDAPFilter')]
-        [ValidateNotNullOrEmpty()]
-        [String]
-        $LDAPFilter,
-
-        # The base OU to start the search from.
+        # The directory context to search - Domain or Forest. By default this will search within the domain only.
+        # If you want to search the entire directory, specify "Forest" for this parameter and the search will be performed on a Global Catalog server, targetting the entire forest.
+        # An example of using this property is:
+        #
+        # -Context 'Forest'
         [Parameter(Mandatory = $false)]
-        [ValidateNotNullOrEmpty()]
+        [ValidateSet('Domain', 'Forest')]
         [String]
-        $SearchBase,
+        $Context = 'Domain',
 
-        # The scope to search. Must be one of: Base, OneLevel, Subtree.
+        # The credential to use for access to perform the required action.
+        # This credential can be provided in the form of a username, DOMAIN\username or as a PowerShell credential object.
+        # In the case of a username or DOMAIN\username, you will be prompted to supply the password.
+        # Some examples of using this property are:
+        #
+        # -Credential jsmith
+        # -Credential 'CONTOSO\jsmith'
+        #
+        # $Creds = Get-Credential
+        # -Credential $Creds
         [Parameter(Mandatory = $false)]
-        [ValidateSet('Base', 'OneLevel', 'Subtree')]
-        [String]
-        $SearchScope,
+        [ValidateNotNull()]
+        [System.Management.Automation.PSCredential]
+        [System.Management.Automation.Credential()]
+        $Credential = [System.Management.Automation.PSCredential]::Empty,
 
         # Whether to return deleted objects in the search results.
+        # An example of using this property is:
+        #
+        # -IncludeDeletedObjects
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         [Switch]
         $IncludeDeletedObjects,
 
-        # The properties of any results to return.
-        [Parameter(Mandatory = $false)]
+        # The LDAP filter to use for the search. Use this option to specify a more targetted LDAP query.
+        # Some examples of using this property are:
+        #
+        # -LDAPFilter '(description=Marketing Server)'
+        # -LDAPFilter '(&(description=ESXi Server)(location=London))'
+        [Parameter(Mandatory = $true, ParameterSetName = 'LDAPFilter')]
         [ValidateNotNullOrEmpty()]
-        [String[]]
-        $Properties,
+        [String]
+        $LDAPFilter,
+
+        # The name to use in the search. The name will be used in an Ambiguous Name Recognition (ANR) search, so it will match on any commonly indexed property.
+        # An example of using this property is:
+        #
+        # -Name 'srv01'
+        [Parameter(Mandatory = $true, Position = 0, ParameterSetName = 'Name')]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $Name,
 
         # The number of results per page that is returned from the server. This is primarily to save server memory and bandwidth and does not affect the total number of results returned.
+        # An example of using this property is:
+        #
+        # -PageSize 250
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         [Alias('ResultPageSize')]
         [Int]
         $PageSize = 500,
 
-        # The context to search - Domain or Forest.
+        # The properties of any results to return.
+        # Some examples of using this property are:
+        #
+        # -Properties 'mail'
+        # -Properties 'created','enabled','displayname'
         [Parameter(Mandatory = $false)]
-        [ValidateSet('Domain', 'Forest')]
-        [String]
-        $Context = 'Domain',
+        [ValidateNotNullOrEmpty()]
+        [String[]]
+        $Properties,
 
-        # The server to connect to.
+        # The base OU to start the search from. If no base is provided, the search will start at the Active Directory root.
+        # An example of using this property is:
+        #
+        # -SearchBase 'OU=Computers,OU=Company,DC=contoso,DC=com'
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         [String]
-        $Server,
+        $SearchBase,
 
-        # The credential to use for access.
+        # The scope to search. Must be one of: Base, OneLevel, Subtree.
+        #
+        # ..Base will search only in the OU/Container specified and will not look through child OUs.
+        # ..OneLevel will search in the OU/Container specified, and the immediate child OUs.
+        # ..Subtree will search in the OU/Container specified and will recursively search through all child OUs.
+        #
+        # If no SearchScope is provided, the default is Subtree.
+        # An example of using this property is:
+        #
+        # -SearchScope Base
         [Parameter(Mandatory = $false)]
-        [ValidateNotNull()]
-        [System.Management.Automation.PSCredential]
-        [System.Management.Automation.Credential()]
-        $Credential = [System.Management.Automation.PSCredential]::Empty
+        [ValidateSet('Base', 'OneLevel', 'Subtree')]
+        [String]
+        $SearchScope,
+
+        # The server or domain to connect to.
+        # See below for some examples:
+        #
+        # -Server DC01
+        # -Server 'dc01.contoso.com'
+        # -Server CONTOSO
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $Server
     )
 
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
@@ -286,6 +333,7 @@ function Find-DSSComputer {
 
             $Results_To_Return | ConvertTo-SortedPSObject
         }
+
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
             $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_

@@ -18,20 +18,6 @@ function Set-DSSObject {
 
     [CmdletBinding(DefaultParameterSetName = 'DistinguishedName', SupportsShouldProcess = $true)]
     param(
-        # The DistinguishedName of the object.
-        [Parameter(Mandatory = $true, ParameterSetName = 'DistinguishedName')]
-        [ValidateNotNullOrEmpty()]
-        [Alias('DN')]
-        [String]
-        $DistinguishedName,
-
-        # The ObjectGUID of the object.
-        [Parameter(Mandatory = $true, ParameterSetName = 'GUID')]
-        [ValidateNotNullOrEmpty()]
-        [Alias('GUID')]
-        [String]
-        $ObjectGUID,
-
         # Indicates whether the security context of the object is delegated to a service or not.
         # This sets the AccountNotDelegated flag of the UserAccountControl attribute.
         # An example of using this property is:
@@ -157,6 +143,13 @@ function Set-DSSObject {
         [String]
         $DisplayName,
 
+        # The DistinguishedName of the object.
+        [Parameter(Mandatory = $true, ParameterSetName = 'DistinguishedName')]
+        [ValidateNotNullOrEmpty()]
+        [Alias('DN')]
+        [String]
+        $DistinguishedName,
+
         # Specifies whether an object is enabled.
         # This sets the Enabled flag of the UserAccountControl attribute of the object.
         # An example of using this property is:
@@ -183,6 +176,13 @@ function Set-DSSObject {
         )]
         [String[]]
         $KerberosEncryptionType,
+
+        # The ObjectGUID of the object.
+        [Parameter(Mandatory = $true, ParameterSetName = 'GUID')]
+        [ValidateNotNullOrEmpty()]
+        [Alias('GUID')]
+        [String]
+        $ObjectGUID,
 
         # Specifies that the account password does not expire.
         # This sets the PasswordNeverExpires flag of the UserAccountControl attribute of the account.
@@ -278,6 +278,7 @@ function Set-DSSObject {
     try {
         Write-Verbose ('{0}|Calling Set-DSSObjectWrapper' -f $Function_Name)
         Set-DSSObjectWrapper -ObjectType 'Object' -BoundParameters $PSBoundParameters
+
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
             $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_
