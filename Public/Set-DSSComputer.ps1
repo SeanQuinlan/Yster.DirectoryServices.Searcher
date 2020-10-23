@@ -442,7 +442,6 @@ function Set-DSSComputer {
     # AuthenticationPolicy
     # AuthenticationPolicySilo
     # Certificates
-    # PassThru
 
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }

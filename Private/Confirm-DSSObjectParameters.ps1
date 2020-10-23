@@ -231,7 +231,6 @@ function Confirm-DSSObjectParameters {
                         }
                     }
                 }
-
             }
         }
 
