@@ -45,8 +45,12 @@ function Find-DSSObjectWrapper {
     }
 
     try {
+        # The Default_LDAPFilter should be the fastest method of searching for those types of objects.
+        # However certain properties are not available on deleted objects, so the LDAP filter needs to be adjusted in that case.
         switch ($ObjectType) {
             'Computer' {
+                $Default_LDAPFilter = '(objectcategory=computer)'
+                $Default_LDAPFilter_With_DeletedObjects = '(objectclass=computer)'
             }
             'DomainController' {
             }
@@ -60,7 +64,6 @@ function Find-DSSObjectWrapper {
             }
             'User' {
                 # SAMAccountType is the fastest method of searching for users - http://www.selfadsi.org/extended-ad/search-user-accounts.htm.
-                # However this property is not available on groups that have been deleted. So set the filter to use ObjectClass if IncludeDeletedObjects is set to $true.
                 $Default_LDAPFilter = '(samaccounttype=805306368)'
                 $Default_LDAPFilter_With_DeletedObjects = '(objectclass=user)'
             }
