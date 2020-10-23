@@ -108,6 +108,9 @@ function Find-DSSRawObject {
     # A regular expression to determine if a property needs to be paged to return all values.
     $Paging_Regex = '\;range=(\d+)-(.*)'
 
+    # Some returned properties are not from LDAP, but rather from a lookup done on the local machine.
+    $Non_LDAP_Properties = @('ipv4address', 'ipv6address')
+
     try {
         $Common_Parameters = @('Context', 'Server', 'Credential', 'SearchBase')
         $Common_Search_Parameters = @{}
@@ -138,20 +141,25 @@ function Find-DSSRawObject {
         $Directory_Searcher.PageSize = $PageSize
 
         $Properties_To_Add = New-Object -TypeName 'System.Collections.Generic.List[String]'
+        $Properties_To_Calculate_Later = New-Object -TypeName 'System.Collections.Generic.List[String]'
         foreach ($Property in $Properties) {
-            $Properties_To_Add.Add($Property)
+            if ($Non_LDAP_Properties -contains $Property) {
+                $Properties_To_Calculate_Later.Add($Property)
+            } else {
+                $Properties_To_Add.Add($Property)
 
-            foreach ($Combined_Calculated_Property in $Combined_Calculated_Properties.GetEnumerator()) {
-                if (($Combined_Calculated_Property.Value -contains $Property) -and ($Properties_To_Add -notcontains $Combined_Calculated_Property.Name)) {
-                    Write-Verbose ('{0}|Adding calculated property: {1}' -f $Function_Name, $Combined_Calculated_Property.Name)
-                    $Properties_To_Add.Add($Combined_Calculated_Property.Name)
+                foreach ($Combined_Calculated_Property in $Combined_Calculated_Properties.GetEnumerator()) {
+                    if (($Combined_Calculated_Property.Value -contains $Property) -and ($Properties_To_Add -notcontains $Combined_Calculated_Property.Name)) {
+                        Write-Verbose ('{0}|Adding calculated property: {1}' -f $Function_Name, $Combined_Calculated_Property.Name)
+                        $Properties_To_Add.Add($Combined_Calculated_Property.Name)
+                    }
                 }
-            }
 
-            foreach ($Current_Calculated_SubProperty in $Useful_Calculated_SubProperties.GetEnumerator().Name) {
-                if (($Useful_Calculated_SubProperties[$Current_Calculated_SubProperty].GetEnumerator().Name -contains $Property) -and ($Properties_To_Add -notcontains $Current_Calculated_SubProperty)) {
-                    Write-Verbose ('{0}|Adding calculated subproperty: {1}' -f $Function_Name, $Current_Calculated_SubProperty)
-                    $Properties_To_Add.Add($Current_Calculated_SubProperty)
+                foreach ($Current_Calculated_SubProperty in $Useful_Calculated_SubProperties.GetEnumerator().Name) {
+                    if (($Useful_Calculated_SubProperties[$Current_Calculated_SubProperty].GetEnumerator().Name -contains $Property) -and ($Properties_To_Add -notcontains $Current_Calculated_SubProperty)) {
+                        Write-Verbose ('{0}|Adding calculated subproperty: {1}' -f $Function_Name, $Current_Calculated_SubProperty)
+                        $Properties_To_Add.Add($Current_Calculated_SubProperty)
+                    }
                 }
             }
         }
@@ -176,13 +184,12 @@ function Find-DSSRawObject {
 
         if ($Directory_Searcher_Results.Count) {
             Write-Verbose ('{0}|Found {1} result(s)' -f $Function_Name, $Directory_Searcher_Results.Count)
+            Write-Verbose ('{0}|Returning {1}' -f $Function_Name, $OutputFormat)
             if ($OutputFormat -eq 'DirectoryEntry') {
-                Write-Verbose ('{0}|Returning {1}' -f $Function_Name, $OutputFormat)
                 $Directory_Searcher_Results | ForEach-Object {
                     $_.GetDirectoryEntry()
                 }
             } elseif ($OutputFormat -eq 'HashTable') {
-                Write-Verbose ('{0}|Returning {1}' -f $Function_Name, $OutputFormat)
                 $Directory_Searcher_Result_To_Return = New-Object -TypeName 'System.Collections.Generic.List[PSObject]'
                 foreach ($Directory_Searcher_Result in $Directory_Searcher_Results) {
                     Write-Verbose ('{0}|Reformatting result properties order' -f $Function_Name)
@@ -543,6 +550,25 @@ function Find-DSSRawObject {
                             # STEP 5: If no matches, simply add the property as it is returned from the server.
                             ###################################################################################
                             $Result_Object[$Current_Searcher_Result_Property] = $Current_Searcher_Result_Value
+                        }
+                    }
+
+                    if ($Properties_To_Calculate_Later.Count) {
+                        foreach ($Property in $Properties_To_Calculate_Later) {
+                            if ($Property -match 'ipv[4|6]address') {
+                                # Useful post here: https://www.myotherpcisacloud.com/post/IPv4Address-Attribute-In-Get-ADComputer
+                                # Try and get the IP address(es) from DNS or just return null if any error.
+                                try {
+                                    $Host_IP_Addresses = [System.Net.Dns]::GetHostEntry($Result_Object['dnshostname']).AddressList
+                                } catch {
+                                    $Host_IP_Addresses = $null
+                                }
+                                if ($Property -eq 'ipv4address') {
+                                    $Result_Object[$Property] = ($Host_IP_Addresses | Where-Object { $_.AddressFamily -eq 'InterNetwork' }).'IPAddressToString'
+                                } elseif ($Property -eq 'ipv6address') {
+                                    $Result_Object[$Property] = ($Host_IP_Addresses | Where-Object { ($_.AddressFamily -eq 'InterNetworkV6') -and (-not $_.IsIPv6LinkLocal) -and (-not $_.IsIPv6SiteLocal) }).'IPAddressToString'
+                                }
+                            }
                         }
                     }
 
