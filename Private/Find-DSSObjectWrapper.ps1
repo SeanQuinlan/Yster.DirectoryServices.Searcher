@@ -32,7 +32,13 @@ function Find-DSSObjectWrapper {
             'User'
         )]
         [String]
-        $ObjectType
+        $ObjectType,
+
+        # The format of the output.
+        [Parameter(Mandatory = $false)]
+        [ValidateSet('Hashtable', 'Object')]
+        [String]
+        $OutputFormat = 'Object'
     )
 
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
@@ -53,6 +59,7 @@ function Find-DSSObjectWrapper {
                 $Default_LDAPFilter_With_DeletedObjects = '(objectclass=computer)'
             }
             'DomainController' {
+                $Default_LDAPFilter = '(userAccountControl:1.2.840.113556.1.4.803:=8192)'
             }
             'Group' {
                 $Default_LDAPFilter = '(objectcategory=group)'
@@ -121,7 +128,12 @@ function Find-DSSObjectWrapper {
         Write-Verbose ('{0}|LDAPFilter: {1}' -f $Function_Name, $Directory_Search_Parameters['LDAPFilter'])
 
         Write-Verbose ('{0}|Calling Find-DSSRawObject' -f $Function_Name)
-        Find-DSSRawObject @Common_Search_Parameters @Directory_Search_Parameters | ConvertTo-SortedPSObject
+        $Objects_To_Return = Find-DSSRawObject @Common_Search_Parameters @Directory_Search_Parameters
+        if ($OutputFormat -eq 'Object') {
+            $Objects_To_Return | ConvertTo-SortedPSObject
+        } else {
+            $Objects_To_Return
+        }
 
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
