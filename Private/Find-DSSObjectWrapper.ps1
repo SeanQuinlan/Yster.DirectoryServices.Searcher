@@ -9,7 +9,7 @@ function Find-DSSObjectWrapper {
     .EXAMPLE
         Find-DSSObjectWrapper -ObjectType 'User' -BoundParameters $PSBoundParameters
 
-        Finds the user object specified within the BoundParameters
+        Finds the user object specified within the BoundParameters.
     #>
 
     [CmdletBinding(SupportsShouldProcess = $true)]
@@ -58,7 +58,7 @@ function Find-DSSObjectWrapper {
                 $Default_LDAPFilter = '(objectcategory=group)'
                 $Default_LDAPFilter_With_DeletedObjects = '(objectclass=group)'
 
-                # Add any filtering on GroupScope and/or GroupCategory
+                # Add any filtering on GroupScope and/or GroupCategory.
                 # See: https://ldapwiki.com/wiki/Active%20Directory%20Group%20Related%20Searches
                 if ($BoundParameters.ContainsKey('GroupScope')) {
                     Write-Verbose ('{0}|GroupScope: {1}' -f $Function_Name, $BoundParameters['GroupScope'])
@@ -77,6 +77,9 @@ function Find-DSSObjectWrapper {
                 }
             }
             'Object' {
+                # Find any object with a GUID.
+                $Default_LDAPFilter = '(objectguid=*)'
+                $Default_LDAPFilter_With_DeletedObjects = '(objectguid=*)'
             }
             'OptionalFeature' {
             }
