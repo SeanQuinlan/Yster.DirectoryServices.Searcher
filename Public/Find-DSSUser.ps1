@@ -277,7 +277,6 @@ function Find-DSSUser {
     )
 
     try {
-
         $Function_Search_Properties = New-Object -TypeName 'System.Collections.Generic.List[String]'
         if ($PSBoundParameters.ContainsKey('Properties')) {
             Write-Verbose ('{0}|Adding default properties first' -f $Function_Name)

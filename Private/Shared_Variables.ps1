@@ -63,7 +63,7 @@ $Useful_Calculated_Properties = @{
 
     # Group properties
     'grouptype'                                = @('groupcategory', 'groupscope')
-    'primarygroupid'                           = 'primarygroup'
+    'primarygroupid'                           = @('isreadonly', 'primarygroup')
 
     # Security properties
     'ntsecuritydescriptor'                     = @('cannotchangepassword', 'protectedfromaccidentaldeletion')

@@ -340,7 +340,7 @@ function Find-DSSRawObject {
                                 if ($Properties -contains $Useful_Calculated_Property_Name) {
                                     Write-Verbose ('{0}|Useful_Properties: Processing calculated property: {1}' -f $Function_Name, $Useful_Calculated_Property_Name)
 
-                                    Switch -Regex ($Useful_Calculated_Property_Name) {
+                                    switch -Regex ($Useful_Calculated_Property_Name) {
                                         # Delegation properties
                                         'principalsallowedtodelegatetoaccount' {
                                             $Delegation_Principals = New-Object -TypeName 'System.Collections.Generic.List[PSObject]'
@@ -403,6 +403,14 @@ function Find-DSSRawObject {
                                                 $Useful_Calculated_Property_Value = 'Universal'
                                             } else {
                                                 $Useful_Calculated_Property_Value = 'Unknown'
+                                            }
+                                        }
+                                        'isreadonly' {
+                                            # 521 is the group ID for "Read-only Domain Controllers"
+                                            if ($Result_Object['primarygroupid'] -eq 521) {
+                                                $Useful_Calculated_Property_Value = $true
+                                            } else {
+                                                $Useful_Calculated_Property_Value = $false
                                             }
                                         }
                                         'primarygroup' {
@@ -491,7 +499,7 @@ function Find-DSSRawObject {
                                 if ($Properties -contains $Useful_Calculated_SubProperty_Name) {
                                     Write-Verbose ('{0}|Useful_SubProperties: Processing calculated subproperty: {1} = {2}' -f $Function_Name, $Useful_Calculated_SubProperty_Name, $Useful_Calculated_SubProperty_Flag)
 
-                                    Switch -Regex ($Current_Searcher_Result_Property) {
+                                    switch -Regex ($Current_Searcher_Result_Property) {
                                         # For any value calculated from the "UserAccountControl" integer, the following is done:
                                         #   - 1. Set a default bool value of $true if the property is named "enabled" and $false for everything else.
                                         #   - 2. If the flag is set, then it will flip the bool value to the opposite.

@@ -255,10 +255,10 @@ function Get-DSSDomain {
                     Write-Verbose ('{0}|Network/Domain: Calculating DSE properties' -f $Function_Name)
                     Write-Verbose ('{0}|Network/Domain: Calling Get-DSSRootDSE' -f $Function_Name)
                     $DSE_Return_Object = Get-DSSRootDSE @Common_Search_Parameters
-
-                    $Partitions_Path = 'CN=Partitions,{0}' -f $DSE_Return_Object.'configurationnamingcontext'
-                    Write-Verbose ('{0}|Network/Domain: Partitions_Path: {1}' -f $Function_Name, $Partitions_Path)
                 }
+
+                $Partitions_Path = 'CN=Partitions,{0}' -f $DSE_Return_Object.'configurationnamingcontext'
+                Write-Verbose ('{0}|Network/Domain: Partitions_Path: {1}' -f $Function_Name, $Partitions_Path)
 
                 $Network_Search_Parameters = @{}
                 $Network_Search_Parameters['Context'] = $Context

@@ -158,21 +158,6 @@ function Find-DSSDomainController {
         'serverobjectguid'
     )
 
-    # These are the computer object properties that will returned.
-    $Computer_Properties = @(
-        'computerobjectdn'
-        'distinguishedname'
-        'dnshostname'
-        'enabled'
-        'hostname'
-        'name'
-        'operatingsystem'
-        'operatingsystemhotfix'
-        'operatingsystemservicepack'
-        'operatingsystemversion'
-        'primarygroupid'
-    )
-
     # These are properties gathered from the Partitions object in Active Directory.
     $Partition_Properties = @(
         'invocationid'
@@ -190,13 +175,20 @@ function Find-DSSDomainController {
         'forest'
     )
 
+    # Returned from DSE query.
+    $DSE_Properties = @(
+        'defaultpartition'
+        'partitions'
+    )
+
     try {
+        $Common_Parameters = @('Context', 'Credential', 'Server')
         $Common_Search_Parameters = @{}
-        if ($PSBoundParameters.ContainsKey('Server')) {
-            $Common_Search_Parameters['Server'] = $Server
-        }
-        if ($PSBoundParameters.ContainsKey('Credential')) {
-            $Common_Search_Parameters['Credential'] = $Credential
+        foreach ($Parameter in $Common_Parameters) {
+            if ($PSBoundParameters.ContainsKey($Parameter)) {
+                Write-Verbose ('{0}|Adding Common Search Parameter: {1} - {2}' -f $Function_Name, $Parameter, $PSBoundParameters[$Parameter])
+                $Common_Search_Parameters[$Parameter] = $PSBoundParameters[$Parameter]
+            }
         }
 
         $Function_Search_Properties = New-Object -TypeName 'System.Collections.Generic.List[String]'
@@ -218,43 +210,24 @@ function Find-DSSDomainController {
             $Function_Search_Properties.AddRange($Default_Properties)
         }
         Write-Verbose ('{0}|Properties: {1}' -f $Function_Name, ($Function_Search_Properties -join ' '))
+        $PSBoundParameters['Properties'] = $Function_Search_Properties
 
-        $Directory_Search_Parameters = @{}
-        $Directory_Search_Parameters['Context'] = $Context
-        $Directory_Search_Parameters['PageSize'] = $PageSize
-        if ($PSBoundParameters.ContainsKey('SearchBase')) {
-            $Directory_Search_Parameters['SearchBase'] = $SearchBase
-        }
-        if ($PSBoundParameters.ContainsKey('SearchScope')) {
-            $Directory_Search_Parameters['SearchScope'] = $SearchScope
-        }
-        $Directory_Search_Properties = $Function_Search_Properties | Where-Object { $Computer_Properties -contains $_ }
-        $Directory_Search_Parameters['Properties'] = $Directory_Search_Properties
-
-        $Default_DomainController_LDAPFilter = '(userAccountControl:1.2.840.113556.1.4.803:=8192)'
-        if ($Name -eq '*') {
-            $Directory_Search_LDAPFilter = $Default_DomainController_LDAPFilter
-        } elseif ($LDAPFilter) {
-            $Directory_Search_LDAPFilter = '(&{0}{1})' -f $Default_DomainController_LDAPFilter, $LDAPFilter
-        } else {
-            $Directory_Search_LDAPFilter = '(&{0}(ANR={1}))' -f $Default_DomainController_LDAPFilter, $Name
-        }
-        Write-Verbose ('{0}|LDAPFilter: {1}' -f $Function_Name, $Directory_Search_LDAPFilter)
-        $Directory_Search_Parameters['LDAPFilter'] = $Directory_Search_LDAPFilter
-
-        Write-Verbose ('{0}|Finding domain controllers using Find-DSSRawObject' -f $Function_Name)
-        $Results_To_Return = Find-DSSRawObject @Common_Search_Parameters @Directory_Search_Parameters
+        Write-Verbose ('{0}|Calling Find-DSSObjectWrapper' -f $Function_Name)
+        $Results_To_Return = Find-DSSObjectWrapper -ObjectType 'DomainController' -BoundParameters $PSBoundParameters -OutputFormat 'Hashtable'
 
         if ($Results_To_Return) {
             $Partition_Properties_To_Process = $Function_Search_Properties | Where-Object { $Partition_Properties -contains $_ }
             $Domain_Properties_To_Process = $Function_Search_Properties | Where-Object { $Domain_Properties -contains $_ }
+            $DSE_Properties_To_Process = $Function_Search_Properties | Where-Object { $DSE_Properties -contains $_ }
             $OperationsMaster_Roles_Domain = New-Object -TypeName 'System.Collections.Generic.List[PSObject]'
-            $Other_Properties_To_Process = $Function_Search_Properties | Where-Object { ($Computer_Properties -notcontains $_) -and ($Partition_Properties -notcontains $_) -and ($Domain_Properties -notcontains $_) }
 
             if ($Partition_Properties_To_Process) {
                 Write-Verbose ('{0}|Sites: Calculating DSE properties' -f $Function_Name)
-                Write-Verbose ('{0}|Sites: Calling Get-DSSRootDSE' -f $Function_Name)
-                $DSE_Return_Object = Get-DSSRootDSE @Common_Search_Parameters
+                if (-not $DSE_Return_Object) {
+                    Write-Verbose ('{0}|Sites: Calling Get-DSSRootDSE' -f $Function_Name)
+                    $DSE_Return_Object = Get-DSSRootDSE @Common_Search_Parameters
+                }
+
                 $Sites_Path = 'CN=Sites,{0}' -f $DSE_Return_Object.'configurationnamingcontext'
                 Write-Verbose ('{0}|Sites: Sites_Path: {1}' -f $Function_Name, $Sites_Path)
 
@@ -400,62 +373,31 @@ function Find-DSSDomainController {
                     }
                 }
 
-                foreach ($Other_Property in $Other_Properties_To_Process) {
-                    switch -Regex ($Other_Property) {
-                        'isreadonly' {
-                            # 521 is the group ID for "Read-only Domain Controllers"
-                            if ($Result_To_Return['primarygroupid'] -eq 521) {
-                                $Other_Property_Value = $true
-                            } else {
-                                $Other_Property_Value = $false
+                if ($DSE_Properties_To_Process) {
+                    $DSE_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
+                    $DSE_Search_Parameters['Server'] = $Result_To_Return['dnshostname']
+                    Write-Verbose ('{0}|DSE: Calling Get-DSSRootDSE on server: {1}' -f $Function_Name, $DSE_Search_Parameters['Server'])
+                    $DSE_Special_Return_Object = Get-DSSRootDSE @DSE_Search_Parameters
+
+                    foreach ($DSE_Property in $DSE_Properties_To_Process) {
+                        switch ($DSE_Property) {
+                            'defaultpartition' {
+                                $DSE_Property_Value = $DSE_Special_Return_Object.'defaultnamingcontext'
+                            }
+                            'partitions' {
+                                $DSE_Property_Value = $DSE_Special_Return_Object.'namingcontexts'
                             }
                         }
-                        'defaultpartition|partitions' {
-                            $DSE_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
-                            $DSE_Search_Parameters['Server'] = $Result_To_Return['dnshostname']
-                            Write-Verbose ('{0}|Calling Get-DSSRootDSE on server: {1}' -f $Function_Name, $DSE_Search_Parameters['Server'])
-                            $DSE_Return_Object = Get-DSSRootDSE @DSE_Search_Parameters
-                            if ($Other_Property -eq 'defaultpartition') {
-                                $Other_Property_Value = $DSE_Return_Object.'defaultnamingcontext'
-                            } elseif ($Other_Property -eq 'partitions') {
-                                $Other_Property_Value = $DSE_Return_Object.'namingcontexts'
-                            }
-                        }
-                    }
 
-                    Write-Verbose ('{0}|Other: Adding Property: {1} = {2}' -f $Function_Name, $Other_Property, $Other_Property_Value)
-                    $Result_To_Return[$Other_Property] = $Other_Property_Value
-                }
-
-                # Useful post here: https://www.myotherpcisacloud.com/post/IPv4Address-Attribute-In-Get-ADComputer
-                $Non_LDAP_Network_Properties = @('ipv4address', 'ipv6address')
-                $Non_LDAP_Network_Properties_To_Process = $Function_Search_Properties | Where-Object { $Non_LDAP_Network_Properties -contains $_ }
-
-                if ($Non_LDAP_Network_Properties_To_Process) {
-                    foreach ($Result_To_Return in $Results_To_Return) {
-                        # Try and get the IP address(es) from DNS or just return null if any error.
-                        try {
-                            $Host_IP_Addresses = [System.Net.Dns]::GetHostEntry($Result_To_Return['dnshostname']).AddressList
-                        } catch {
-                            $Host_IP_Addresses = $null
-                        }
-                        foreach ($Non_LDAP_Network_Property in $Non_LDAP_Network_Properties_To_Process) {
-                            $Non_LDAP_Network_Property_AddressList = $null
-                            if ($Non_LDAP_Network_Property -eq 'ipv4address') {
-                                $Non_LDAP_Network_Property_AddressList = ($Host_IP_Addresses | Where-Object { $_.AddressFamily -eq 'InterNetwork' }).IPAddressToString
-                            } elseif ($Non_LDAP_Network_Property -eq 'ipv6address') {
-                                $Non_LDAP_Network_Property_AddressList = ($Host_IP_Addresses | Where-Object { ($_.AddressFamily -eq 'InterNetworkV6') -and (-not $_.IsIPv6LinkLocal) -and (-not $_.IsIPv6SiteLocal) }).IPAddressToString
-                            }
-
-                            Write-Verbose ('{0}|Non_LDAP: Adding Property: {1} = {2}' -f $Function_Name, $Non_LDAP_Network_Property, $Non_LDAP_Network_Property_AddressList)
-                            $Result_To_Return[$Non_LDAP_Network_Property] = $Non_LDAP_Network_Property_AddressList
-                        }
+                        Write-Verbose ('{0}|DSE: Adding Property: {1} = {2}' -f $Function_Name, $DSE_Property, $DSE_Property_Value)
+                        $Result_To_Return[$DSE_Property] = $DSE_Property_Value
                     }
                 }
             }
 
             $Results_To_Return | ConvertTo-SortedPSObject
         }
+
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
             $Terminating_ErrorRecord = New-DefaultErrorRecord -InputObject $_
