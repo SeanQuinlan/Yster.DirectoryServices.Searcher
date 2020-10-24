@@ -84,6 +84,8 @@ function Find-DSSObjectWrapper {
             'OptionalFeature' {
             }
             'OrganizationalUnit' {
+                $Default_LDAPFilter = '(objectclass=organizationalunit)'
+                $Default_LDAPFilter_With_DeletedObjects = '(objectclass=organizationalunit)'
             }
             'User' {
                 # SAMAccountType is the fastest method of searching for users - http://www.selfadsi.org/extended-ad/search-user-accounts.htm.

@@ -183,32 +183,11 @@ function Find-DSSOrganizationalUnit {
     )
 
     try {
-        $Directory_Search_Parameters = @{
-            'Context'  = $Context
-            'PageSize' = $PageSize
-        }
-        if ($PSBoundParameters.ContainsKey('SearchBase')) {
-            $Directory_Search_Parameters['SearchBase'] = $SearchBase
-        }
-        if ($PSBoundParameters.ContainsKey('SearchScope')) {
-            $Directory_Search_Parameters['SearchScope'] = $SearchScope
-        }
-        if ($PSBoundParameters.ContainsKey('IncludeDeletedObjects')) {
-            $Directory_Search_Parameters['IncludeDeletedObjects'] = $true
-        }
-        if ($PSBoundParameters.ContainsKey('Server')) {
-            $Directory_Search_Parameters['Server'] = $Server
-        }
-        if ($PSBoundParameters.ContainsKey('Credential')) {
-            $Directory_Search_Parameters['Credential'] = $Credential
-        }
-
         $Function_Search_Properties = New-Object -TypeName 'System.Collections.Generic.List[String]'
         if ($PSBoundParameters.ContainsKey('Properties')) {
             Write-Verbose ('{0}|Adding default properties first' -f $Function_Name)
             $Function_Search_Properties.AddRange($Default_Properties)
             if ($Properties -contains '*') {
-                $Function_Search_Properties.Add('*')
                 Write-Verbose ('{0}|Adding other wildcard properties' -f $Function_Name)
                 $Function_Search_Properties.AddRange($Wildcard_Properties)
             }
@@ -223,21 +202,10 @@ function Find-DSSOrganizationalUnit {
             $Function_Search_Properties.AddRange($Default_Properties)
         }
         Write-Verbose ('{0}|Properties: {1}' -f $Function_Name, ($Function_Search_Properties -join ' '))
-        $Directory_Search_Parameters['Properties'] = $Function_Search_Properties
+        $PSBoundParameters['Properties'] = $Function_Search_Properties
 
-        $Default_OU_LDAPFilter = '(objectclass=organizationalunit)'
-        if ($Name -eq '*') {
-            $Directory_Search_LDAPFilter = $Default_OU_LDAPFilter
-        } elseif ($LDAPFilter) {
-            $Directory_Search_LDAPFilter = '(&{0}{1})' -f $Default_OU_LDAPFilter, $LDAPFilter
-        } else {
-            $Directory_Search_LDAPFilter = '(&{0}(ANR={1}))' -f $Default_OU_LDAPFilter, $Name
-        }
-        Write-Verbose ('{0}|LDAPFilter: {1}' -f $Function_Name, $Directory_Search_LDAPFilter)
-        $Directory_Search_Parameters['LDAPFilter'] = $Directory_Search_LDAPFilter
-
-        Write-Verbose ('{0}|Finding OUs using Find-DSSRawObject' -f $Function_Name)
-        Find-DSSRawObject @Directory_Search_Parameters | ConvertTo-SortedPSObject
+        Write-Verbose ('{0}|Calling Find-DSSObjectWrapper' -f $Function_Name)
+        Find-DSSObjectWrapper -ObjectType 'OrganizationalUnit' -BoundParameters $PSBoundParameters
 
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
