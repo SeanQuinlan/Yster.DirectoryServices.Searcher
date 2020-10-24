@@ -55,6 +55,26 @@ function Find-DSSObjectWrapper {
             'DomainController' {
             }
             'Group' {
+                $Default_LDAPFilter = '(objectcategory=group)'
+                $Default_LDAPFilter_With_DeletedObjects = '(objectclass=group)'
+
+                # Add any filtering on GroupScope and/or GroupCategory
+                # See: https://ldapwiki.com/wiki/Active%20Directory%20Group%20Related%20Searches
+                if ($BoundParameters.ContainsKey('GroupScope')) {
+                    Write-Verbose ('{0}|GroupScope: {1}' -f $Function_Name, $BoundParameters['GroupScope'])
+                    $Addtional_LDAPFilter = ('(grouptype:1.2.840.113556.1.4.804:={0})' -f [int]$ADGroupTypes[$BoundParameters['GroupScope']])
+                }
+                if ($BoundParameters.ContainsKey('GroupCategory')) {
+                    Write-Verbose ('{0}|GroupCategory: {1}' -f $Function_Name, $BoundParameters['GroupCategory'])
+                    if ($BoundParameters['GroupCategory'] -eq 'Security') {
+                        $Addtional_LDAPFilter = $Addtional_LDAPFilter + '(groupType:1.2.840.113556.1.4.803:=2147483648)'
+                    } else {
+                        $Addtional_LDAPFilter = $Addtional_LDAPFilter + '(!(groupType:1.2.840.113556.1.4.803:=2147483648))'
+                    }
+                }
+                if ($Addtional_LDAPFilter) {
+                    $Default_LDAPFilter = '(&{0}{1})' -f $Default_LDAPFilter, $Addtional_LDAPFilter
+                }
             }
             'Object' {
             }

@@ -202,26 +202,6 @@ function Find-DSSGroup {
     )
 
     try {
-        $Directory_Search_Parameters = @{
-            'Context'  = $Context
-            'PageSize' = $PageSize
-        }
-        if ($PSBoundParameters.ContainsKey('SearchBase')) {
-            $Directory_Search_Parameters['SearchBase'] = $SearchBase
-        }
-        if ($PSBoundParameters.ContainsKey('SearchScope')) {
-            $Directory_Search_Parameters['SearchScope'] = $SearchScope
-        }
-        if ($PSBoundParameters.ContainsKey('IncludeDeletedObjects')) {
-            $Directory_Search_Parameters['IncludeDeletedObjects'] = $true
-        }
-        if ($PSBoundParameters.ContainsKey('Server')) {
-            $Directory_Search_Parameters['Server'] = $Server
-        }
-        if ($PSBoundParameters.ContainsKey('Credential')) {
-            $Directory_Search_Parameters['Credential'] = $Credential
-        }
-
         $Function_Search_Properties = New-Object -TypeName 'System.Collections.Generic.List[String]'
         if ($PSBoundParameters.ContainsKey('Properties')) {
             Write-Verbose ('{0}|Adding default properties first' -f $Function_Name)
@@ -241,47 +221,10 @@ function Find-DSSGroup {
             $Function_Search_Properties.AddRange($Default_Properties)
         }
         Write-Verbose ('{0}|Properties: {1}' -f $Function_Name, ($Function_Search_Properties -join ' '))
-        $Directory_Search_Parameters['Properties'] = $Function_Search_Properties
+        $PSBoundParameters['Properties'] = $Function_Search_Properties
 
-        # ObjectCategory is the fastest method of searching for groups.
-        # However this property is not available on groups that have been deleted. So set the filter to use ObjectClass instead, if $IncludeDeletedObjects is set to $true.
-        if ($IncludeDeletedObjects) {
-            $Default_Group_LDAPFilter = '(objectclass=group)'
-        } else {
-            $Default_Group_LDAPFilter = '(objectcategory=group)'
-        }
-
-        # Add any filtering on GroupScope and/or GroupCategory
-        # See: https://ldapwiki.com/wiki/Active%20Directory%20Group%20Related%20Searches
-        if ($PSBoundParameters.ContainsKey('GroupScope')) {
-            Write-Verbose ('{0}|GroupScope: {1}' -f $Function_Name, $GroupScope)
-            $Addtional_LDAPFilter = ('(grouptype:1.2.840.113556.1.4.804:={0})' -f [int]$ADGroupTypes[$GroupScope])
-        }
-        if ($PSBoundParameters.ContainsKey('GroupCategory')) {
-            Write-Verbose ('{0}|GroupCategory: {1}' -f $Function_Name, $GroupCategory)
-            if ($GroupCategory -eq 'Security') {
-                $Addtional_LDAPFilter = $Addtional_LDAPFilter + '(groupType:1.2.840.113556.1.4.803:=2147483648)'
-            } else {
-                $Addtional_LDAPFilter = $Addtional_LDAPFilter + '(!(groupType:1.2.840.113556.1.4.803:=2147483648))'
-            }
-        }
-        if ($Addtional_LDAPFilter) {
-            $Default_Group_LDAPFilter = '(&{0}{1})' -f $Default_Group_LDAPFilter, $Addtional_LDAPFilter
-        }
-
-        if ($Name -eq '*') {
-            $Directory_Search_LDAPFilter = $Default_Group_LDAPFilter
-        } elseif ($LDAPFilter) {
-            $Directory_Search_LDAPFilter = '(&{0}{1})' -f $Default_Group_LDAPFilter, $LDAPFilter
-        } else {
-            $Directory_Search_LDAPFilter = '(&{0}(ANR={1}))' -f $Default_Group_LDAPFilter, $Name
-        }
-
-        Write-Verbose ('{0}|LDAPFilter: {1}' -f $Function_Name, $Directory_Search_LDAPFilter)
-        $Directory_Search_Parameters['LDAPFilter'] = $Directory_Search_LDAPFilter
-
-        Write-Verbose ('{0}|Finding group using Find-DSSRawObject' -f $Function_Name)
-        Find-DSSRawObject @Directory_Search_Parameters | ConvertTo-SortedPSObject
+        Write-Verbose ('{0}|Calling Find-DSSObjectWrapper' -f $Function_Name)
+        Find-DSSObjectWrapper -ObjectType 'Group' -BoundParameters $PSBoundParameters
 
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
