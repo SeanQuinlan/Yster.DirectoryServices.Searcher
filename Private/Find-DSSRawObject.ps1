@@ -112,14 +112,18 @@ function Find-DSSRawObject {
     $Non_LDAP_Properties = @('ipv4address', 'ipv6address')
 
     try {
-        $Common_Parameters = @('Context', 'Server', 'Credential', 'SearchBase')
+        $Common_Parameters = @('Context', 'Server', 'Credential')
         $Common_Search_Parameters = @{}
         foreach ($Parameter in $Common_Parameters) {
             if ($PSBoundParameters.ContainsKey($Parameter)) {
                 $Common_Search_Parameters[$Parameter] = Get-Variable -Name $Parameter -ValueOnly
             }
         }
-        $Directory_Entry = Get-DSSDirectoryEntry @Common_Search_Parameters
+        if ($PSBoundParameters.ContainsKey('SearchBase')) {
+            $Directory_Entry = Get-DSSDirectoryEntry @Common_Search_Parameters -SearchBase $SearchBase
+        } else {
+            $Directory_Entry = Get-DSSDirectoryEntry @Common_Search_Parameters
+        }
 
         $Directory_Searcher_Arguments = @(
             $Directory_Entry
@@ -549,6 +553,7 @@ function Find-DSSRawObject {
                             ###################################################################################
                             # STEP 5: If no matches, simply add the property as it is returned from the server.
                             ###################################################################################
+                            Write-Verbose ('{0}|Default: Adding property: {1} - {2}' -f $Function_Name, $Current_Searcher_Result_Property, $Current_Searcher_Result_Value)
                             $Result_Object[$Current_Searcher_Result_Property] = $Current_Searcher_Result_Value
                         }
                     }
