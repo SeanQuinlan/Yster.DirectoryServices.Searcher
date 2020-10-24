@@ -108,8 +108,8 @@ function Find-DSSRawObject {
     # A regular expression to determine if a property needs to be paged to return all values.
     $Paging_Regex = '\;range=(\d+)-(.*)'
 
-    # Some returned properties are not from LDAP, but rather from a lookup done on the local machine.
-    $Non_LDAP_Properties = @('ipv4address', 'ipv6address')
+    # Some returned properties are not directly from LDAP, but rather from a different method, eg. a DNS lookup done on the local machine.
+    $Non_LDAP_Properties = @('enabledscopes', 'ipv4address', 'ipv6address', 'isdisableable')
 
     try {
         $Common_Parameters = @('Context', 'Server', 'Credential')
@@ -568,20 +568,47 @@ function Find-DSSRawObject {
 
                     if ($Properties_To_Calculate_Later.Count) {
                         foreach ($Property in $Properties_To_Calculate_Later) {
-                            if ($Property -match 'ipv[4|6]address') {
-                                # Useful post here: https://www.myotherpcisacloud.com/post/IPv4Address-Attribute-In-Get-ADComputer
-                                # Try and get the IP address(es) from DNS or just return null if any error.
-                                try {
-                                    $Host_IP_Addresses = [System.Net.Dns]::GetHostEntry($Result_Object['dnshostname']).AddressList
-                                } catch {
-                                    $Host_IP_Addresses = $null
+                            switch -Regex ($Property) {
+                                'ipv[4|6]address' {
+                                    # Useful post here: https://www.myotherpcisacloud.com/post/IPv4Address-Attribute-In-Get-ADComputer
+                                    # Try and get the IP address(es) from DNS or just return null if any error.
+                                    try {
+                                        $Host_IP_Addresses = [System.Net.Dns]::GetHostEntry($Result_Object['dnshostname']).AddressList
+                                    } catch {
+                                        $Host_IP_Addresses = $null
+                                    }
+                                    if ($Property -eq 'ipv4address') {
+                                        $Calculate_Later_Value = ($Host_IP_Addresses | Where-Object { $_.AddressFamily -eq 'InterNetwork' }).'IPAddressToString'
+                                    } elseif ($Property -eq 'ipv6address') {
+                                        $Calculate_Later_Value = ($Host_IP_Addresses | Where-Object { ($_.AddressFamily -eq 'InterNetworkV6') -and (-not $_.IsIPv6LinkLocal) -and (-not $_.IsIPv6SiteLocal) }).'IPAddressToString'
+                                    }
                                 }
-                                if ($Property -eq 'ipv4address') {
-                                    $Result_Object[$Property] = ($Host_IP_Addresses | Where-Object { $_.AddressFamily -eq 'InterNetwork' }).'IPAddressToString'
-                                } elseif ($Property -eq 'ipv6address') {
-                                    $Result_Object[$Property] = ($Host_IP_Addresses | Where-Object { ($_.AddressFamily -eq 'InterNetworkV6') -and (-not $_.IsIPv6LinkLocal) -and (-not $_.IsIPv6SiteLocal) }).'IPAddressToString'
+                                'isdisableable' {
+                                    # This is used when looking up an Optional Feature.
+                                    # This is $false for both available Optional Features and I can't find out how it's derived, so just statically assign it here.
+                                    $Calculate_Later_Value = $false
+                                }
+                                'enabledscopes' {
+                                    Write-Verbose ('{0}|EnabledScopes: Searching for EnabledScopes for: {1}' -f $Function_Name, $Result_Object['name'])
+                                    $EnabledScopes_Search_Parameters = @{}
+                                    $EnabledScopes_Search_Parameters['PageSize'] = $PageSize
+                                    $EnabledScopes_Search_Parameters['SearchBase'] = $SearchBase
+                                    $EnabledScopes_Search_Parameters['Properties'] = @('distinguishedname')
+                                    $EnabledScopes_Search_Parameters['LDAPFilter'] = '(msds-enabledfeature={0})' -f $Result_Object['distinguishedname']
+
+                                    Write-Verbose ('{0}|EnabledScopes: Calling Find-DSSRawObject' -f $Function_Name)
+                                    $EnabledScopes_Search_Results = Find-DSSRawObject @Common_Search_Parameters @EnabledScopes_Search_Parameters
+
+                                    if ($EnabledScopes_Search_Results) {
+                                        $Calculate_Later_Value = $EnabledScopes_Search_Results.'distinguishedname'
+                                    } else {
+                                        $Calculate_Later_Value = @()
+                                    }
                                 }
                             }
+
+                            Write-Verbose ('{0}|CalculateLater: Adding property: {1} - {2}' -f $Function_Name, $Property, $Calculate_Later_Value)
+                            $Result_Object[$Property] = $Calculate_Later_Value
                         }
                     }
 

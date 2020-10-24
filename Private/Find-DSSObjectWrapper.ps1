@@ -51,6 +51,15 @@ function Find-DSSObjectWrapper {
     }
 
     try {
+        $Common_Parameters = @('Context', 'Credential', 'Server')
+        $Common_Search_Parameters = @{}
+        foreach ($Parameter in $Common_Parameters) {
+            if ($BoundParameters.ContainsKey($Parameter)) {
+                Write-Verbose ('{0}|Adding Common Search Parameter: {1} - {2}' -f $Function_Name, $Parameter, $BoundParameters[$Parameter])
+                $Common_Search_Parameters[$Parameter] = $BoundParameters[$Parameter]
+            }
+        }
+
         # The Default_LDAPFilter should be the fastest method of searching for those types of objects.
         # However certain properties are not available on deleted objects, so the LDAP filter needs to be adjusted in that case.
         switch ($ObjectType) {
@@ -89,6 +98,13 @@ function Find-DSSObjectWrapper {
                 $Default_LDAPFilter_With_DeletedObjects = '(objectguid=*)'
             }
             'OptionalFeature' {
+                $Default_LDAPFilter = '(objectclass=msds-optionalfeature)'
+                if (-not $BoundParameters.ContainsKey('SearchBase')) {
+                    Write-Verbose ('{0}|Calling Get-DSSRootDSE to get configuration SearchBase' -f $Function_Name)
+                    $DSE_Return_Object = Get-DSSRootDSE @Common_Search_Parameters
+                    Write-Verbose ('{0}|DSE: Configuration Path: {1}' -f $Function_Name, $DSE_Return_Object.'configurationnamingcontext')
+                    $BoundParameters['SearchBase'] = $DSE_Return_Object.'configurationnamingcontext'
+                }
             }
             'OrganizationalUnit' {
                 $Default_LDAPFilter = '(objectclass=organizationalunit)'
@@ -101,16 +117,15 @@ function Find-DSSObjectWrapper {
             }
         }
 
-        $Common_Parameters = @('Context', 'Credential', 'IncludeDeletedObjects', 'PageSize', 'Properties', 'SearchBase', 'SearchScope', 'Server')
-        $Common_Search_Parameters = @{}
-        foreach ($Parameter in $Common_Parameters) {
+        $Directory_Parameters = @('IncludeDeletedObjects', 'PageSize', 'Properties', 'SearchBase', 'SearchScope')
+        $Directory_Search_Parameters = @{}
+        foreach ($Parameter in $Directory_Parameters) {
             if ($BoundParameters.ContainsKey($Parameter)) {
-                Write-Verbose ('{0}|Adding Common Search Parameter: {1} - {2}' -f $Function_Name, $Parameter, $BoundParameters[$Parameter])
-                $Common_Search_Parameters[$Parameter] = $BoundParameters[$Parameter]
+                Write-Verbose ('{0}|Adding Directory Search Parameter: {1} - {2}' -f $Function_Name, $Parameter, $BoundParameters[$Parameter])
+                $Directory_Search_Parameters[$Parameter] = $BoundParameters[$Parameter]
             }
         }
 
-        $Directory_Search_Parameters = @{}
         if ($BoundParameters['IncludeDeletedObjects']) {
             $Directory_Search_LDAPFilter = $Default_LDAPFilter_With_DeletedObjects
         } else {
