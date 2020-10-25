@@ -97,7 +97,7 @@ function Get-DSSUser {
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         [String[]]
-        $Properties,
+        $Properties = @('distinguishedname'),
 
         # The SAMAccountName of the account.
         [Parameter(Mandatory = $true, ParameterSetName = 'SAM')]
