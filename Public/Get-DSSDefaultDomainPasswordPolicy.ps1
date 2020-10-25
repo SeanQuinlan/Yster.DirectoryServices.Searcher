@@ -124,16 +124,18 @@ function Get-DSSDefaultDomainPasswordPolicy {
     )
 
     try {
-        $Common_Search_Parameters = @{}
+        $Basic_Search_Parameters = @{}
         if ($PSBoundParameters.ContainsKey('Server')) {
-            $Common_Search_Parameters['Server'] = $Server
+            $Basic_Search_Parameters['Server'] = $Server
         } elseif ($PSBoundParameters.ContainsKey('DNSName')) {
             Write-Verbose ('{0}|Adding DNSName as Server Name: {1}' -f $Function_Name, $DNSName)
-            $Common_Search_Parameters['Server'] = $DNSName
+            $Basic_Search_Parameters['Server'] = $DNSName
         }
         if ($PSBoundParameters.ContainsKey('Credential')) {
-            $Common_Search_Parameters['Credential'] = $Credential
+            $Basic_Search_Parameters['Credential'] = $Credential
         }
+        $Common_Search_Parameters = $Basic_Search_Parameters.PSBase.Clone()
+        $Common_Search_Parameters['Context'] = $Context
 
         $Function_Search_Properties = New-Object -TypeName 'System.Collections.Generic.List[String]'
         if ($PSBoundParameters.ContainsKey('Properties')) {
@@ -152,13 +154,10 @@ function Get-DSSDefaultDomainPasswordPolicy {
         Write-Verbose ('{0}|Properties: {1}' -f $Function_Name, ($Function_Search_Properties -join ' '))
 
         $Directory_Search_Parameters = @{}
-        $Directory_Search_Parameters['Context'] = $Context
         $Directory_Search_Parameters['Properties'] = $Function_Search_Properties
 
         $Default_Domain_LDAPFilter = '(objectclass=domaindns)'
-        if ($PSBoundParameters.ContainsKey('DNSName')) {
-            $Directory_Search_LDAPFilter = $Default_Domain_LDAPFilter
-        } elseif ($PSBoundParameters.ContainsKey('DistinguishedName')) {
+        if ($PSBoundParameters.ContainsKey('DistinguishedName')) {
             $Directory_Search_LDAPFilter = $Default_Domain_LDAPFilter
             $Directory_Search_Parameters['SearchBase'] = $DistinguishedName
         } elseif ($PSBoundParameters.ContainsKey('ObjectSID')) {
@@ -168,13 +167,12 @@ function Get-DSSDefaultDomainPasswordPolicy {
         } elseif ($PSBoundParameters.ContainsKey('NetBIOSName')) {
             Write-Verbose ('{0}|NetBIOSName: Calculating DSE properties' -f $Function_Name)
             Write-Verbose ('{0}|NetBIOSName: Calling Get-DSSRootDSE' -f $Function_Name)
-            $DSE_Return_Object = Get-DSSRootDSE @Common_Search_Parameters
+            $DSE_Return_Object = Get-DSSRootDSE @Basic_Search_Parameters
 
             $Partitions_Path = 'CN=Partitions,{0}' -f $DSE_Return_Object.'configurationnamingcontext'
             Write-Verbose ('{0}|NetBIOSName: Partitions_Path: {1}' -f $Function_Name, $Partitions_Path)
 
             $NetBIOSName_Search_Parameters = @{}
-            $NetBIOSName_Search_Parameters['Context'] = $Context
             $NetBIOSName_Search_Parameters['SearchBase'] = $Partitions_Path
             $NetBIOSName_Search_Parameters['LDAPFilter'] = '(netbiosname={0})' -f $NetBIOSName
             $NetBIOSName_Search_Parameters['Properties'] = @('ncname')
@@ -185,6 +183,8 @@ function Get-DSSDefaultDomainPasswordPolicy {
             $Directory_Search_LDAPFilter = $Default_Domain_LDAPFilter
             $Directory_Search_Parameters['SearchBase'] = $NetBIOSName_Result_To_Return['ncname']
             Write-Verbose ('{0}|NetBIOSName: Using DN: {1}' -f $Function_Name, $NetBIOSName_Result_To_Return['ncname'])
+        } else {
+            $Directory_Search_LDAPFilter = $Default_Domain_LDAPFilter
         }
         Write-Verbose ('{0}|LDAPFilter: {1}' -f $Function_Name, $Directory_Search_LDAPFilter)
         $Directory_Search_Parameters['LDAPFilter'] = $Directory_Search_LDAPFilter

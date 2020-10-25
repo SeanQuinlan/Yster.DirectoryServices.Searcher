@@ -51,8 +51,16 @@ function Find-DSSObjectWrapper {
     }
 
     try {
-        $Common_Parameters = @('Context', 'Credential', 'Server')
-        $Common_Search_Parameters = @{}
+        $Basic_Parameters = @('Credential', 'Server')
+        $Common_Parameters = @('Context')
+        $Basic_Search_Parameters = @{}
+        foreach ($Parameter in $Basic_Parameters) {
+            if ($BoundParameters.ContainsKey($Parameter)) {
+                Write-Verbose ('{0}|Adding Basic Search Parameter: {1} - {2}' -f $Function_Name, $Parameter, $BoundParameters[$Parameter])
+                $Basic_Search_Parameters[$Parameter] = $BoundParameters[$Parameter]
+            }
+        }
+        $Common_Search_Parameters = $Basic_Search_Parameters.PSBase.Clone()
         foreach ($Parameter in $Common_Parameters) {
             if ($BoundParameters.ContainsKey($Parameter)) {
                 Write-Verbose ('{0}|Adding Common Search Parameter: {1} - {2}' -f $Function_Name, $Parameter, $BoundParameters[$Parameter])
@@ -101,7 +109,7 @@ function Find-DSSObjectWrapper {
                 $Default_LDAPFilter = '(objectclass=msds-optionalfeature)'
                 if (-not $BoundParameters.ContainsKey('SearchBase')) {
                     Write-Verbose ('{0}|Calling Get-DSSRootDSE to get configuration SearchBase' -f $Function_Name)
-                    $DSE_Return_Object = Get-DSSRootDSE @Common_Search_Parameters
+                    $DSE_Return_Object = Get-DSSRootDSE @Basic_Search_Parameters
                     Write-Verbose ('{0}|DSE: Configuration Path: {1}' -f $Function_Name, $DSE_Return_Object.'configurationnamingcontext')
                     $BoundParameters['SearchBase'] = $DSE_Return_Object.'configurationnamingcontext'
                 }

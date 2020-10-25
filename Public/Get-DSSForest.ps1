@@ -104,21 +104,22 @@ function Get-DSSForest {
     )
 
     try {
-        $Common_Search_Parameters = @{}
+        $Basic_Search_Parameters = @{}
         if ($PSBoundParameters.ContainsKey('Server')) {
-            $Common_Search_Parameters['Server'] = $Server
+            $Basic_Search_Parameters['Server'] = $Server
         } else {
-            if ($PSBoundParameters.ContainsKey('DNSName')) {
-                Write-Verbose ('{0}|Adding DNSName as Server Name: {1}' -f $Function_Name, $DNSName)
-                $Common_Search_Parameters['Server'] = $DNSName
-            } elseif ($PSBoundParameters.ContainsKey('NetBIOSName')) {
+            if ($PSBoundParameters.ContainsKey('NetBIOSName')) {
                 Write-Verbose ('{0}|Adding NetBIOSName as Server Name: {1}' -f $Function_Name, $NetBIOSName)
-                $Common_Search_Parameters['Server'] = $NetBIOSName
+                $Basic_Search_Parameters['Server'] = $NetBIOSName
+            } else {
+                Write-Verbose ('{0}|Adding DNSName as Server Name: {1}' -f $Function_Name, $DNSName)
+                $Basic_Search_Parameters['Server'] = $DNSName
             }
         }
         if ($PSBoundParameters.ContainsKey('Credential')) {
-            $Common_Search_Parameters['Credential'] = $Credential
+            $Basic_Search_Parameters['Credential'] = $Credential
         }
+        $Common_Search_Parameters = $Basic_Search_Parameters.PSBase.Clone()
 
         $Function_Search_Properties = New-Object -TypeName 'System.Collections.Generic.List[String]'
         if ($PSBoundParameters.ContainsKey('Properties')) {
@@ -142,7 +143,7 @@ function Get-DSSForest {
         $Result_To_Return = @{}
 
         Write-Verbose ('{0}|Calling Get-DSSRootDSE' -f $Function_Name)
-        $DSE_Return_Object = Get-DSSRootDSE @Common_Search_Parameters
+        $DSE_Return_Object = Get-DSSRootDSE @Basic_Search_Parameters
 
         foreach ($DSE_Property in $DSE_Properties) {
             if ($DSE_Property -eq 'forestmode') {
@@ -155,7 +156,6 @@ function Get-DSSForest {
         }
 
         $Partitions_Search_Parameters = @{}
-        $Partitions_Search_Parameters['Context'] = $Context
         $Partitions_Search_Parameters['Properties'] = $Partitions_Properties
         $Partitions_Search_Parameters['SearchBase'] = $Result_To_Return['partitionscontainer']
         $Partitions_Search_Parameters['LDAPFilter'] = '(objectclass=crossrefcontainer)'

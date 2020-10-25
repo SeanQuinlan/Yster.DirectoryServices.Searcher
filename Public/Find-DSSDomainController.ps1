@@ -192,8 +192,16 @@ function Find-DSSDomainController {
     )
 
     try {
-        $Common_Parameters = @('Context', 'Credential', 'Server')
-        $Common_Search_Parameters = @{}
+        $Basic_Parameters = @('Credential', 'Server')
+        $Common_Parameters = @('Context')
+        $Basic_Search_Parameters = @{}
+        foreach ($Parameter in $Basic_Parameters) {
+            if ($PSBoundParameters.ContainsKey($Parameter)) {
+                Write-Verbose ('{0}|Adding Basic Search Parameter: {1} - {2}' -f $Function_Name, $Parameter, $PSBoundParameters[$Parameter])
+                $Basic_Search_Parameters[$Parameter] = $PSBoundParameters[$Parameter]
+            }
+        }
+        $Common_Search_Parameters = $Basic_Search_Parameters.PSBase.Clone()
         foreach ($Parameter in $Common_Parameters) {
             if ($PSBoundParameters.ContainsKey($Parameter)) {
                 Write-Verbose ('{0}|Adding Common Search Parameter: {1} - {2}' -f $Function_Name, $Parameter, $PSBoundParameters[$Parameter])
@@ -236,7 +244,7 @@ function Find-DSSDomainController {
                 Write-Verbose ('{0}|Sites: Calculating DSE properties' -f $Function_Name)
                 if (-not $DSE_Return_Object) {
                     Write-Verbose ('{0}|Sites: Calling Get-DSSRootDSE' -f $Function_Name)
-                    $DSE_Return_Object = Get-DSSRootDSE @Common_Search_Parameters
+                    $DSE_Return_Object = Get-DSSRootDSE @Basic_Search_Parameters
                 }
 
                 $Sites_Path = 'CN=Sites,{0}' -f $DSE_Return_Object.'configurationnamingcontext'
@@ -386,7 +394,7 @@ function Find-DSSDomainController {
                 }
 
                 if ($DSE_Properties_To_Process) {
-                    $DSE_Search_Parameters = $Common_Search_Parameters.PSObject.Copy()
+                    $DSE_Search_Parameters = $Basic_Search_Parameters.PSObject.Copy()
                     $DSE_Search_Parameters['Server'] = $Result_To_Return['dnshostname']
                     Write-Verbose ('{0}|DSE: Calling Get-DSSRootDSE on server: {1}' -f $Function_Name, $DSE_Search_Parameters['Server'])
                     $DSE_Special_Return_Object = Get-DSSRootDSE @DSE_Search_Parameters
