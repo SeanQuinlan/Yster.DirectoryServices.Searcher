@@ -1,16 +1,13 @@
 # Some helpful links:
 # https://stackoverflow.com/questions/62497134/pester-5-0-2-beforeall-block-code-not-showing-up-in-describe-block
 
-BeforeAll {
-    $Module_Root = Split-Path -Path $PSScriptRoot -Parent
-    $Module_Path = Get-ChildItem -Path $Module_Root -Filter '*.psd1'
-    $Module_Name = $Module_Path | Select-Object -ExpandProperty 'BaseName'
-
-    $Module_Information = Import-Module -Name $Module_Path.PSPath -Force -ErrorAction 'Stop' -PassThru
-    $Module_ExportedFunctions = $Module_Information.ExportedFunctions.Values.Name
-}
 
 Describe 'Function Validation' -Tags 'Module' {
+    $Module_Root = Split-Path -Path $PSScriptRoot -Parent
+    $Module_Path = Get-ChildItem -Path $Module_Root -Filter '*.psd1'
+    $Module_Information = Import-Module -Name $Module_Path.PSPath -Force -ErrorAction 'Stop' -PassThru
+    $Module_ExportedFunctions = $Module_Information.ExportedFunctions.Values.Name
+
     [System.Collections.ArrayList]$TestCases = @()
     $Module_ExportedFunctions | ForEach-Object {
         [void]$TestCases.Add(@{FunctionName = $_})
