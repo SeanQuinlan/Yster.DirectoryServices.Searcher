@@ -74,6 +74,11 @@ function Find-DSSComputer {
         [String]
         $Name,
 
+        # Whether or not to include default properties. By setting this switch, only the explicitly specified properties will be returned.
+        [Parameter(Mandatory = $false)]
+        [Switch]
+        $NoDefaultProperties,
+
         # The number of results per page that is returned from the server. This is primarily to save server memory and bandwidth and does not affect the total number of results returned.
         # An example of using this property is:
         #
@@ -172,8 +177,11 @@ function Find-DSSComputer {
         'deleted'
         'description'
         'displayname'
+        'distinguishedname'
+        'dnshostname'
         'doesnotrequirepreauth'
         'dscorepropagationdata'
+        'enabled'
         'homedirrequired'
         'homepage'
         'instancetype'
@@ -205,8 +213,11 @@ function Find-DSSComputer {
         'msds-supportedencryptiontypes'
         'msds-user-account-control-computed'
         'mnslogonaccount'
+        'name'
         'ntsecuritydescriptor'
         'objectcategory'
+        'objectclass'
+        'objectguid'
         'objectsid'
         'operatingsystem'
         'operatingsystemhotfix'
@@ -222,18 +233,21 @@ function Find-DSSComputer {
         'protectedfromaccidentaldeletion'
         'pwdlastset'
         'ridsetreferences'
+        'samaccountname'
         'samaccounttype'
         'sdrightseffective'
         'serverreferencebl'
         'serviceaccount'
         'serviceprincipalname'
         'serviceprincipalnames'
+        'sid'
         'sidhistory'
         'trustedfordelegation'
         'trustedtoauthfordelegation'
         'usedeskeyonly'
         'useraccountcontrol'
         'usercertificate'
+        'userprincipalname'
         'usnchanged'
         'usncreated'
         'whenchanged'
@@ -244,11 +258,12 @@ function Find-DSSComputer {
     try {
         $Function_Search_Properties = New-Object -TypeName 'System.Collections.Generic.List[String]'
         if ($PSBoundParameters.ContainsKey('Properties')) {
-            Write-Verbose ('{0}|Adding default properties first' -f $Function_Name)
-            $Function_Search_Properties.AddRange($Default_Properties)
             if ($Properties -contains '*') {
-                Write-Verbose ('{0}|Adding other wildcard properties' -f $Function_Name)
+                Write-Verbose ('{0}|Adding wildcard properties' -f $Function_Name)
                 $Function_Search_Properties.AddRange($Wildcard_Properties)
+            } elseif (-not $NoDefaultProperties) {
+                Write-Verbose ('{0}|Adding default properties first' -f $Function_Name)
+                $Function_Search_Properties.AddRange($Default_Properties)
             }
             foreach ($Property in $Properties) {
                 if (($Property -ne '*') -and ($Function_Search_Properties -notcontains $Property)) {
