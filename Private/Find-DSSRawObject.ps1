@@ -353,8 +353,11 @@ function Find-DSSRawObject {
                                                 # Convert this to a SID, which can then be looked up in Active Directory to find the DistinguishedName.
                                                 $Computer_Object = $_.'IdentityReference'
                                                 $Computer_SID = $Computer_Object.Translate([Security.Principal.SecurityIdentifier])
-                                                $Computer_Search_Parameters = @{}
-                                                $Computer_Search_Parameters['ObjectSID'] = $Computer_SID
+                                                $Computer_Search_Parameters = @{
+                                                    'ObjectSID'           = $Computer_SID
+                                                    'NoDefaultProperties' = $true
+                                                    'Properties'          = 'distinguishedname'
+                                                }
                                                 $Computer_Search_Result = (Get-DSSComputer @Common_Search_Parameters @Computer_Search_Parameters).'distinguishedname'
                                                 $Delegation_Principals.Add($Computer_Search_Result)
                                             }

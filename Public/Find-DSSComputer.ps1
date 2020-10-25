@@ -206,6 +206,7 @@ function Find-DSSComputer {
         'modified'
         'modifytimestamp'
         'msdfsr-computerreferencebl'
+        'msds-allowedtoactonbehalfofotheridentity'
         'msds-assignedauthnpolicy'
         'msds-assignedauthnpolicysilo'
         'msds-generationid'

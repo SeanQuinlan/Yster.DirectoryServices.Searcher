@@ -746,12 +746,14 @@ function Set-DSSRawObject {
                                     # It would be nice to get the 'msds-allowedtoactonbehalfofotheridentity' property directly from the $Object via $Object.InvokeGet('msds-allowedtoactonbehalfofotheridentity')
                                     # Doing this returns the property as a System.__ComObject, and I am not able to find a method to convert this COMObject into the byte array that is returned from a search
                                     # So will have to make another call to get this property in the correct format
-                                    $Principal_Search_Parameters = @{}
-                                    $Principal_Search_Parameters['DistinguishedName'] = $Object.InvokeGet('distinguishedname')
-                                    $Principal_Search_Parameters['Properties'] = @('msds-allowedtoactonbehalfofotheridentity', 'principalsallowedtodelegatetoaccount')
+                                    $Principal_Search_Parameters = @{
+                                        'DistinguishedName'   = $Object.InvokeGet('distinguishedname')
+                                        'NoDefaultProperties' = $true
+                                        'Properties'          = 'msds-allowedtoactonbehalfofotheridentity'
+                                    }
                                     $Principal_Search = Get-DSSComputer @Common_Search_Parameters @Principal_Search_Parameters
                                     $Existing_Rules = $Principal_Search.'msds-allowedtoactonbehalfofotheridentity'
-                                    # If msds-allowedtoactonbehalfofotheridentity has never been set, it will be null, so set it as a blank ActiveDirectorySecurity object, so we can add to it.
+                                    # If msds-allowedtoactonbehalfofotheridentity has never been set, it will be null, so set it as a blank ActiveDirectorySecurity object, then we can add to it.
                                     if ($Existing_Rules -isnot [System.DirectoryServices.ActiveDirectorySecurity]) {
                                         $Existing_Rules = New-Object -TypeName 'System.DirectoryServices.ActiveDirectorySecurity'
                                         $Existing_Rules.SetSecurityDescriptorSddlForm('O:BAD:') # Sets BUILTIN\Administrators as the owner.
