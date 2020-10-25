@@ -186,6 +186,8 @@ function Get-DSSForest {
                 $Forest_Result_Value = $Current_Forest_Properties.'NamingRoleOwner'
             } elseif ($_ -eq 'schemamaster') {
                 $Forest_Result_Value = $Current_Forest_Properties.'SchemaRoleOwner'
+            } elseif ($_ -eq 'sites') {
+                $Forest_Result_Value = $Current_Forest_Properties.'Sites'.Name | Sort-Object
             } else {
                 $Forest_Result_Value = $Current_Forest_Properties.$_
             }

@@ -272,7 +272,7 @@ function Find-DSSDomainController {
 
             foreach ($Result_To_Return in $Results_To_Return) {
                 if ($Partition_Properties_To_Process) {
-                    $Server_Object = $Site_Results | Where-Object { $_['ServerReference'] -eq $Result_To_Return['distinguishedname'] }
+                    $Server_Object = $Site_Results | Where-Object { $_['serverreference'] -eq $Result_To_Return['distinguishedname'] }
                     $NTDS_Settings = $Site_Results | Where-Object { ($_['objectclass'] -contains 'ntdsdsa') -and ($_['distinguishedname'] -match $Server_Object['distinguishedname']) }
 
                     # Add any properties gathered from the Partitions object.
