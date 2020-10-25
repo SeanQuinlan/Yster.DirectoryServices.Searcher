@@ -109,7 +109,7 @@ function Find-DSSRawObject {
     $Paging_Regex = '\;range=(\d+)-(.*)'
 
     # Some returned properties are not directly from LDAP, but rather from a different method, eg. a DNS lookup done on the local machine.
-    $Non_LDAP_Properties = @('enabledscopes', 'ipv4address', 'ipv6address', 'isdisableable')
+    $Non_LDAP_Properties = @('enabledscopes', 'isdisableable')
 
     try {
         $Common_Parameters = @('Context', 'Server', 'Credential')
@@ -145,25 +145,29 @@ function Find-DSSRawObject {
         $Directory_Searcher.PageSize = $PageSize
 
         $Properties_To_Add = New-Object -TypeName 'System.Collections.Generic.List[String]'
+        # Always add the "adspath" property, so that the list of properties is never null.
+        # In a case where you specify NoDefaultProperties as well as a list of properties that are non-LDAP, then Properties_To_Add will be null and will then return all the default properties.
+        $Properties_To_Add.Add('adspath')
         $Properties_To_Calculate_Later = New-Object -TypeName 'System.Collections.Generic.List[String]'
         foreach ($Property in $Properties) {
             if ($Non_LDAP_Properties -contains $Property) {
+                Write-Verbose ('{0}|Adding property to calculate later: {1}' -f $Function_Name, $Property)
                 $Properties_To_Calculate_Later.Add($Property)
             } else {
                 $Properties_To_Add.Add($Property)
+            }
 
-                foreach ($Combined_Calculated_Property in $Combined_Calculated_Properties.GetEnumerator()) {
-                    if (($Combined_Calculated_Property.Value -contains $Property) -and ($Properties_To_Add -notcontains $Combined_Calculated_Property.Name)) {
-                        Write-Verbose ('{0}|Adding calculated property: {1}' -f $Function_Name, $Combined_Calculated_Property.Name)
-                        $Properties_To_Add.Add($Combined_Calculated_Property.Name)
-                    }
+            foreach ($Combined_Calculated_Property in $Combined_Calculated_Properties.GetEnumerator()) {
+                if (($Combined_Calculated_Property.Value -contains $Property) -and ($Properties_To_Add -notcontains $Combined_Calculated_Property.Name)) {
+                    Write-Verbose ('{0}|Adding calculated property: {1}' -f $Function_Name, $Combined_Calculated_Property.Name)
+                    $Properties_To_Add.Add($Combined_Calculated_Property.Name)
                 }
+            }
 
-                foreach ($Current_Calculated_SubProperty in $Useful_Calculated_SubProperties.GetEnumerator().Name) {
-                    if (($Useful_Calculated_SubProperties[$Current_Calculated_SubProperty].GetEnumerator().Name -contains $Property) -and ($Properties_To_Add -notcontains $Current_Calculated_SubProperty)) {
-                        Write-Verbose ('{0}|Adding calculated subproperty: {1}' -f $Function_Name, $Current_Calculated_SubProperty)
-                        $Properties_To_Add.Add($Current_Calculated_SubProperty)
-                    }
+            foreach ($Current_Calculated_SubProperty in $Useful_Calculated_SubProperties.GetEnumerator().Name) {
+                if (($Useful_Calculated_SubProperties[$Current_Calculated_SubProperty].GetEnumerator().Name -contains $Property) -and ($Properties_To_Add -notcontains $Current_Calculated_SubProperty)) {
+                    Write-Verbose ('{0}|Adding calculated subproperty: {1}' -f $Function_Name, $Current_Calculated_SubProperty)
+                    $Properties_To_Add.Add($Current_Calculated_SubProperty)
                 }
             }
         }
@@ -470,7 +474,23 @@ function Find-DSSRawObject {
                                             $Useful_Calculated_Property_Value = New-TimeSpan -Days $Current_Searcher_Result_Value
                                         }
 
-                                        # Custom Properties
+                                        # Network properties
+                                        'ipv[4|6]address' {
+                                            # Useful post here: https://www.myotherpcisacloud.com/post/IPv4Address-Attribute-In-Get-ADComputer
+                                            # Try and get the IP address(es) from DNS or just return null if any error.
+                                            try {
+                                                $Host_IP_Addresses = [System.Net.Dns]::GetHostEntry($Current_Searcher_Result_Value).AddressList
+                                            } catch {
+                                                $Host_IP_Addresses = $null
+                                            }
+                                            if ($Useful_Calculated_Property_Name -eq 'ipv4address') {
+                                                $Useful_Calculated_Property_Value = ($Host_IP_Addresses | Where-Object { $_.AddressFamily -eq 'InterNetwork' }).'IPAddressToString'
+                                            } elseif ($Useful_Calculated_Property_Name -eq 'ipv6address') {
+                                                $Useful_Calculated_Property_Value = ($Host_IP_Addresses | Where-Object { ($_.AddressFamily -eq 'InterNetworkV6') -and (-not $_.IsIPv6LinkLocal) -and (-not $_.IsIPv6SiteLocal) }).'IPAddressToString'
+                                            }
+                                        }
+
+                                        # Custom properties
                                         'domainname' {
                                             # This is simply everything before the first "/" in the canonicalname.
                                             $Useful_Calculated_Property_Value = $Current_Searcher_Result_Value.Split('/')[0]
@@ -569,20 +589,6 @@ function Find-DSSRawObject {
                     if ($Properties_To_Calculate_Later.Count) {
                         foreach ($Property in $Properties_To_Calculate_Later) {
                             switch -Regex ($Property) {
-                                'ipv[4|6]address' {
-                                    # Useful post here: https://www.myotherpcisacloud.com/post/IPv4Address-Attribute-In-Get-ADComputer
-                                    # Try and get the IP address(es) from DNS or just return null if any error.
-                                    try {
-                                        $Host_IP_Addresses = [System.Net.Dns]::GetHostEntry($Result_Object['dnshostname']).AddressList
-                                    } catch {
-                                        $Host_IP_Addresses = $null
-                                    }
-                                    if ($Property -eq 'ipv4address') {
-                                        $Calculate_Later_Value = ($Host_IP_Addresses | Where-Object { $_.AddressFamily -eq 'InterNetwork' }).'IPAddressToString'
-                                    } elseif ($Property -eq 'ipv6address') {
-                                        $Calculate_Later_Value = ($Host_IP_Addresses | Where-Object { ($_.AddressFamily -eq 'InterNetworkV6') -and (-not $_.IsIPv6LinkLocal) -and (-not $_.IsIPv6SiteLocal) }).'IPAddressToString'
-                                    }
-                                }
                                 'isdisableable' {
                                     # This is used when looking up an Optional Feature.
                                     # This is $false for both available Optional Features and I can't find out how it's derived, so just statically assign it here.

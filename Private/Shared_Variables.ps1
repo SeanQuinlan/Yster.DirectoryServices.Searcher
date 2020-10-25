@@ -78,11 +78,21 @@ $Useful_Calculated_Properties = @{
     # Properties which are returned as TimeSpan objects, based on an integer stored in Active Directory.
     'msds-logontimesyncinterval'               = 'lastlogonreplicationinterval'
 
+    # Network properties
+    'dnshostname'                              = @('ipv4address', 'ipv6address')
+
     # Custom properties
     'canonicalname'                            = 'domainname'
 }
 
-$Combined_Calculated_Properties = $Microsoft_Alias_Properties + $Useful_Calculated_Properties
+$Combined_Calculated_Properties = $Microsoft_Alias_Properties.PSBase.Clone()
+$Useful_Calculated_Properties.GetEnumerator() | ForEach-Object {
+    if ($Combined_Calculated_Properties[$_.Name]) {
+        $Combined_Calculated_Properties[$_.Name] = @($Combined_Calculated_Properties[$_.Name]) + $_.Value
+    } else {
+        $Combined_Calculated_Properties[$_.Name] = $_.Value
+    }
+}
 
 # Like $Useful_Calculated_Properties, these are also calculated based on another property, but require some additional calculation on the sub-property as well.
 $Useful_Calculated_SubProperties = @{

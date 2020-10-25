@@ -80,6 +80,22 @@ function Get-DSSObjectWrapper {
                 Write-Verbose ('{0}|Calling Find-DSSComputer' -f $Function_Name)
                 Find-DSSComputer @BoundParameters
             }
+            'DomainController' {
+                Write-Verbose ('{0}|Calling Find-DSSDomainController' -f $Function_Name)
+                Find-DSSDomainController @BoundParameters
+            }
+            'Group' {
+                Write-Verbose ('{0}|Calling Find-DSSGroup' -f $Function_Name)
+                Find-DSSGroup @BoundParameters
+            }
+            'Object' {
+                Write-Verbose ('{0}|Calling Find-DSSObject' -f $Function_Name)
+                Find-DSSObject @BoundParameters
+            }
+            'OptionalFeature' {
+                Write-Verbose ('{0}|Calling Find-DSSOptionalFeature' -f $Function_Name)
+                Find-DSSOptionalFeature @BoundParameters
+            }
             'OrganizationalUnit' {
                 Write-Verbose ('{0}|Calling Find-DSSOrganizationalUnit' -f $Function_Name)
                 Find-DSSOrganizationalUnit @BoundParameters

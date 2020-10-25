@@ -60,6 +60,11 @@ function Get-DSSGroup {
         [Switch]
         $IncludeDeletedObjects,
 
+        # Whether or not to include default properties. By setting this switch, only the explicitly specified properties will be returned.
+        [Parameter(Mandatory = $false)]
+        [Switch]
+        $NoDefaultProperties,
+
         # The ObjectGUID of the account.
         [Parameter(Mandatory = $true, ParameterSetName = 'GUID')]
         [ValidateNotNullOrEmpty()]
@@ -92,7 +97,7 @@ function Get-DSSGroup {
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         [String[]]
-        $Properties,
+        $Properties = @('distinguishedname'),
 
         # The SAMAccountName of the account.
         [Parameter(Mandatory = $true, ParameterSetName = 'SAM')]
@@ -117,37 +122,14 @@ function Get-DSSGroup {
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
 
     try {
-        $Directory_Search_Parameters = @{
-            'Context'  = $Context
-            'PageSize' = $PageSize
-        }
-        if ($PSBoundParameters.ContainsKey('IncludeDeletedObjects')) {
-            $Directory_Search_Parameters['IncludeDeletedObjects'] = $true
-        }
-        if ($PSBoundParameters.ContainsKey('Server')) {
-            $Directory_Search_Parameters['Server'] = $Server
-        }
-        if ($PSBoundParameters.ContainsKey('Credential')) {
-            $Directory_Search_Parameters['Credential'] = $Credential
-        }
-        if ($PSBoundParameters.ContainsKey('Properties')) {
-            $Directory_Search_Parameters['Properties'] = $Properties
+        if ($PSBoundParameters.ContainsKey('NoDefaultProperties')) {
+            if (-not $PSBoundParameters.ContainsKey('Properties')) {
+                $PSBoundParameters['Properties'] = $Properties
+            }
         }
 
-        if ($PSBoundParameters.ContainsKey('DistinguishedName')) {
-            $Directory_Search_LDAPFilter = '(distinguishedname={0})' -f $DistinguishedName
-        } elseif ($PSBoundParameters.ContainsKey('ObjectSID')) {
-            $Directory_Search_LDAPFilter = '(objectsid={0})' -f $ObjectSID
-        } elseif ($PSBoundParameters.ContainsKey('ObjectGUID')) {
-            $Directory_Search_LDAPFilter = '(objectguid={0})' -f (Convert-GuidToHex -Guid $ObjectGUID)
-        } elseif ($PSBoundParameters.ContainsKey('SAMAccountName')) {
-            $Directory_Search_LDAPFilter = '(samaccountname={0})' -f $SAMAccountName
-        }
-        Write-Verbose ('{0}|LDAPFilter: {1}' -f $Function_Name, $Directory_Search_LDAPFilter)
-        $Directory_Search_Parameters['LDAPFilter'] = $Directory_Search_LDAPFilter
-
-        Write-Verbose ('{0}|Calling Find-DSSGroup' -f $Function_Name)
-        Find-DSSGroup @Directory_Search_Parameters
+        Write-Verbose ('{0}|Calling Get-DSSObjectWrapper' -f $Function_Name)
+        Get-DSSObjectWrapper -ObjectType 'Group' -BoundParameters $PSBoundParameters
 
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {

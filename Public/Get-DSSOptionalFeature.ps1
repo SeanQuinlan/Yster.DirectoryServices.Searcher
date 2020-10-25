@@ -60,6 +60,11 @@ function Get-DSSOptionalFeature {
         [String]
         $FeatureGUID,
 
+        # Whether or not to include default properties. By setting this switch, only the explicitly specified properties will be returned.
+        [Parameter(Mandatory = $false)]
+        [Switch]
+        $NoDefaultProperties,
+
         # The ObjectGUID of the optional feature.
         [Parameter(Mandatory = $true, ParameterSetName = 'GUID')]
         [ValidateNotNullOrEmpty()]
@@ -85,7 +90,7 @@ function Get-DSSOptionalFeature {
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         [String[]]
-        $Properties,
+        $Properties = @('distinguishedname'),
 
         # The server or domain to connect to.
         # See below for some examples:
@@ -103,32 +108,14 @@ function Get-DSSOptionalFeature {
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
 
     try {
-        $Directory_Search_Parameters = @{
-            'Context'  = $Context
-            'PageSize' = $PageSize
-        }
-        if ($PSBoundParameters.ContainsKey('Server')) {
-            $Directory_Search_Parameters['Server'] = $Server
-        }
-        if ($PSBoundParameters.ContainsKey('Credential')) {
-            $Directory_Search_Parameters['Credential'] = $Credential
-        }
-        if ($PSBoundParameters.ContainsKey('Properties')) {
-            $Directory_Search_Parameters['Properties'] = $Properties
+        if ($PSBoundParameters.ContainsKey('NoDefaultProperties')) {
+            if (-not $PSBoundParameters.ContainsKey('Properties')) {
+                $PSBoundParameters['Properties'] = $Properties
+            }
         }
 
-        if ($PSBoundParameters.ContainsKey('DistinguishedName')) {
-            $Directory_Search_LDAPFilter = '(distinguishedname={0})' -f $DistinguishedName
-        } elseif ($PSBoundParameters.ContainsKey('FeatureGUID')) {
-            $Directory_Search_LDAPFilter = '(msds-optionalfeatureguid={0})' -f (Convert-GuidToHex -Guid $FeatureGUID)
-        } elseif ($PSBoundParameters.ContainsKey('ObjectGUID')) {
-            $Directory_Search_LDAPFilter = '(objectguid={0})' -f (Convert-GuidToHex -Guid $ObjectGUID)
-        }
-        Write-Verbose ('{0}|LDAPFilter: {1}' -f $Function_Name, $Directory_Search_LDAPFilter)
-        $Directory_Search_Parameters['LDAPFilter'] = $Directory_Search_LDAPFilter
-
-        Write-Verbose ('{0}|Calling Find-DSSOptionalFeature' -f $Function_Name)
-        Find-DSSOptionalFeature @Directory_Search_Parameters
+        Write-Verbose ('{0}|Calling Get-DSSObjectWrapper' -f $Function_Name)
+        Get-DSSObjectWrapper -ObjectType 'OptionalFeature' -BoundParameters $PSBoundParameters
 
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
