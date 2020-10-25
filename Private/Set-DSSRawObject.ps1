@@ -830,7 +830,12 @@ function Set-DSSRawObject {
                     $Confirm_Statement = $Whatif_Statement
                     if ($PSCmdlet.ShouldProcess($Whatif_Statement, $Confirm_Statement, $Confirm_Header.ToString())) {
                         Write-Verbose ('{0}|Found object, checking for ProtectFromAccidentalDeletion' -f $Function_Name)
-                        $Check_Object = Get-DSSObject @Common_Search_Parameters -DistinguishedName $Object.distinguishedname -Properties 'protectedfromaccidentaldeletion'
+                        $Check_Object_Parameters = @{
+                            'DistinguishedName'   = $Object.distinguishedname
+                            'Properties'          = 'protectedfromaccidentaldeletion'
+                            'NoDefaultProperties' = $true
+                        }
+                        $Check_Object = Get-DSSObject @Common_Search_Parameters @Check_Object_Parameters
                         if ($Check_Object.'protectedfromaccidentaldeletion') {
                             $Terminating_ErrorRecord_Parameters = @{
                                 'Exception'    = 'System.UnauthorizedAccessException'
