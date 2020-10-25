@@ -56,7 +56,13 @@ function Remove-DSSObjectWrapper {
     )
 
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
-    $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
+    $PSBoundParameters.GetEnumerator() | ForEach-Object {
+        if ($_.Value -is [Hashtable]) {
+            Write-Verbose ("{0}|Arguments: {1}:`n{2}" -f $Function_Name, $_.Key, ($_.Value | Format-Table -AutoSize | Out-String).Trim())
+        } else {
+            Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' '))
+        }
+    }
 
     try {
         switch ($ObjectType) {
@@ -132,7 +138,7 @@ function Remove-DSSObjectWrapper {
                 'Object' = $Object_Directory_Entry
             }
             Write-Verbose ('{0}|Calling Set-DSSRawObject' -f $Function_Name)
-            Set-DSSRawObject @$Common_Search_Parameters @Set_Parameters @BoundParameters
+            Set-DSSRawObject @Common_Search_Parameters @Set_Parameters @BoundParameters
         } else {
             $Terminating_ErrorRecord_Parameters = @{
                 'Exception'    = 'System.DirectoryServices.ActiveDirectory.ActiveDirectoryObjectNotFoundException'

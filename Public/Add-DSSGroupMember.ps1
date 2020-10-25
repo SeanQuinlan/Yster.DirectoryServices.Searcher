@@ -155,7 +155,7 @@ function Add-DSSGroupMember {
                 'Members' = $Members
             }
             Write-Verbose ('{0}|Calling Set-DSSRawObject' -f $Function_Name)
-            Set-DSSRawObject @$Common_Search_Parameters @Set_Parameters @Confirm_Parameters
+            Set-DSSRawObject @Common_Search_Parameters @Set_Parameters @Confirm_Parameters
         } else {
             $Terminating_ErrorRecord_Parameters = @{
                 'Exception'    = 'System.DirectoryServices.ActiveDirectory.ActiveDirectoryObjectNotFoundException'
