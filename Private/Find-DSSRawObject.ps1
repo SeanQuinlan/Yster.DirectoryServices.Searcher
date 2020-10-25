@@ -144,11 +144,11 @@ function Find-DSSRawObject {
         Write-Verbose ('{0}|Setting PageSize to: {1}' -f $Function_Name, $PageSize)
         $Directory_Searcher.PageSize = $PageSize
 
-        $Properties_To_Add = New-Object -TypeName 'System.Collections.Generic.List[String]'
-        # Always add the "adspath" property, so that the list of properties is never null.
-        # In a case where you specify NoDefaultProperties as well as a list of properties that are non-LDAP, then Properties_To_Add will be null and will then return all the default properties.
-        $Properties_To_Add.Add('adspath')
         $Properties_To_Calculate_Later = New-Object -TypeName 'System.Collections.Generic.List[String]'
+        $Properties_To_Add = New-Object -TypeName 'System.Collections.Generic.List[String]'
+        # Always add the "distinguishedname" property, so that the list of properties is never null.
+        # In a case where you specify NoDefaultProperties as well as a list of properties that are non-LDAP, then Properties_To_Add will be null and will then return all the default properties.
+        $Properties_To_Add.Add('distinguishedname')
         foreach ($Property in $Properties) {
             if ($Non_LDAP_Properties -contains $Property) {
                 Write-Verbose ('{0}|Adding property to calculate later: {1}' -f $Function_Name, $Property)
@@ -569,12 +569,12 @@ function Find-DSSRawObject {
                             Write-Verbose ('{0}|Microsoft_Alias: Base property found: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
                             $Microsoft_Alias_Property_Names = $Microsoft_Alias_Properties[$Current_Searcher_Result_Property]
 
-                            if ($Properties -contains $Current_Searcher_Result_Property) {
+                            if ($Properties_To_Add -contains $Current_Searcher_Result_Property) {
                                 Write-Verbose ('{0}|Microsoft_Alias: Base property specified directly: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
                                 $Result_Object[$Current_Searcher_Result_Property] = $Current_Searcher_Result_Value
                             }
                             $Microsoft_Alias_Property_Names | ForEach-Object {
-                                if ($Properties -contains $_) {
+                                if ($Properties_To_Add -contains $_) {
                                     Write-Verbose ('{0}|Microsoft_Alias: Adding alias property: {1}' -f $Function_Name, $_)
                                     $Result_Object[$_] = $Current_Searcher_Result_Value
                                 }

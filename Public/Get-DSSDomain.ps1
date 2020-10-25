@@ -79,6 +79,11 @@ function Get-DSSDomain {
         [String]
         $NetBIOSName,
 
+        # Whether or not to include default properties. By setting this switch, only the explicitly specified properties will be returned.
+        [Parameter(Mandatory = $false)]
+        [Switch]
+        $NoDefaultProperties,
+
         # The properties of any results to return.
         # Some examples of using this property are:
         #
@@ -118,6 +123,7 @@ function Get-DSSDomain {
         'childdomains'
         'computerscontainer'
         'deletedobjectscontainer'
+        'distinguishedname'
         'dnsroot'
         'domaincontrollerscontainer'
         'domainmode'
@@ -135,7 +141,10 @@ function Get-DSSDomain {
         'microsoftprogramdatacontainer'
         'msds-alloweddnssuffixes'
         'msds-logontimesyncinterval'
+        'name'
         'netbiosname'
+        'objectclass'
+        'objectguid'
         'objectsid'
         'parentdomain'
         'pdcemulator'
@@ -168,28 +177,29 @@ function Get-DSSDomain {
         'replicadirectoryservers'
     )
 
-    # Only domain context makes sense in this function, so we set it statically here.
-    $Context = 'Domain'
-
     try {
-        $Common_Search_Parameters = @{}
+        $Basic_Search_Parameters = @{}
         if ($PSBoundParameters.ContainsKey('Server')) {
-            $Common_Search_Parameters['Server'] = $Server
+            $Basic_Search_Parameters['Server'] = $Server
         } elseif ($PSBoundParameters.ContainsKey('DNSName')) {
             Write-Verbose ('{0}|Adding DNSName as Server Name: {1}' -f $Function_Name, $DNSName)
-            $Common_Search_Parameters['Server'] = $DNSName
+            $Basic_Search_Parameters['Server'] = $DNSName
         }
         if ($PSBoundParameters.ContainsKey('Credential')) {
-            $Common_Search_Parameters['Credential'] = $Credential
+            $Basic_Search_Parameters['Credential'] = $Credential
         }
+        $Common_Search_Parameters = $Basic_Search_Parameters.PSBase.Clone()
+        # Only domain context makes sense in this function, so we set it statically here.
+        $Common_Search_Parameters['Context'] = 'Domain'
 
         $Function_Search_Properties = New-Object -TypeName 'System.Collections.Generic.List[String]'
         if ($PSBoundParameters.ContainsKey('Properties')) {
-            Write-Verbose ('{0}|Adding default properties first' -f $Function_Name)
-            $Function_Search_Properties.AddRange($Default_Properties)
             if ($Properties -contains '*') {
-                Write-Verbose ('{0}|Adding other wildcard properties' -f $Function_Name)
+                Write-Verbose ('{0}|Adding wildcard properties' -f $Function_Name)
                 $Function_Search_Properties.AddRange($Wildcard_Properties)
+            } elseif (-not $NoDefaultProperties) {
+                Write-Verbose ('{0}|Adding default properties first' -f $Function_Name)
+                $Function_Search_Properties.AddRange($Default_Properties)
             }
             foreach ($Property in $Properties) {
                 if (($Property -ne '*') -and ($Function_Search_Properties -notcontains $Property)) {
@@ -204,7 +214,6 @@ function Get-DSSDomain {
         Write-Verbose ('{0}|Properties: {1}' -f $Function_Name, ($Function_Search_Properties -join ' '))
 
         $Directory_Search_Parameters = @{}
-        $Directory_Search_Parameters['Context'] = $Context
         $Directory_Search_Parameters['Properties'] = $Function_Search_Properties
 
         $Default_Domain_LDAPFilter = '(objectclass=domain)'
@@ -218,16 +227,16 @@ function Get-DSSDomain {
         } elseif ($PSBoundParameters.ContainsKey('NetBIOSName')) {
             Write-Verbose ('{0}|NetBIOSName: Calculating DSE properties' -f $Function_Name)
             Write-Verbose ('{0}|NetBIOSName: Calling Get-DSSRootDSE' -f $Function_Name)
-            $DSE_Return_Object = Get-DSSRootDSE @Common_Search_Parameters
+            $DSE_Return_Object = Get-DSSRootDSE @Basic_Search_Parameters
 
             $Partitions_Path = 'CN=Partitions,{0}' -f $DSE_Return_Object.'configurationnamingcontext'
             Write-Verbose ('{0}|NetBIOSName: Partitions_Path: {1}' -f $Function_Name, $Partitions_Path)
 
-            $NetBIOSName_Search_Parameters = @{}
-            $NetBIOSName_Search_Parameters['Context'] = $Context
-            $NetBIOSName_Search_Parameters['SearchBase'] = $Partitions_Path
-            $NetBIOSName_Search_Parameters['LDAPFilter'] = '(netbiosname={0})' -f $NetBIOSName
-            $NetBIOSName_Search_Parameters['Properties'] = @('ncname')
+            $NetBIOSName_Search_Parameters = @{
+                'SearchBase' = $Partitions_Path
+                'LDAPFilter' = '(netbiosname={0})' -f $NetBIOSName
+                'Properties' = @('ncname')
+            }
 
             Write-Verbose ('{0}|NetBIOSName: Calling Find-DSSRawObject' -f $Function_Name)
             $NetBIOSName_Result_To_Return = Find-DSSRawObject @Common_Search_Parameters @NetBIOSName_Search_Parameters
@@ -254,18 +263,17 @@ function Get-DSSDomain {
                 if (-not $DSE_Return_Object) {
                     Write-Verbose ('{0}|Network/Domain: Calculating DSE properties' -f $Function_Name)
                     Write-Verbose ('{0}|Network/Domain: Calling Get-DSSRootDSE' -f $Function_Name)
-                    $DSE_Return_Object = Get-DSSRootDSE @Common_Search_Parameters
+                    $DSE_Return_Object = Get-DSSRootDSE @Basic_Search_Parameters
                 }
 
                 $Partitions_Path = 'CN=Partitions,{0}' -f $DSE_Return_Object.'configurationnamingcontext'
                 Write-Verbose ('{0}|Network/Domain: Partitions_Path: {1}' -f $Function_Name, $Partitions_Path)
 
-                $Network_Search_Parameters = @{}
-                $Network_Search_Parameters['Context'] = $Context
-                $Network_Search_Parameters['SearchBase'] = $Partitions_Path
-                $Network_Search_Parameters['LDAPFilter'] = '(&(objectclass=crossref)(netbiosname=*)(ncname={0}))' -f $Result_To_Return.'distinguishedname'
-                $Network_Search_Parameters['Properties'] = $Network_Properties
-
+                $Network_Search_Parameters = @{
+                    'SearchBase' = $Partitions_Path
+                    'LDAPFilter' = '(&(objectclass=crossref)(netbiosname=*)(ncname={0}))' -f $Result_To_Return['distinguishedname']
+                    'Properties' = $Network_Properties
+                }
                 Write-Verbose ('{0}|Network/Domain: Calling Find-DSSRawObject' -f $Function_Name)
                 $Network_Result_To_Return = Find-DSSRawObject @Common_Search_Parameters @Network_Search_Parameters
 
@@ -287,7 +295,6 @@ function Get-DSSDomain {
                     if ($PSBoundParameters.ContainsKey('Server')) {
                         $Domain_Context_Arguments['Context'] = 'Server'
                     } else {
-                        $Domain_Context_Arguments['Context'] = $Context
                         $Domain_Context_Arguments['Server'] = $Network_Result_To_Return['dnsroot']
                     }
                     Write-Verbose ('{0}|Domain: Getting domain details' -f $Function_Name)
@@ -315,10 +322,11 @@ function Get-DSSDomain {
 
                 if ($Replica_Properties_To_Process) {
                     Write-Verbose ('{0}|Replica: Calculating Replica properties for: {1}' -f $Function_Name, $Network_Result_To_Return['dnsroot'])
-                    $Replica_Search_Parameters = @{}
-                    $Replica_Search_Parameters['Context'] = $Context
-                    $Replica_Search_Parameters['Properties'] = @('isreadonly')
-                    $Replica_Search_Parameters['Name'] = '*'
+                    $Replica_Search_Parameters = @{
+                        'Name'                = '*'
+                        'Properties'          = @('dnshostname', 'isreadonly')
+                        'NoDefaultProperties' = $true
+                    }
 
                     Write-Verbose ('{0}|Replica: Calling Find-DSSDomainController' -f $Function_Name)
                     $Replica_Results = Find-DSSDomainController @Common_Search_Parameters @Replica_Search_Parameters

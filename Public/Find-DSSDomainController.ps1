@@ -242,7 +242,7 @@ function Find-DSSDomainController {
                 $Sites_Path = 'CN=Sites,{0}' -f $DSE_Return_Object.'configurationnamingcontext'
                 Write-Verbose ('{0}|Sites: Sites_Path: {1}' -f $Function_Name, $Sites_Path)
 
-                $Site_Search_Parameters = @{}
+                $Site_Search_Parameters = $Common_Search_Parameters.PSBase.Clone()
                 # Some of the below properties are not held within the global catalog, so we have to look these up using a domain query.
                 $Site_Search_Parameters['Context'] = 'Domain'
                 $Site_Search_Parameters['PageSize'] = $PageSize
@@ -259,7 +259,7 @@ function Find-DSSDomainController {
                 )
 
                 Write-Verbose ('{0}|Sites: Calling Find-DSSRawObject' -f $Function_Name)
-                $Site_Results = Find-DSSRawObject @Common_Search_Parameters @Site_Search_Parameters
+                $Site_Results = Find-DSSRawObject @Site_Search_Parameters
             }
 
             foreach ($Result_To_Return in $Results_To_Return) {
@@ -305,6 +305,7 @@ function Find-DSSDomainController {
                     $Domain_Search_Parameters = @{}
                     $Domain_Search_Parameters['Properties'] = @('dnsroot', 'forest')
                     $Domain_Search_Parameters['DistinguishedName'] = $Result_To_Return['distinguishedname'] -replace '.*,OU=Domain Controllers,'
+                    $Domain_Search_Parameters['NoDefaultProperties'] = $true
                     Write-Verbose ('{0}|Domain: Calling Get-DSSDomain for: {1}' -f $Function_Name, $Result_To_Return['distinguishedname'])
                     $Domain_Result = Get-DSSDomain @Common_Search_Parameters @Domain_Search_Parameters
 
