@@ -80,6 +80,10 @@ function Get-DSSObjectWrapper {
                 Write-Verbose ('{0}|Calling Find-DSSComputer' -f $Function_Name)
                 Find-DSSComputer @BoundParameters
             }
+            'User' {
+                Write-Verbose ('{0}|Calling Find-DSSUser' -f $Function_Name)
+                Find-DSSUser @BoundParameters
+            }
         }
 
     } catch {
