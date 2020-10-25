@@ -51,15 +51,6 @@ function Get-DSSObjectWrapper {
     }
 
     try {
-        # $Common_Parameters = @('Context', 'Credential', 'Server')
-        # $Common_Search_Parameters = @{}
-        # foreach ($Parameter in $Common_Parameters) {
-        #     if ($BoundParameters.ContainsKey($Parameter)) {
-        #         Write-Verbose ('{0}|Adding Common Search Parameter: {1} - {2}' -f $Function_Name, $Parameter, $BoundParameters[$Parameter])
-        #         $Common_Search_Parameters[$Parameter] = $BoundParameters[$Parameter]
-        #     }
-        # }
-
         $Identity_Parameters = @('SAMAccountName', 'DistinguishedName', 'ObjectSID', 'ObjectGUID')
         foreach ($Parameter in $Identity_Parameters) {
             if ($BoundParameters.ContainsKey($Parameter)) {
@@ -68,7 +59,7 @@ function Get-DSSObjectWrapper {
                 if ($Parameter -eq 'objectguid') {
                     $Directory_Search_Value = Convert-GuidToHex -Guid $Directory_Search_Value
                 }
-                $LDAPFilter = '(&{0}({1}={2}))' -f $Default_LDAPFilter, $Directory_Search_Type, $Directory_Search_Value
+                $LDAPFilter = '({0}={1})' -f $Directory_Search_Type, $Directory_Search_Value
                 [void]$BoundParameters.Remove($Parameter)
             }
         }

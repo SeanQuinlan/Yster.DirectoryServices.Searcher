@@ -662,7 +662,12 @@ function Set-DSSRawObject {
                                                     }
                                                 }
                                             } elseif (($Current_Property_Value -bor $ADGroupTypes['Universal']) -eq $Current_Property_Value) {
-                                                $Current_Domain_Name = (Get-DSSGroup @Common_Search_Parameters -DistinguishedName $Object.'distinguishedname' -Properties 'domainname').'domainname'
+                                                $Domain_Name_Search_Parameters = @{
+                                                    'DistinguishedName'   = $Object.'distinguishedname'
+                                                    'Properties'          = 'domainname'
+                                                    'NoDefaultProperties' = $true
+                                                }
+                                                $Current_Domain_Name = (Get-DSSGroup @Common_Search_Parameters @Domain_Name_Search_Parameters).'domainname'
                                                 if (($Compare_Value -bor $ADGroupTypes['Global']) -eq $Compare_Value) {
                                                     Write-Verbose ('{0}|Converting Universal to Global' -f $Function_Name)
                                                     Write-Verbose ('{0}|Checking for Universal groups as members' -f $Function_Name)

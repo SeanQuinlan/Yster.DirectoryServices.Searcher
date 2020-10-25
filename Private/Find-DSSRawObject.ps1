@@ -423,8 +423,11 @@ function Find-DSSRawObject {
                                         'primarygroup' {
                                             # Convert the PrimaryGroupID to a full ObjectSID property, by using the AccountDomainSid sub-property of the ObjectSID property of the user and appending the PrimaryGroupID.
                                             $PrimaryGroup_SID = '{0}-{1}' -f $Result_Object['objectsid'].AccountDomainSid.Value, $Current_Searcher_Result_Value
-                                            $Group_Search_Parameters = @{}
-                                            $Group_Search_Parameters['ObjectSID'] = $PrimaryGroup_SID
+                                            $Group_Search_Parameters = @{
+                                                'ObjectSID'           = $PrimaryGroup_SID
+                                                'Properties'          = 'distinguishedname'
+                                                'NoDefaultProperties' = $true
+                                            }
                                             $Useful_Calculated_Property_Value = (Get-DSSGroup @Common_Search_Parameters @Group_Search_Parameters).'distinguishedname'
                                         }
 
