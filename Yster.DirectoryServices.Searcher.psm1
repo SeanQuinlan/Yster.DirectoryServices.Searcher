@@ -10,7 +10,7 @@ foreach ($Function_Folder in @($Public_Folder, $Private_Folder)) {
         }
         foreach ($Function in $Functions_To_Import) {
             try {
-                . $Function.FullName
+                . ([ScriptBlock]::Create([System.IO.File]::ReadAllText($Function.FullName)))
             } catch {
                 Write-Error ('Error importing function "{0}": {1}' -f $Function.FullName, $_.Exception.Message)
             }
