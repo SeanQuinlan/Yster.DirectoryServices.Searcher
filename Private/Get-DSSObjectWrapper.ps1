@@ -56,9 +56,6 @@ function Get-DSSObjectWrapper {
             if ($BoundParameters.ContainsKey($Parameter)) {
                 $Directory_Search_Type = $Parameter
                 $Directory_Search_Value = $BoundParameters[$Parameter]
-                if ($Parameter -eq 'objectguid') {
-                    $Directory_Search_Value = Convert-GuidToHex -Guid $Directory_Search_Value
-                }
                 $LDAPFilter = '({0}={1})' -f $Directory_Search_Type, $Directory_Search_Value
                 [void]$BoundParameters.Remove($Parameter)
             }

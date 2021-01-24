@@ -152,7 +152,7 @@ function Get-DSSPrincipalGroupMembership {
                 $DN_Search_LDAPFilter = '(objectsid={0})' -f $ObjectSID
             } elseif ($PSBoundParameters.ContainsKey('ObjectGUID')) {
                 $DN_Search_Object = $ObjectGUID
-                $DN_Search_LDAPFilter = '(objectguid={0})' -f (Convert-GuidToHex -Guid $ObjectGUID)
+                $DN_Search_LDAPFilter = '(objectguid={0})' -f $ObjectGUID
             } elseif ($PSBoundParameters.ContainsKey('SAMAccountName')) {
                 $DN_Search_Object = $SAMAccountName
                 $DN_Search_LDAPFilter = '(samaccountname={0})' -f $SAMAccountName

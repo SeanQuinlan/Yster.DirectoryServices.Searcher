@@ -223,7 +223,7 @@ function Get-DSSDomain {
         } elseif ($PSBoundParameters.ContainsKey('ObjectSID')) {
             $Directory_Search_LDAPFilter = '(&({0})(objectsid={1}))' -f $Default_Domain_LDAPFilter, $ObjectSID
         } elseif ($PSBoundParameters.ContainsKey('ObjectGUID')) {
-            $Directory_Search_LDAPFilter = '(&({0})(objectguid={1}))' -f $Default_Domain_LDAPFilter, (Convert-GuidToHex -Guid $ObjectGUID)
+            $Directory_Search_LDAPFilter = '(&({0})(objectguid={1}))' -f $Default_Domain_LDAPFilter, $ObjectGUID
         } elseif ($PSBoundParameters.ContainsKey('NetBIOSName')) {
             Write-Verbose ('{0}|NetBIOSName: Calculating DSE properties' -f $Function_Name)
             Write-Verbose ('{0}|NetBIOSName: Calling Get-DSSRootDSE' -f $Function_Name)

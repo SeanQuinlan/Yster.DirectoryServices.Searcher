@@ -125,6 +125,16 @@ function Find-DSSRawObject {
             $Directory_Entry = Get-DSSDirectoryEntry @Common_Search_Parameters
         }
 
+        #
+        if ($LDAPFilter -match 'objectguid') {
+            $Regex_Matching_GUID = '(\{){0,1}[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{12}(\}){0,1}'
+            $GUID_Matches = ([System.Text.RegularExpressions.Regex]$Regex_Matching_GUID).Matches($LDAPFilter)
+            foreach ($GUID_Match in $GUID_Matches.Value) {
+                Write-Verbose ('{0}|Replacing GUID: {1}' -f $Function_Name, $GUID_Match)
+                $LDAPFilter = $LDAPFilter -replace $GUID_Match, (Convert-GuidToHex -Guid $GUID_Match)
+            }
+        }
+
         $Directory_Searcher_Arguments = @(
             $Directory_Entry
             # LDAP filters seem to need TRUE and FALSE in boolean comparisons to be upper case, so simply convert any here.
@@ -500,6 +510,11 @@ function Find-DSSRawObject {
                                         'domainname' {
                                             # This is simply everything before the first "/" in the canonicalname.
                                             $Useful_Calculated_Property_Value = $Current_Searcher_Result_Value.Split('/')[0]
+                                        }
+                                        'parentou' {
+                                            # Regex from: https://stackoverflow.com/questions/51761894/regex-extract-ou-from-distinguished-name
+                                            $null = $Current_Searcher_Result_Value -match '^(?:(CN=(.*?)),)?(?<ParentOU>(?:((?:CN|OU).*?),)?(?<DomainDN>(?:DC=.*)+))$'
+                                            $Useful_Calculated_Property_Value = $matches.ParentOU
                                         }
                                     }
 

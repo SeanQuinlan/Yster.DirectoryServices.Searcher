@@ -59,9 +59,7 @@ function Get-DSSResolvedObject {
             foreach ($Object_Search_Property in $Object_Search_Properties) {
                 if ($Object_Search_Property -eq 'ObjectGUID') {
                     # Only proceed if the $Input_Object string is a valid GUID.
-                    if ([System.Guid]::TryParse($Input_Object, [ref][System.Guid]::Empty)) {
-                        $Input_Object = (Convert-GuidToHex -Guid $Input_Object)
-                    } else {
+                    if (-not ([System.Guid]::TryParse($Input_Object, [ref][System.Guid]::Empty))) {
                         break
                     }
                 }
