@@ -104,7 +104,7 @@ function Move-DSSObject {
             }
         }
 
-        $Identity_Parameters = @('DistinguishedName', 'ObjectGUID')
+        $Identity_Parameters = @('DistinguishedName', 'ObjectGUID', 'ObjectSID')
         foreach ($Parameter in $Identity_Parameters) {
             if ($PSBoundParameters.ContainsKey($Parameter)) {
                 $Directory_Search_Type = $Parameter
