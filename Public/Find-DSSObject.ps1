@@ -109,8 +109,8 @@ function Find-DSSObject {
 
         # The scope to search. Must be one of: Base, OneLevel, Subtree.
         #
-        # ..Base will search only in the OU/Container specified and will not look through child OUs.
-        # ..OneLevel will search in the OU/Container specified, and the immediate child OUs.
+        # ..Base will search within the given DistinguishedName. This is only used to verify the base exists. Mostly useless.
+        # ..OneLevel will search only in the OU/Container specified and will not look through child OUs.
         # ..Subtree will search in the OU/Container specified and will recursively search through all child OUs.
         #
         # If no SearchScope is provided, the default is Subtree.
