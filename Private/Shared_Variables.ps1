@@ -83,6 +83,7 @@ $Useful_Calculated_Properties = @{
 
     # Custom properties
     'canonicalname'                            = 'domainname'
+    'distinguishedname'                        = 'parentou'
 }
 
 $Combined_Calculated_Properties = $Microsoft_Alias_Properties.PSBase.Clone()
