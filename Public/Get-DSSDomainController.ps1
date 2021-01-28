@@ -87,6 +87,7 @@ function Get-DSSDomainController {
         # -Properties 'created','enabled','displayname'
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
+        [Alias('Property')]
         [String[]]
         $Properties = @('distinguishedname'),
 

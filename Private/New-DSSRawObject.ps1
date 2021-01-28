@@ -47,6 +47,7 @@ function New-DSSRawObject {
         # A table of properties to apply to the object.
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
+        [Alias('Property')]
         [HashTable]
         $Properties,
 

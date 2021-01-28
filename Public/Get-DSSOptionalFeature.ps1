@@ -89,6 +89,7 @@ function Get-DSSOptionalFeature {
         # -Properties 'created','enabled','displayname'
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
+        [Alias('Property')]
         [String[]]
         $Properties = @('distinguishedname'),
 

@@ -86,6 +86,7 @@ function Find-DSSOptionalFeature {
         # -Properties 'created','enabled','displayname'
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
+        [Alias('Property')]
         [String[]]
         $Properties,
 
