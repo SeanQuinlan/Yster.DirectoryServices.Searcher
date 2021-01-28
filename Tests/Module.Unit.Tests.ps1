@@ -80,6 +80,15 @@ Describe 'Function Validation' -Tags 'Module' {
         }
     }
 
+    # All Find-XXX functions must have a PageSize parameter
+    Context 'Function Parameters - Find functions have a PageSize parameter' {
+        $TestCases = $TestCases | Where-Object { $_.FunctionName -match '^Find' }
+        It '<FunctionName> has a PageSize parameter' -TestCases $TestCases {
+            $Function_ParameterNames = $Function_AST.ParamBlock.Parameters.Name.VariablePath.UserPath
+            $Function_ParameterNames -contains 'PageSize' | Should -Be $true
+        }
+    }
+
     # Inspired from: https://lazywinadmin.com/2016/08/powershellpester-make-sure-your.html
     Context 'Function has parameters separated by blank line' {
         It '<FunctionName> parameters separated by blank lines' -TestCases $TestCases {
