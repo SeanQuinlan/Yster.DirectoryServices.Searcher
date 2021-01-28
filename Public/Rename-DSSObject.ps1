@@ -113,7 +113,7 @@ function Rename-DSSObject {
             'Properties' = 'ParentOU'
         }
 
-        $global:Object_Directory_Search = Find-DSSObject @Common_Search_Parameters @Directory_Search_Parameters
+        $Object_Directory_Search = Find-DSSObject @Common_Search_Parameters @Directory_Search_Parameters
         if ($Object_Directory_Search) {
             Write-Verbose ('{0}|Checking if NewName exists in ParentOU: {1}' -f $Function_Name, $Object_Directory_Search.'parentou')
             $NewName_Search_Parameters = @{
@@ -137,7 +137,7 @@ function Rename-DSSObject {
                     'LDAPFilter'   = '(distinguishedname={0})' -f $Object_Directory_Search.'distinguishedname'
                     'OutputFormat' = 'DirectoryEntry'
                 }
-                $global:Object_Directory_Entry = Find-DSSRawObject @Common_Search_Parameters @Directory_Entry_Properties
+                $Object_Directory_Entry = Find-DSSRawObject @Common_Search_Parameters @Directory_Entry_Properties
                 Write-Verbose ('{0}|Renaming object "{1}" to NewName: {2}' -f $Function_Name, $Object_Directory_Search.'distinguishedname', $NewName)
                 $Object_Directory_Entry.Rename(('CN={0}' -f $NewName))
             }
