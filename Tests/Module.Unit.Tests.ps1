@@ -1,7 +1,6 @@
 # Some helpful links:
 # https://stackoverflow.com/questions/62497134/pester-5-0-2-beforeall-block-code-not-showing-up-in-describe-block
 
-
 Describe 'Function Validation' -Tags 'Module' {
     $Module_Root = Split-Path -Path $PSScriptRoot -Parent
     $Module_Path = Get-ChildItem -Path $Module_Root -Filter '*.psd1'
@@ -80,12 +79,27 @@ Describe 'Function Validation' -Tags 'Module' {
         }
     }
 
-    # All Find-XXX functions must have a PageSize parameter
+    # All Find-XXX functions must have a PageSize parameter.
     Context 'Function Parameters - Find functions have a PageSize parameter' {
         $TestCases = $TestCases | Where-Object { $_.FunctionName -match '^Find' }
         It '<FunctionName> has a PageSize parameter' -TestCases $TestCases {
             $Function_ParameterNames = $Function_AST.ParamBlock.Parameters.Name.VariablePath.UserPath
             $Function_ParameterNames -contains 'PageSize' | Should -Be $true
+        }
+    }
+
+    # All Get-XXX and Find-XXX functions must have a Properties parameter, with a Property alias for that parameter.
+    Context 'Function Parameters - Get and Find functions have a Properties parameter and Property Alias' {
+        $TestCases = $TestCases | Where-Object { ($_.FunctionName -match '^Find|^Get') -and ($_.FunctionName -ne 'Get-DSSRootDSE') }
+
+        It '<FunctionName> has a Properties parameter' -TestCases $TestCases {
+            $Function_ParameterNames = $Function_AST.ParamBlock.Parameters.Name.VariablePath.UserPath
+            $Function_ParameterNames -contains 'Properties' | Should -Be $true
+        }
+        It '<FunctionName> has a Property alias to Properties parameter' -TestCases $TestCases {
+            $Properties_Parameter = $Function_AST.ParamBlock.Parameters | Where-Object { $_.Name.VariablePath.UserPath -eq 'Properties' }
+            $Properties_Alias_Attribute = $Properties_Parameter.Attributes | Where-Object { $_.TypeName.FullName -eq 'Alias' }
+            $Properties_Alias_Attribute.PositionalArguments.Value -eq 'Property' | Should -Be $true
         }
     }
 
