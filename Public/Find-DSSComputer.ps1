@@ -11,7 +11,7 @@ function Find-DSSComputer {
     .EXAMPLE
         Find-DSSComputer -LDAPFilter '(name=appserver*)' -SearchBase 'OU=Mkt_Servers,DC=contoso,DC=com' -SearchScope 'OneLevel'
 
-        Finds all computers that have a name starting with "appserver", in the "Mkt_Servers" OU or the immediate children of that OU.
+        Finds all computers that have a name starting with "appserver", in the "Mkt_Servers" OU.
     .NOTES
         References:
         https://docs.microsoft.com/en-us/powershell/module/addsadministration/get-adcomputer
@@ -118,7 +118,7 @@ function Find-DSSComputer {
         # If no SearchScope is provided, the default is Subtree.
         # An example of using this property is:
         #
-        # -SearchScope Base
+        # -SearchScope OneLevel
         [Parameter(Mandatory = $false)]
         [ValidateSet('Base', 'OneLevel', 'Subtree')]
         [String]

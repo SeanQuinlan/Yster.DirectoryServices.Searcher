@@ -11,7 +11,7 @@ function Find-DSSObject {
     .EXAMPLE
         Find-DSSObject -LDAPFilter '(samaccountname=test*)' -SearchBase 'OU=Corp,DC=contoso,DC=com' -SearchScope 'OneLevel'
 
-        Finds all objects that have the samaccountname starting with "test", in the Corp OU or the immediate children of Corp.
+        Finds all objects that have the samaccountname starting with "test", located in the Corp OU.
     .NOTES
         References:
         https://docs.microsoft.com/en-us/powershell/module/addsadministration/get-adobject
@@ -117,7 +117,7 @@ function Find-DSSObject {
         # If no SearchScope is provided, the default is Subtree.
         # An example of using this property is:
         #
-        # -SearchScope Base
+        # -SearchScope OneLevel
         [Parameter(Mandatory = $false)]
         [ValidateSet('Base', 'OneLevel', 'Subtree')]
         [String]

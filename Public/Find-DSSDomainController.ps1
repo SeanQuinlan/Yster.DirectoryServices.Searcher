@@ -109,7 +109,7 @@ function Find-DSSDomainController {
         # If no SearchScope is provided, the default is Subtree.
         # An example of using this property is:
         #
-        # -SearchScope Base
+        # -SearchScope OneLevel
         [Parameter(Mandatory = $false)]
         [ValidateSet('Base', 'OneLevel', 'Subtree')]
         [String]

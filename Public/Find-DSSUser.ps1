@@ -11,7 +11,7 @@ function Find-DSSUser {
     .EXAMPLE
         Find-DSSUser -LDAPFilter '(samaccountname=test*)' -SearchBase 'CN=Users,DC=contoso,DC=com' -SearchScope 'OneLevel'
 
-        Finds all users that have the samaccountname starting with "test", in the Users container or the immediate children of Users.
+        Finds all users that have the samaccountname starting with "test", in the Users container.
     .NOTES
         References:
         https://docs.microsoft.com/en-us/powershell/module/addsadministration/get-aduser
@@ -118,7 +118,7 @@ function Find-DSSUser {
         # If no SearchScope is provided, the default is Subtree.
         # An example of using this property is:
         #
-        # -SearchScope Base
+        # -SearchScope OneLevel
         [Parameter(Mandatory = $false)]
         [ValidateSet('Base', 'OneLevel', 'Subtree')]
         [String]
