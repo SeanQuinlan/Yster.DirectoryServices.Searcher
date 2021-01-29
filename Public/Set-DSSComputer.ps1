@@ -375,6 +375,15 @@ function Set-DSSComputer {
         # The SAMAccountName of the computer.
         [Parameter(Mandatory = $true, ParameterSetName = 'SAM')]
         [ValidateNotNullOrEmpty()]
+        [ValidateScript(
+            {
+                if ($_ -match '[\*\?]') {
+                    throw [System.Management.Automation.ValidationMetadataException] 'Cannot contain wildcards'
+                } else {
+                    $true
+                }
+            }
+        )]
         [Alias('SAM')]
         [String]
         $SAMAccountName,

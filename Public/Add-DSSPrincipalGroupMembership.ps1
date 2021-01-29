@@ -79,6 +79,15 @@ function Add-DSSPrincipalGroupMembership {
         # The SAMAccountName of the object.
         [Parameter(Mandatory = $true, ParameterSetName = 'SAM')]
         [ValidateNotNullOrEmpty()]
+        [ValidateScript(
+            {
+                if ($_ -match '[\*\?]') {
+                    throw [System.Management.Automation.ValidationMetadataException] 'Cannot contain wildcards'
+                } else {
+                    $true
+                }
+            }
+        )]
         [Alias('SAM')]
         [String]
         $SAMAccountName,
