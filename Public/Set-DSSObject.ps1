@@ -7,6 +7,8 @@ function Set-DSSObject {
         The object can be specified using one of the following
             - DistinguishedName
             - ObjectGUID (GUID)
+            - ObjectSID (SID)
+            - SAMAccountName
     .EXAMPLE
         Set-DSSObject -DistinguishedName 'CN=SQL Servers,OU=Servers,DC=contoso,DC=com' -Replace @{Description='SQL Servers'}
 
@@ -184,6 +186,13 @@ function Set-DSSObject {
         [String]
         $ObjectGUID,
 
+        # The ObjectSID of the object.
+        [Parameter(Mandatory = $true, ParameterSetName = 'SID')]
+        [ValidateNotNullOrEmpty()]
+        [Alias('SID')]
+        [String]
+        $ObjectSID,
+
         # Specifies that the account password does not expire.
         # This sets the PasswordNeverExpires flag of the UserAccountControl attribute of the account.
         # An example of using this property is:
@@ -249,6 +258,22 @@ function Set-DSSObject {
         [ValidateNotNullOrEmpty()]
         [HashTable]
         $Replace,
+
+        # The SAMAccountName of the account.
+        [Parameter(Mandatory = $true, ParameterSetName = 'SAM')]
+        [ValidateNotNullOrEmpty()]
+        [ValidateScript(
+            {
+                if ($_ -match '[\*\?]') {
+                    throw [System.Management.Automation.ValidationMetadataException] 'Cannot contain wildcards'
+                } else {
+                    $true
+                }
+            }
+        )]
+        [Alias('SAM')]
+        [String]
+        $SAMAccountName,
 
         # The server or domain to connect to.
         # See below for some examples:

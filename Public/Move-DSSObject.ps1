@@ -8,6 +8,7 @@ function Move-DSSObject {
             - DistinguishedName
             - ObjectGUID (GUID)
             - ObjectSID (SID)
+            - SAMAccountName
     .EXAMPLE
         Move-DSSObject -DistinguishedName 'CN=SQL Servers,OU=Servers,DC=contoso,DC=com' -TargetPath 'OU=Servers,OU=Headquarters,DC=contoso,DC=com'
 
@@ -65,6 +66,22 @@ function Move-DSSObject {
         [Alias('SID')]
         [String]
         $ObjectSID,
+
+        # The SAMAccountName of the account.
+        [Parameter(Mandatory = $true, ParameterSetName = 'SAM')]
+        [ValidateNotNullOrEmpty()]
+        [ValidateScript(
+            {
+                if ($_ -match '[\*\?]') {
+                    throw [System.Management.Automation.ValidationMetadataException] 'Cannot contain wildcards'
+                } else {
+                    $true
+                }
+            }
+        )]
+        [Alias('SAM')]
+        [String]
+        $SAMAccountName,
 
         # The server or domain to connect to.
         # See below for some examples:

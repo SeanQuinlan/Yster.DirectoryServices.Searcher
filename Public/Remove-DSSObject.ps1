@@ -7,6 +7,7 @@ function Remove-DSSObject {
             - DistinguishedName
             - ObjectGUID (GUID)
             - ObjectSID (SID)
+            - SAMAccountName
     .EXAMPLE
         Remove-DSSObject -DistinguishedName 'CN=JSMITHLAP,OU=Sales,DC=contoso,DC=com'
 
@@ -72,6 +73,22 @@ function Remove-DSSObject {
         [Parameter(Mandatory = $false)]
         [Switch]
         $Recursive,
+
+        # The SAMAccountName of the account.
+        [Parameter(Mandatory = $true, ParameterSetName = 'SAM')]
+        [ValidateNotNullOrEmpty()]
+        [ValidateScript(
+            {
+                if ($_ -match '[\*\?]') {
+                    throw [System.Management.Automation.ValidationMetadataException] 'Cannot contain wildcards'
+                } else {
+                    $true
+                }
+            }
+        )]
+        [Alias('SAM')]
+        [String]
+        $SAMAccountName,
 
         # The server or domain to connect to.
         # See below for some examples:

@@ -6,6 +6,8 @@ function Get-DSSObject {
         Queries Active Directory for a specific object, based on one of the following specified parameters:
             - DistinguishedName
             - ObjectGUID (GUID)
+            - ObjectSID (SID)
+            - SAMAccountName
 
         This is a wrapper function that takes one of the required parameters and passes that to the Find-DSSObject with a specific LDAPFilter.
     .EXAMPLE
@@ -70,6 +72,13 @@ function Get-DSSObject {
         [String]
         $ObjectGUID,
 
+        # The ObjectSID of the object.
+        [Parameter(Mandatory = $true, ParameterSetName = 'SID')]
+        [ValidateNotNullOrEmpty()]
+        [Alias('SID')]
+        [String]
+        $ObjectSID,
+
         # The number of results per page that is returned from the server. This is primarily to save server memory and bandwidth and does not affect the total number of results returned.
         # An example of using this property is:
         #
@@ -90,6 +99,22 @@ function Get-DSSObject {
         [Alias('Property')]
         [String[]]
         $Properties = @('distinguishedname'),
+
+        # The SAMAccountName of the account.
+        [Parameter(Mandatory = $true, ParameterSetName = 'SAM')]
+        [ValidateNotNullOrEmpty()]
+        [ValidateScript(
+            {
+                if ($_ -match '[\*\?]') {
+                    throw [System.Management.Automation.ValidationMetadataException] 'Cannot contain wildcards'
+                } else {
+                    $true
+                }
+            }
+        )]
+        [Alias('SAM')]
+        [String]
+        $SAMAccountName,
 
         # The server or domain to connect to.
         # See below for some examples:
