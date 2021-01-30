@@ -647,6 +647,8 @@ function Find-DSSRawObject {
         } else {
             Write-Verbose ('{0}|No results found!' -f $Function_Name)
         }
+        $Directory_Searcher.Dispose()
+        $Directory_Searcher_Results.Dispose()
 
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
