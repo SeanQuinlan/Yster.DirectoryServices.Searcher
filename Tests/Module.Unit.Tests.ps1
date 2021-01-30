@@ -117,6 +117,10 @@ Describe 'Function Validation' -Tags 'Module' {
     }
 
     Context 'Function variables' {
+        It '<FunctionName> has no global variables defined' -TestCases $TestCases {
+            $Function_Nodes = $Function_AST.FindAll( { $true }, $false) | Where-Object { $_.GetType().Name -eq 'VariableExpressionAst' }
+            $Function_Nodes | Where-Object { ($_.VariablePath.UserPath -match 'global') } | Should -Be $null
+        }
         It '<FunctionName> has Function_Name parameter declaration' -TestCases $TestCases {
             $Function_Name_Declaration = '$Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name'
             $Function_Nodes = $Function_AST.FindAll( { $true }, $false) | Where-Object { $_.GetType().Name -eq 'VariableExpressionAst' }
