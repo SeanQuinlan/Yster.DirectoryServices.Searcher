@@ -98,11 +98,6 @@ function Remove-DSSComputer {
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
 
     try {
-        if ($PSBoundParameters.ContainsKey('SAMAccountName')) {
-            if (-not $PSBoundParameters['SAMAccountName'].EndsWith('$')) {
-                $PSBoundParameters['SAMAccountName'] = ('{0}$' -f $PSBoundParameters['SAMAccountName'])
-            }
-        }
         Write-Verbose ('{0}|Calling Remove-DSSObjectWrapper' -f $Function_Name)
         Remove-DSSObjectWrapper -ObjectType 'Computer' -BoundParameters $PSBoundParameters
 

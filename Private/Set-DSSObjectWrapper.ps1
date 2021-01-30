@@ -80,7 +80,11 @@ function Set-DSSObjectWrapper {
             if ($BoundParameters.ContainsKey($Parameter)) {
                 $Directory_Search_Type = $Parameter
                 $Directory_Search_Value = $BoundParameters[$Parameter]
-                $LDAPFilter = '(&{0}({1}={2}))' -f $Default_LDAPFilter, $Directory_Search_Type, $Directory_Search_Value
+                if (($Directory_Search_Type -eq 'SAMAccountName') -and ($Directory_Search_Value -notmatch '\$$')) {
+                    $LDAPFilter = '(&{0}(|({1}={2})({1}={2}$)))' -f $Default_LDAPFilter, $Directory_Search_Type, $Directory_Search_Value
+                } else {
+                    $LDAPFilter = '(&{0}({1}={2}))' -f $Default_LDAPFilter, $Directory_Search_Type, $Directory_Search_Value
+                }
                 [void]$BoundParameters.Remove($Parameter)
             }
         }
@@ -89,8 +93,18 @@ function Set-DSSObjectWrapper {
             'OutputFormat' = 'DirectoryEntry'
         }
 
-        $Object_Directory_Entry = Find-DSSRawObject @Common_Search_Parameters @Directory_Search_Parameters
-        if ($Object_Directory_Entry) {
+        [array]$Object_Directory_Entry = Find-DSSRawObject @Common_Search_Parameters @Directory_Search_Parameters
+        if ($Object_Directory_Entry.Count -gt 1) {
+            $Terminating_ErrorRecord_Parameters = @{
+                'Exception'    = 'System.DirectoryServices.ActiveDirectory.ActiveDirectoryObjectNotFoundException'
+                'ID'           = 'DSS-{0}' -f $Function_Name
+                'Category'     = 'InvalidResult'
+                'TargetObject' = $Object_Directory_Entry
+                'Message'      = 'Multiple {0} objects were found with {1} of "{2}". Please use DistinguishedName, ObjectGUID or ObjectSID to match only one object.' -f $ObjectType, $Directory_Search_Type, $Directory_Search_Value
+            }
+            $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+            $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+        } elseif ($Object_Directory_Entry) {
             $Set_Parameters = Confirm-DSSObjectParameters -BoundParameters $BoundParameters -Type 'Set'
 
             if ($Set_Parameters.Count) {

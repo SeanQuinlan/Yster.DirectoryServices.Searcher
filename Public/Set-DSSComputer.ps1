@@ -456,11 +456,6 @@ function Set-DSSComputer {
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
 
     try {
-        if ($PSBoundParameters.ContainsKey('SAMAccountName')) {
-            if (-not $PSBoundParameters['SAMAccountName'].EndsWith('$')) {
-                $PSBoundParameters['SAMAccountName'] = ('{0}$' -f $PSBoundParameters['SAMAccountName'])
-            }
-        }
         $Null_Equal_Clear_Parameters = @('ServicePrincipalNames', 'PrincipalsAllowedToDelegateToAccount')
         $Null_Equal_Clear_Parameters | ForEach-Object {
             if ($PSBoundParameters.ContainsKey($_)) {
