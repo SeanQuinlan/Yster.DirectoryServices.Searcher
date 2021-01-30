@@ -53,6 +53,7 @@ function Find-DSSObjectWrapper {
     try {
         $Basic_Parameters = @('Credential', 'Server')
         $Common_Parameters = @('Context')
+
         $Basic_Search_Parameters = @{}
         foreach ($Parameter in $Basic_Parameters) {
             if ($BoundParameters.ContainsKey($Parameter)) {

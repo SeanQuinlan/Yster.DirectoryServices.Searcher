@@ -629,8 +629,18 @@ function Set-DSSRawObject {
                                             Write-Verbose ('{0}|Getting group members and principal group membership' -f $Function_Name)
                                             $Error_Message = New-Object -TypeName 'System.Text.StringBuilder'
                                             $Common_Search_Parameters['Context'] = 'Forest'
-                                            $Current_Group_Members = Get-DSSGroupMember @Common_Search_Parameters -DistinguishedName $Object.'distinguishedname' -Properties 'objectclass', 'groupscope', 'distinguishedname', 'domainname'
-                                            $Current_Principal_Groups = Get-DSSPrincipalGroupMembership @Common_Search_Parameters -DistinguishedName $Object.'distinguishedname'
+                                            $Current_Group_Members_Properties = @{
+                                                'DistinguishedName'   = $Object.'distinguishedname'
+                                                'Properties'          = @('distinguishedname', 'domainname', 'groupscope', 'objectclass')
+                                                'NoDefaultProperties' = $true
+                                            }
+                                            $Current_Group_Members = Get-DSSGroupMember @Common_Search_Parameters @Current_Group_Members_Properties
+                                            $Current_Principal_Groups_Properties = @{
+                                                'DistinguishedName'   = $Object.'distinguishedname'
+                                                'Properties'          = @('distinguishedname', 'groupscope')
+                                                'NoDefaultProperties' = $true
+                                            }
+                                            $Current_Principal_Groups = Get-DSSPrincipalGroupMembership @Common_Search_Parameters @Current_Principal_Groups_Properties
 
                                             if (($Current_Property_Value -bor $ADGroupTypes['Global']) -eq $Current_Property_Value) {
                                                 if (($Compare_Value -bor $ADGroupTypes['Universal']) -eq $Compare_Value) {

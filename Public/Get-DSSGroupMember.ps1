@@ -57,12 +57,10 @@ function Get-DSSGroupMember {
         [String]
         $DistinguishedName,
 
-        # The ObjectSID of the group.
-        [Parameter(Mandatory = $true, ParameterSetName = 'SID')]
-        [ValidateNotNullOrEmpty()]
-        [Alias('SID')]
-        [String]
-        $ObjectSID,
+        # Whether or not to include default properties. By setting this switch, only the explicitly specified properties will be returned.
+        [Parameter(Mandatory = $false)]
+        [Switch]
+        $NoDefaultProperties,
 
         # The ObjectGUID of the group.
         [Parameter(Mandatory = $true, ParameterSetName = 'GUID')]
@@ -71,11 +69,12 @@ function Get-DSSGroupMember {
         [String]
         $ObjectGUID,
 
-        # Perform a recursive search for all group members.
-        [Parameter(Mandatory = $false)]
-        [Alias('Recurse')]
-        [Switch]
-        $Recursive,
+        # The ObjectSID of the group.
+        [Parameter(Mandatory = $true, ParameterSetName = 'SID')]
+        [ValidateNotNullOrEmpty()]
+        [Alias('SID')]
+        [String]
+        $ObjectSID,
 
         # The number of results per page that is returned from the server. This is primarily to save server memory and bandwidth and does not affect the total number of results returned.
         # An example of using this property is:
@@ -97,6 +96,12 @@ function Get-DSSGroupMember {
         [Alias('Property')]
         [String[]]
         $Properties,
+
+        # Perform a recursive search for all group members.
+        [Parameter(Mandatory = $false)]
+        [Alias('Recurse')]
+        [Switch]
+        $Recursive,
 
         # The SAMAccountName of the group.
         [Parameter(Mandatory = $true, ParameterSetName = 'SAM')]
@@ -129,77 +134,38 @@ function Get-DSSGroupMember {
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
 
-    # Default properties when none are specified. Otherwise the specified properties override these.
+    # Default properties as per Get-ADGroupMember. These properties are always returned, in addition to any specified in the Properties parameter.
     [String[]]$Default_Properties = @(
         'distinguishedname'
         'name'
         'objectclass'
         'objectguid'
-        'objectsid'
         'samaccountname'
+        'sid'
     )
 
     try {
-        $Common_Search_Parameters = @{
-            'Context'  = $Context
-            'PageSize' = $PageSize
-        }
-        if ($PSBoundParameters.ContainsKey('Server')) {
-            $Common_Search_Parameters['Server'] = $Server
-        }
-        if ($PSBoundParameters.ContainsKey('Credential')) {
-            $Common_Search_Parameters['Credential'] = $Credential
-        }
-
-        # We need the DistinguishedName to perform the LDAP_MATCHING_RULE_IN_CHAIN search, so if another identity is given, perform a search to retrieve the DistinguishedName
-        if (-not $PSBoundParameters.ContainsKey('DistinguishedName')) {
-            $DN_Search_Parameters = @{}
-            if ($PSBoundParameters.ContainsKey('ObjectSID')) {
-                $DN_Search_Object = $ObjectSID
-                $DN_Search_LDAPFilter = '(objectsid={0})' -f $ObjectSID
-            } elseif ($PSBoundParameters.ContainsKey('ObjectGUID')) {
-                $DN_Search_Object = $ObjectGUID
-                $DN_Search_LDAPFilter = '(objectguid={0})' -f $ObjectGUID
-            } elseif ($PSBoundParameters.ContainsKey('SAMAccountName')) {
-                $DN_Search_Object = $SAMAccountName
-                $DN_Search_LDAPFilter = '(samaccountname={0})' -f $SAMAccountName
-            }
-            Write-Verbose ('{0}|DN Search:LDAPFilter: {1}' -f $Function_Name, $Directory_Search_LDAPFilter)
-            $DN_Search_Parameters['LDAPFilter'] = $DN_Search_LDAPFilter
-
-            Write-Verbose ('{0}|DN Search:Calling Find-DSSGroup' -f $Function_Name)
-            $DN_Search_Return = Find-DSSGroup @Common_Search_Parameters @DN_Search_Parameters
-            if (-not $DN_Search_Return) {
-                $Terminating_ErrorRecord_Parameters = @{
-                    'Exception'    = 'Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException'
-                    'ID'           = 'DSS-{0}' -f $Function_Name
-                    'Category'     = 'ObjectNotFound'
-                    'TargetObject' = $DN_Search_Return
-                    'Message'      = ('Cannot find group with identity: {0}' -f $DN_Search_Object)
-                }
-                $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
-                $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
-            } else {
-                $DistinguishedName = $DN_Search_Return.'distinguishedname'
-            }
-        }
-
-        $Directory_Search_Parameters = @{}
+        $Function_Search_Properties = New-Object -TypeName 'System.Collections.Generic.List[String]'
         if ($PSBoundParameters.ContainsKey('Properties')) {
-            $Directory_Search_Parameters['Properties'] = $Properties
+            if (-not $NoDefaultProperties) {
+                Write-Verbose ('{0}|Adding default properties first' -f $Function_Name)
+                $Function_Search_Properties.AddRange($Default_Properties)
+            }
+            foreach ($Property in $Properties) {
+                if ($Function_Search_Properties -notcontains $Property) {
+                    Write-Verbose ('{0}|Adding Property: {1}' -f $Function_Name, $Property)
+                    $Function_Search_Properties.Add($Property)
+                }
+            }
         } else {
-            $Directory_Search_Parameters['Properties'] = $Default_Properties
+            Write-Verbose ('{0}|No properties specified, adding default properties only' -f $Function_Name)
+            $Function_Search_Properties.AddRange($Default_Properties)
         }
-        if ($PSBoundParameters.ContainsKey('Recursive')) {
-            $Directory_Search_LDAPFilter = '(memberof:1.2.840.113556.1.4.1941:={0})' -f $DistinguishedName
-        } else {
-            $Directory_Search_LDAPFilter = '(memberof={0})' -f $DistinguishedName
-        }
-        Write-Verbose ('{0}|LDAPFilter: {1}' -f $Function_Name, $Directory_Search_LDAPFilter)
-        $Directory_Search_Parameters['LDAPFilter'] = $Directory_Search_LDAPFilter
+        Write-Verbose ('{0}|Properties: {1}' -f $Function_Name, ($Function_Search_Properties -join ' '))
+        $PSBoundParameters['Properties'] = $Function_Search_Properties
 
-        Write-Verbose ('{0}|Calling Find-DSSRawObject' -f $Function_Name)
-        Find-DSSRawObject @Common_Search_Parameters @Directory_Search_Parameters | ConvertTo-SortedPSObject
+        Write-Verbose ('{0}|Calling Get-DSSGroupMemberWrapper' -f $Function_Name)
+        Get-DSSGroupMemberWrapper -ObjectType 'GroupMember' -BoundParameters $PSBoundParameters
 
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
