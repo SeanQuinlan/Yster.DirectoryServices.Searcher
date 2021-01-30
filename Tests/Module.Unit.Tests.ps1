@@ -43,21 +43,16 @@ Describe 'Function Validation' -Tags 'Module' {
             $Function_CommentsNotIndented.Count | Should -Be 0        }
     }
 
-    # Any function ending in Object or OrganizationalUnit should not have SAMAccountName parameter.
-    Context 'Function Parameters - No SAMAccountName for Object or OrganizationalUnit' {
-        $TestCases = $TestCases | Where-Object { $_.FunctionName -match 'Object$|OrganizationalUnit$' }
-        It '<FunctionName> does not have SAMAccountName parameter' -TestCases $TestCases {
-            $Function_ParameterNames = $Function_AST.ParamBlock.Parameters.Name.VariablePath.UserPath
-            $Function_ParameterNames -notcontains 'SAMAccountName' | Should -Be $true
-        }
-    }
-
-    # OrganizationalUnits do not have SIDs, so ensure that no relevant function has that as a parameter.
-    Context 'Function Parameters - No ObjectSID parameter for OrganizationalUnit functions' {
+    # OrganizationalUnits do not have SIDs or SAMAccountNames, so ensure that no function has those parameters.
+    Context 'Function Parameters - OrganizationalUnit function parameters' {
         $TestCases = $TestCases | Where-Object { $_.FunctionName -match 'OrganizationalUnit$' }
         It '<FunctionName> does not have ObjectSID parameter' -TestCases $TestCases {
             $Function_ParameterNames = $Function_AST.ParamBlock.Parameters.Name.VariablePath.UserPath
             $Function_ParameterNames -notcontains 'ObjectSID' | Should -Be $true
+        }
+        It '<FunctionName> does not have SAMAccountName parameter' -TestCases $TestCases {
+            $Function_ParameterNames = $Function_AST.ParamBlock.Parameters.Name.VariablePath.UserPath
+            $Function_ParameterNames -notcontains 'SAMAccountName' | Should -Be $true
         }
     }
 
@@ -118,6 +113,14 @@ Describe 'Function Validation' -Tags 'Module' {
                 $Function_Param_LineNumber = $Function_ParamBlock | Select-String ('{0}.*,$' -f $ParameterName) | Select-Object -ExpandProperty LineNumber
                 [String]::IsNullOrWhiteSpace($Function_ParamBlock[$Function_Param_LineNumber]) | Should -Be $true
             }
+        }
+    }
+
+    Context 'Function variables' {
+        It '<FunctionName> has Function_Name parameter declaration' -TestCases $TestCases {
+            $Function_Name_Declaration = '$Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name'
+            $Function_Nodes = $Function_AST.FindAll( { $true }, $false) | Where-Object { $_.GetType().Name -eq 'VariableExpressionAst' }
+            $Function_Nodes | Where-Object { ($_.VariablePath.UserPath -eq 'Function_Name') -and ($_.Parent.Extent.Text -eq $Function_Name_Declaration) } | Should -Be $true
         }
     }
 
