@@ -17,7 +17,7 @@ function Get-DSSGroupMemberWrapper {
         # A hashtable of the PSBoundParameters that were passed from the calling function.
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [HashTable]
+        [Hashtable]
         $BoundParameters,
 
         # The type of AD object that has been wrapped.

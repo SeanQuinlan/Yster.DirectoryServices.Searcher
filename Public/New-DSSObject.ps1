@@ -78,7 +78,7 @@ function New-DSSObject {
         # -OtherAttributes @{givenname='John'; sn='Smith'; displayname='Smith, John'}
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
-        [HashTable]
+        [Hashtable]
         $OtherAttributes,
 
         # An OU path to create the object in.

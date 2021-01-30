@@ -56,7 +56,7 @@ function Set-DSSComputer {
         # ..Clear
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
-        [HashTable]
+        [Hashtable]
         $Add,
 
         # Indicates whether reversible password encryption is allowed for the account.
@@ -323,7 +323,7 @@ function Set-DSSComputer {
         # ..Add
         # ..Replace
         [Parameter(Mandatory = $false)]
-        [HashTable]
+        [Hashtable]
         $PrincipalsAllowedToDelegateToAccount,
 
         # Specifies whether the object is protected from accidental deletion.
@@ -350,7 +350,7 @@ function Set-DSSComputer {
         # ..Clear
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
-        [HashTable]
+        [Hashtable]
         $Remove,
 
         # A property name and a value or set of values that will be used to replace the existing property values.
@@ -369,7 +369,7 @@ function Set-DSSComputer {
         # ..Clear
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
-        [HashTable]
+        [Hashtable]
         $Replace,
 
         # The SAMAccountName of the computer.
@@ -422,7 +422,7 @@ function Set-DSSComputer {
         # ..Replace
         [Parameter(Mandatory = $false)]
         [Alias('ServicePrincipalName')]
-        [HashTable]
+        [Hashtable]
         $ServicePrincipalNames,
 
         # Specifies whether an account is trusted for Kerberos delegation.

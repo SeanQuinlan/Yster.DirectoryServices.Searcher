@@ -35,7 +35,7 @@ function Set-DSSGroup {
         # ..Clear
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
-        [HashTable]
+        [Hashtable]
         $Add,
 
         # A property or an array of properties to clear.
@@ -179,7 +179,7 @@ function Set-DSSGroup {
         # ..Clear
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
-        [HashTable]
+        [Hashtable]
         $Remove,
 
         # A property name and a value or set of values that will be used to replace the existing property values.
@@ -198,7 +198,7 @@ function Set-DSSGroup {
         # ..Clear
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
-        [HashTable]
+        [Hashtable]
         $Replace,
 
         # The SAMAccountName of the group.

@@ -207,7 +207,7 @@ function Find-DSSRawObject {
                 $Directory_Searcher_Results | ForEach-Object {
                     $_.GetDirectoryEntry()
                 }
-            } elseif ($OutputFormat -eq 'HashTable') {
+            } elseif ($OutputFormat -eq 'Hashtable') {
                 $Directory_Searcher_Result_To_Return = New-Object -TypeName 'System.Collections.Generic.List[PSObject]'
                 foreach ($Directory_Searcher_Result in $Directory_Searcher_Results) {
                     Write-Verbose ('{0}|Reformatting result properties order' -f $Function_Name)

@@ -45,7 +45,7 @@ function Set-DSSObject {
         # ..Clear
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
-        [HashTable]
+        [Hashtable]
         $Add,
 
         # Indicates whether reversible password encryption is allowed for the account.
@@ -237,7 +237,7 @@ function Set-DSSObject {
         # ..Clear
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
-        [HashTable]
+        [Hashtable]
         $Remove,
 
         # A property name and a value or set of values that will be used to replace the existing property values.
@@ -256,7 +256,7 @@ function Set-DSSObject {
         # ..Clear
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
-        [HashTable]
+        [Hashtable]
         $Replace,
 
         # The SAMAccountName of the account.

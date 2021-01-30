@@ -1,9 +1,9 @@
 function ConvertTo-SortedPSObject {
     <#
     .SYNOPSIS
-        Sorts a HashTable or PSObject alphabetically by properties and returns the result as a PSCustomObject.
+        Sorts a Hashtable or PSObject alphabetically by properties and returns the result as a PSCustomObject.
     .DESCRIPTION
-        Takes an input object of type HashTable or PSObject, and sorts it aphabetically by Property Name. A PSCustomObject with the sorted properties is returned.
+        Takes an input object of type Hashtable or PSObject, and sorts it aphabetically by Property Name. A PSCustomObject with the sorted properties is returned.
     .EXAMPLE
         $SortedResults = ConvertTo-SortedPSObject -InputObject $ResultsObject
     .EXAMPLE
@@ -32,8 +32,8 @@ function ConvertTo-SortedPSObject {
             $InputObject = $_
         }
 
-        if ($InputObject -is [HashTable]) {
-            Write-Verbose ('{0}|HashTable type' -f $Function_Name)
+        if ($InputObject -is [Hashtable]) {
+            Write-Verbose ('{0}|Hashtable type' -f $Function_Name)
             $Input_Object_Properties = $InputObject.GetEnumerator()
         } elseif ($InputObject -is [PSObject]) {
             Write-Verbose ('{0}|PSObject type' -f $Function_Name)

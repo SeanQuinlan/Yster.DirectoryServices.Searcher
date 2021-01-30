@@ -122,7 +122,7 @@ function New-DSSGroup {
         # -OtherAttributes @{wwwhomepage='www.contoso.com'; telephonenumber='000-000-0000'; displayname='Marketing Users'}
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
-        [HashTable]
+        [Hashtable]
         $OtherAttributes,
 
         # An OU path to create the object in.

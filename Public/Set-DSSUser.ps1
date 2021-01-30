@@ -56,7 +56,7 @@ function Set-DSSUser {
         # ..Clear
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
-        [HashTable]
+        [Hashtable]
         $Add,
 
         # Indicates whether reversible password encryption is allowed for the account.
@@ -490,7 +490,7 @@ function Set-DSSUser {
         # ..Add
         # ..Replace
         [Parameter(Mandatory = $false)]
-        [HashTable]
+        [Hashtable]
         $PrincipalsAllowedToDelegateToAccount,
 
         # The value that will be set as the ProfilePath of the user. This should be a local path or a UNC path with with a server and share specified.
@@ -527,7 +527,7 @@ function Set-DSSUser {
         # ..Clear
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
-        [HashTable]
+        [Hashtable]
         $Remove,
 
         # A property name and a value or set of values that will be used to replace the existing property values.
@@ -546,7 +546,7 @@ function Set-DSSUser {
         # ..Clear
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
-        [HashTable]
+        [Hashtable]
         $Replace,
 
         # The SAMAccountName of the user.
@@ -610,7 +610,7 @@ function Set-DSSUser {
         # ..Replace
         [Parameter(Mandatory = $false)]
         [Alias('ServicePrincipalName')]
-        [HashTable]
+        [Hashtable]
         $ServicePrincipalNames,
 
         # Specifies whether the account requires a smart card for logon.

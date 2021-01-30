@@ -18,7 +18,7 @@ function Remove-DSSObjectWrapper {
         # A hashtable of the PSBoundParameters that were passed from the calling function.
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [HashTable]
+        [Hashtable]
         $BoundParameters,
 
         # The context to search - Domain or Forest.

@@ -33,7 +33,7 @@ function Set-DSSOrganizationalUnit {
         # ..Clear
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
-        [HashTable]
+        [Hashtable]
         $Add,
 
         # The value that will be set as the City of the organizational unit.
@@ -183,7 +183,7 @@ function Set-DSSOrganizationalUnit {
         # ..Clear
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
-        [HashTable]
+        [Hashtable]
         $Remove,
 
         # A property name and a value or set of values that will be used to replace the existing property values.
@@ -202,7 +202,7 @@ function Set-DSSOrganizationalUnit {
         # ..Clear
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
-        [HashTable]
+        [Hashtable]
         $Replace,
 
         # The server or domain to connect to.

@@ -109,7 +109,7 @@ function Set-DSSRawObject {
 
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
     $PSBoundParameters.GetEnumerator() | ForEach-Object {
-        if ($_.Value -is [hashtable]) {
+        if ($_.Value -is [Hashtable]) {
             $Value = ($_.Value.GetEnumerator() | ForEach-Object { '{0} = {1}' -f $_.Name, ($_.Value -join ' ') }) -join ' ; '
         } else {
             $Value = $_.Value -join ' '
