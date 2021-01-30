@@ -96,7 +96,7 @@ function Unlock-DSSAccount {
     try {
         Write-Verbose ('{0}|Calling Set-DSSObjectWrapper' -f $Function_Name)
         $PSBoundParameters['Unlock'] = $true
-        Set-DSSObjectWrapper -ObjectType 'User' -BoundParameters $PSBoundParameters
+        Set-DSSObjectWrapper -ObjectType 'Account' -BoundParameters $PSBoundParameters
 
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {

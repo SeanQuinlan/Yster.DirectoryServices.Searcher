@@ -24,6 +24,7 @@ function Set-DSSObjectWrapper {
         # The type of AD object that has been wrapped.
         [Parameter(Mandatory = $true)]
         [ValidateSet(
+            'Account',
             'Computer',
             'Group',
             'Object',
@@ -45,6 +46,9 @@ function Set-DSSObjectWrapper {
 
     try {
         switch ($ObjectType) {
+            'Account' {
+                $Default_LDAPFilter = '(|(objectclass=computer)(objectclass=user))'
+            }
             'Computer' {
                 $Default_LDAPFilter = '(objectclass=computer)'
             }

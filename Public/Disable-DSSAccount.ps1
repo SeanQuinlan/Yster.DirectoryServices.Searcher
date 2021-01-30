@@ -96,7 +96,7 @@ function Disable-DSSAccount {
     try {
         Write-Verbose ('{0}|Calling Set-DSSObjectWrapper' -f $Function_Name)
         $PSBoundParameters['Enabled'] = $false
-        Set-DSSObjectWrapper -ObjectType 'Object' -BoundParameters $PSBoundParameters
+        Set-DSSObjectWrapper -ObjectType 'Account' -BoundParameters $PSBoundParameters
 
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
