@@ -205,7 +205,7 @@ function Find-DSSObject {
                 $Function_Search_Properties.AddRange($Default_Properties)
             }
             foreach ($Property in $Properties) {
-                if (($Property -ne '*') -and ($Function_Search_Properties -notcontains $Property)) {
+                if ($Function_Search_Properties -notcontains $Property) {
                     Write-Verbose ('{0}|Adding Property: {1}' -f $Function_Name, $Property)
                     $Function_Search_Properties.Add($Property)
                 }

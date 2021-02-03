@@ -130,7 +130,7 @@ function Get-DSSForest {
                 Write-Verbose ('{0}|Wildcard specified, but all properties are default, doing nothing' -f $Function_Name)
             }
             foreach ($Property in $Properties) {
-                if (($Property -ne '*') -and ($Function_Search_Properties -notcontains $Property)) {
+                if ($Function_Search_Properties -notcontains $Property) {
                     Write-Verbose ('{0}|Adding Property: {1}' -f $Function_Name, $Property)
                     $Function_Search_Properties.Add($Property)
                 }
