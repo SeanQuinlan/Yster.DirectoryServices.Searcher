@@ -101,12 +101,17 @@ function Move-DSSObject {
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         [String]
-        $TargetPath
-    )
+        $TargetPath,
 
-    # properties to add:
-    # ------------------
-    # targetserver
+        # When moving between domains, supply the FQDN of the destination domain controller to use.
+        # An example of using this property is:
+        #
+        # -TargetServer 'dc01.admin.contoso.com'
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $TargetServer
+    )
 
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
@@ -121,7 +126,7 @@ function Move-DSSObject {
             }
         }
 
-        $Identity_Parameters = @('DistinguishedName', 'ObjectGUID', 'ObjectSID')
+        $Identity_Parameters = @('DistinguishedName', 'ObjectGUID', 'ObjectSID', 'SAMAccountName')
         foreach ($Parameter in $Identity_Parameters) {
             if ($PSBoundParameters.ContainsKey($Parameter)) {
                 $Directory_Search_Type = $Parameter
@@ -136,12 +141,34 @@ function Move-DSSObject {
 
         $Object_Directory_Entry = Find-DSSRawObject @Common_Search_Parameters @Directory_Search_Parameters
         if ($Object_Directory_Entry) {
+            $Target_Search_Parameters = $Common_Search_Parameters.PSBase.Clone()
+            if ($PSBoundParameters.ContainsKey('TargetServer')) {
+                $Target_Search_Parameters['Server'] = $TargetServer
+            }
             Write-Verbose ('{0}|Checking if TargetPath exists')
-            $Check_TargetPath = Get-DSSOrganizationalUnit @Common_Search_Parameters -DistinguishedName $TargetPath
+            $Check_TargetPath = Get-DSSOrganizationalUnit @Target_Search_Parameters -DistinguishedName $TargetPath
             if ($Check_TargetPath) {
-                $Target_Directory_Entry = Get-DSSDirectoryEntry @Common_Search_Parameters -SearchBase $TargetPath
-                Write-Verbose ('{0}|Moving object to TargetPath: {1}' -f $Function_Name, $TargetPath)
-                $Object_Directory_Entry.MoveTo($Target_Directory_Entry)
+                $Target_Directory_Entry = Get-DSSDirectoryEntry @Target_Search_Parameters -SearchBase $TargetPath
+                try {
+                    Write-Verbose ('{0}|Moving object to TargetPath: {1}' -f $Function_Name, $TargetPath)
+                    $Object_Directory_Entry.MoveTo($Target_Directory_Entry)
+                } catch {
+                    # This exception is thrown when you specify the domain name in TargetServer, not the FQDN.
+                    if ($_.Exception.InnerException.ErrorCode -eq '-2147016663') {
+                        $Terminating_ErrorRecord_Parameters = @{
+                            'Exception'      = 'System.DirectoryServices.DirectoryServicesCOMException'
+                            'ID'             = 'DSS-{0}' -f $Function_Name
+                            'Category'       = 'AuthenticationError'
+                            'TargetObject'   = $Object_Directory_Entry
+                            'Message'        = 'Unable to authenticate to the server. Ensure that the FQDN is specified.'
+                            'InnerException' = $_.Exception
+                        }
+                        $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+                        $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+                    } else {
+                        throw $_.Exception.InnerException
+                    }
+                }
             } else {
                 $Terminating_ErrorRecord_Parameters = @{
                     'Exception'    = 'System.DirectoryServices.ActiveDirectory.ActiveDirectoryObjectNotFoundException'
