@@ -568,7 +568,7 @@ function New-DSSUser {
         $TrustedForDelegation,
 
         # The type of user object to create. The type must be a subclass of the User schema class.
-        # See below for some examples:
+        # An example of using this property is:
         #
         # -Type 'iNetOrgPerson'
         [Parameter(Mandatory = $false)]
