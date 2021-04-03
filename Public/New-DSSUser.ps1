@@ -567,6 +567,15 @@ function New-DSSUser {
         [Boolean]
         $TrustedForDelegation,
 
+        # The type of user object to create. The type must be a subclass of the User schema class.
+        # See below for some examples:
+        #
+        # -Type 'iNetOrgPerson'
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $Type = 'User',
+
         # The value that will be set as the UserPrincipalName of the object.
         # An example of using this property is:
         #
@@ -577,14 +586,6 @@ function New-DSSUser {
         [String]
         $UserPrincipalName
     )
-
-    # Parameters to add:
-    # -----------------
-    # AuthType
-    # AuthenticationPolicy
-    # AuthenticationPolicySilo
-    # Certificates
-    # Type
 
     $Function_Name = (Get-Variable MyInvocation -Scope 0).Value.MyCommand.Name
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
@@ -598,8 +599,40 @@ function New-DSSUser {
                 [void]$PSBoundParameters.Add($_, $Parameter_New_Value)
             }
         }
+        if ($PSBoundParameters.ContainsKey('Type')) {
+            Write-Verbose ('{0}|Getting Schema Naming Context' -f $Function_Name)
+            $Schema_Naming_Context = (Get-DSSRootDSE).schemaNamingContext
+            $User_Category_Search_Parameters = @{
+                'SearchBase'          = $Schema_Naming_Context
+                'LDAPFilter'          = '(ldapdisplayname=user)'
+                'Properties'          = 'defaultobjectcategory'
+                'NoDefaultProperties' = $true
+            }
+            Write-Verbose ('{0}|Getting Default Object Category for Users' -f $Function_Name)
+            $User_Category = (Find-DSSObject @User_Category_Search_Parameters).'defaultobjectcategory'
+
+            $User_SubClass_Search_Parameters = @{
+                'SearchBase'          = $Schema_Naming_Context
+                'LDAPFilter'          = '(&(|(subclassof=user)(ldapdisplayname=user))(defaultobjectcategory={0}))' -f $User_Category
+                'Properties'          = 'name'
+                'NoDefaultProperties' = $true
+            }
+            $User_SubClass_Names = (Find-DSSObject @User_SubClass_Search_Parameters).'name'
+            if ($User_SubClass_Names -notcontains $Type) {
+                $Terminating_ErrorRecord_Parameters = @{
+                    'Exception'    = 'System.ArgumentException'
+                    'ID'           = 'DSS-{0}' -f $Function_Name
+                    'Category'     = 'InvalidArgument'
+                    'TargetObject' = $Type
+                    'Message'      = 'The specified ObjectClass is not valid for this object type: {0}' -f $Type
+                }
+                $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+                $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+            }
+            [void]$PSBoundParameters.Remove('Type')
+        }
         Write-Verbose ('{0}|Calling New-DSSObjectWrapper' -f $Function_Name)
-        New-DSSObjectWrapper -ObjectType 'User' -BoundParameters $PSBoundParameters
+        New-DSSObjectWrapper -ObjectType $Type -BoundParameters $PSBoundParameters
 
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {

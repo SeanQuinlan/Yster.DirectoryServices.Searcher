@@ -89,11 +89,11 @@ function New-DSSRawObject {
         if ($PSBoundParameters.ContainsKey('Path')) {
             $New_Object_Parameters['SearchBase'] = $Path
         } else {
-            switch ($Type) {
+            switch -Regex ($Type) {
                 'Computer' {
                     $New_Object_Parameters['SearchBase'] = (Get-DSSDomain @Common_Search_Parameters -Properties 'computerscontainer').'computerscontainer'
                 }
-                'User' {
+                'User|iNetOrgPerson' {
                     $New_Object_Parameters['SearchBase'] = (Get-DSSDomain @Common_Search_Parameters -Properties 'userscontainer').'userscontainer'
                 }
             }
@@ -107,12 +107,12 @@ function New-DSSRawObject {
 
         # Some defaults for certain types of accounts. These match the same accounts created by the Microsoft New-ADXXX cmdlets.
         # - https://docs.microsoft.com/en-us/troubleshoot/windows-server/identity/useraccountcontrol-manipulate-account-properties
-        switch ($Type) {
+        switch -Regex ($Type) {
             'Computer' {
                 # 0x1000 = WORKSTATION_TRUST_ACCOUNT
                 $Default_UserAccountControl = 0x1000
             }
-            'User' {
+            'User|iNetOrgPerson' {
                 # 0x200 = NORMAL_ACCOUNT
                 # 0x002 = ACCOUNTDISABLE
                 $Default_UserAccountControl = 0x202
