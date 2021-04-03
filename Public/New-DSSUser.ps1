@@ -631,6 +631,9 @@ function New-DSSUser {
             }
             [void]$PSBoundParameters.Remove('Type')
         }
+        if (-not $PSBoundParameters.ContainsKey('SAMAccountName')) {
+            $PSBoundParameters['SAMAccountName'] = $Name
+        }
         Write-Verbose ('{0}|Calling New-DSSObjectWrapper' -f $Function_Name)
         New-DSSObjectWrapper -ObjectType $Type -BoundParameters $PSBoundParameters
 
