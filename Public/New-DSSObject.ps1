@@ -126,8 +126,8 @@ function New-DSSObject {
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
 
     try {
-        Write-Verbose ('{0}|Calling New-DSSObjectWrapper' -f $Function_Name)
         [void]$PSBoundParameters.Remove('Type')
+        Write-Verbose ('{0}|Calling New-DSSObjectWrapper' -f $Function_Name)
         New-DSSObjectWrapper -ObjectType $Type -BoundParameters $PSBoundParameters
 
     } catch {
