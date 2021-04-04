@@ -37,7 +37,6 @@ $Microsoft_Alias_Properties = @{
     'street'                       = 'streetaddress'
     'subrefs'                      = 'subordinatereferences'
     'telephonenumber'              = 'officephone'
-    'usercertificate'              = 'certificates'
     'userworkstations'             = 'logonworkstations'
     'whenchanged'                  = @('modified', 'modifytimestamp')
     'whencreated'                  = @('created', 'createtimestamp')
@@ -80,6 +79,9 @@ $Useful_Calculated_Properties = @{
 
     # Network properties
     'dnshostname'                              = @('ipv4address', 'ipv6address')
+
+    # Certificate properties
+    'usercertificate'                          = 'certificates'
 
     # Custom properties
     'canonicalname'                            = 'domainname'

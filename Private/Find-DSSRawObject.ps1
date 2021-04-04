@@ -265,6 +265,14 @@ function Find-DSSRawObject {
                                 Write-Verbose ('{0}|Reformatting to SID object: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
                                 $Current_Searcher_Result_Value = New-Object -TypeName 'System.Security.Principal.SecurityIdentifier' -ArgumentList @($Current_Searcher_Result_Value, 0)
                             }
+
+                            # UserCertificate is always an array
+                            'usercertificate' {
+                                if ($Current_Searcher_Result_Value.GetType().FullName -eq 'System.Byte[]') {
+                                    Write-Verbose ('{0}|Reformatting to array: {1}' -f $Function_Name, $Current_Searcher_Result_Property)
+                                    $Current_Searcher_Result_Value = @(, $Current_Searcher_Result_Value)
+                                }
+                            }
                         }
 
                         # Reformat any DateTime objects from UTC to local time (which is what the ActiveDirectory module does).
@@ -503,6 +511,13 @@ function Find-DSSRawObject {
                                                 $Useful_Calculated_Property_Value = ($Host_IP_Addresses | Where-Object { $_.AddressFamily -eq 'InterNetwork' }).'IPAddressToString'
                                             } elseif ($Useful_Calculated_Property_Name -eq 'ipv6address') {
                                                 $Useful_Calculated_Property_Value = ($Host_IP_Addresses | Where-Object { ($_.AddressFamily -eq 'InterNetworkV6') -and (-not $_.IsIPv6LinkLocal) -and (-not $_.IsIPv6SiteLocal) }).'IPAddressToString'
+                                            }
+                                        }
+
+                                        # Certificate properties
+                                        'certificates' {
+                                            $Useful_Calculated_Property_Value = $Current_Searcher_Result_Value | ForEach-Object {
+                                                New-Object -TypeName 'System.Security.Cryptography.X509Certificates.X509Certificate' -ArgumentList (, $_)
                                             }
                                         }
 
