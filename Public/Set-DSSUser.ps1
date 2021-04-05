@@ -26,8 +26,12 @@ function Set-DSSUser {
         #
         # -AccountExpirationDate '25/12/1999'
         # -AccountExpirationDate '25/12/1999 17:30:00'
+        # -AccountExpirationDate (Get-Date).AddDays(90)
+        #
+        # The AccountExpirationDate can be cleared with the following:
+        # -AccountExpirationDate $null
         [Parameter(Mandatory = $false)]
-        [ValidateNotNullOrEmpty()]
+        [AllowNull()]
         [Object]
         $AccountExpirationDate,
 

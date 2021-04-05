@@ -21,6 +21,7 @@ function New-DSSComputer {
         #
         # -AccountExpirationDate '25/12/1999'
         # -AccountExpirationDate '25/12/1999 17:30:00'
+        # -AccountExpirationDate (Get-Date).AddDays(90)
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         [Object]
