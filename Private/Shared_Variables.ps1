@@ -157,6 +157,7 @@ $Set_Alias_Properties = @{
     'ntsecuritydescriptor'                     = @('cannotchangepassword', 'protectedfromaccidentaldeletion')
     'msds-allowedtoactonbehalfofotheridentity' = 'principalsallowedtodelegatetoaccount'
     'pwdlastset'                               = 'changepasswordatlogon'
+    'usercertificate'                          = 'certificates'
 }
 
 # A list of properties to New-XXX cmdlets that can only be set once the object exists.

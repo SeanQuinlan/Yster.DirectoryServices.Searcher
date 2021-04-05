@@ -122,7 +122,7 @@ function Set-DSSRawObject {
         $Managed_Keys = @('managedby', 'manager')
 
         # These are some special properties where the values need to be resolved and manipulated before they can be written back.
-        $Special_Resolved_Properties = @('principalsallowedtodelegatetoaccount')
+        $Special_Resolved_Properties = @('principalsallowedtodelegatetoaccount', 'certificates')
         $Special_Resolved_Properties_List = @{}
 
         $Common_Search_Parameters = @{}
@@ -209,7 +209,7 @@ function Set-DSSRawObject {
 
                     if ($Remove) {
                         $Remove.GetEnumerator() | Where-Object { $Special_Resolved_Properties -contains $_.Name } | ForEach-Object {
-                            $Special_Resolved_Properties_List[$_.Name] = @{'Remove' = $_.Value }
+                            $Special_Resolved_Properties_List[$_.Name] += @{'Remove' = $_.Value }
                         }
 
                         $Remove.GetEnumerator() | ForEach-Object {
@@ -221,7 +221,7 @@ function Set-DSSRawObject {
 
                     if ($Add) {
                         $Add.GetEnumerator() | Where-Object { $Special_Resolved_Properties -contains $_.Name } | ForEach-Object {
-                            $Special_Resolved_Properties_List[$_.Name] = @{'Add' = $_.Value }
+                            $Special_Resolved_Properties_List[$_.Name] += @{'Add' = $_.Value }
                         }
 
                         $Add.GetEnumerator() | ForEach-Object {
@@ -278,7 +278,7 @@ function Set-DSSRawObject {
                         }
 
                         $Replace.GetEnumerator() | Where-Object { $Special_Resolved_Properties -contains $_.Name } | ForEach-Object {
-                            $Special_Resolved_Properties_List[$_.Name] = @{'Replace' = $_.Value }
+                            $Special_Resolved_Properties_List[$_.Name] += @{'Replace' = $_.Value }
                         }
 
                         $Replace.GetEnumerator() | ForEach-Object {
@@ -740,7 +740,11 @@ function Set-DSSRawObject {
                         }
 
                         if ($Clear) {
-                            foreach ($Property in $Clear) {
+                            $Clear | Where-Object { $Special_Resolved_Properties -contains $_ } | ForEach-Object {
+                                $Special_Resolved_Properties_List[$_] += @{'Clear' = $_ }
+                            }
+
+                            foreach ($Property in ($Clear | Where-Object { $Special_Resolved_Properties -notcontains $_ })) {
                                 if ($Combined_Calculated_Properties.Values -contains $Property) {
                                     $Property = ($Combined_Calculated_Properties.GetEnumerator() | Where-Object { $_.Value -eq $Current_Value }).'Name'
                                 }
@@ -774,10 +778,13 @@ function Set-DSSRawObject {
                                         $Existing_Rules.SetSecurityDescriptorSddlForm('O:BAD:') # Sets BUILTIN\Administrators as the owner.
                                     }
 
-                                    # If there is a Replace value, simply ignore Add and Remove.
-                                    if ($Special_Resolved_Properties_List[$Property.Name]['Replace']) {
+                                    # If there is a Clear or Replace value, simply ignore Add and Remove.
+                                    if ($Special_Resolved_Properties_List[$Property.Name]['Clear']) {
+                                        Write-Verbose ('{0}|Special {1}: Clear: Removing all existing rules' -f $Function_Name, $Property.Name)
+                                        $Object.PutEx($ADS_PROPERTY_CLEAR, 'msds-allowedtoactonbehalfofotheridentity', @())
+                                    } elseif ($Special_Resolved_Properties_List[$Property.Name]['Replace']) {
                                         # Remove all current rules first, then add all the specified computers.
-                                        Write-Verbose ('{0}|Special: Replace: Removing all existing rules' -f $Function_Name)
+                                        Write-Verbose ('{0}|Special {1}: Replace: Removing all existing rules' -f $Function_Name, $Property.Name)
                                         $Existing_Rules.Access | ForEach-Object { [void]$Existing_Rules.RemoveAccessRule($_) }
                                         Get-DSSResolvedObject @Common_Search_Parameters -InputSet $Special_Resolved_Properties_List[$Property.Name]['Replace'] | ForEach-Object {
                                             $Delegation_AccessRule_Arguments = @(
@@ -786,31 +793,32 @@ function Set-DSSRawObject {
                                                 [System.Security.AccessControl.AccessControlType]::Allow
                                             )
                                             $Delegation_AccessRule = New-Object 'System.DirectoryServices.ActiveDirectoryAccessRule' -ArgumentList $Delegation_AccessRule_Arguments
-                                            Write-Verbose ('{0}|Special: Replace: Adding computer: {1}' -f $Function_Name, $_.'distinguishedname')
+                                            Write-Verbose ('{0}|Special {1}: Replace: Adding computer: {2}' -f $Function_Name, $Property.Name, $_.'distinguishedname')
                                             [void]$Existing_Rules.AddAccessRule($Delegation_AccessRule)
                                         }
-                                        Write-Verbose ('{0}|Special: Replace: Setting "msds-allowedtoactonbehalfofotheridentity"' -f $Function_Name)
+                                        Write-Verbose ('{0}|Special {1}: Replace: Setting "msds-allowedtoactonbehalfofotheridentity"' -f $Function_Name, $Property.Name)
                                         $Object.Put('msds-allowedtoactonbehalfofotheridentity', $Existing_Rules.GetSecurityDescriptorBinaryForm())
-
                                     } else {
                                         if ($Special_Resolved_Properties_List[$Property.Name]['Remove']) {
+                                            Write-Verbose ('{0}|Special {1}: Remove: Resolving computer: {2}' -f $Function_Name, $Property.Name, $Special_Resolved_Properties_List[$Property.Name]['Remove'])
                                             Get-DSSResolvedObject @Common_Search_Parameters -InputSet $Special_Resolved_Properties_List[$Property.Name]['Remove'] | ForEach-Object {
                                                 foreach ($Existing_Rule in $Existing_Rules.Access) {
                                                     $Computer_Domain, $Computer_Name = $Existing_Rule.IdentityReference.Value.Split('\')
                                                     $Computer_SID = [System.Security.Principal.NTAccount]::New($Computer_Domain, $Computer_Name).Translate([System.Security.Principal.SecurityIdentifier]).Value
                                                     if ($Computer_SID -eq $_.'objectsid'.Value) {
-                                                        Write-Verbose ('{0}|Special: Remove: Removing computer: {1}\{2}' -f $Function_Name, $Computer_Domain, $Computer_Name)
+                                                        Write-Verbose ('{0}|Special {1}: Remove: Removing computer: {2}\{3}' -f $Function_Name, $Property.Name, $Computer_Domain, $Computer_Name)
                                                         [void]$Existing_Rules.RemoveAccessRule($Existing_Rule)
                                                         $Rule_Removed = $true
                                                     }
                                                 }
                                             }
                                             if ($Rule_Removed) {
-                                                Write-Verbose ('{0}|Special: Remove: Setting "msds-allowedtoactonbehalfofotheridentity"' -f $Function_Name)
+                                                Write-Verbose ('{0}|Special {1}: Remove: Setting "msds-allowedtoactonbehalfofotheridentity"' -f $Function_Name, $Property.Name)
                                                 $Object.Put('msds-allowedtoactonbehalfofotheridentity', $Existing_Rules.GetSecurityDescriptorBinaryForm())
                                             }
                                         }
                                         if ($Special_Resolved_Properties_List[$Property.Name]['Add']) {
+                                            Write-Verbose ('{0}|Special {1}: Add: Resolving computer: {2}' -f $Function_Name, $Property.Name, $Special_Resolved_Properties_List[$Property.Name]['Add'])
                                             Get-DSSResolvedObject @Common_Search_Parameters -InputSet $Special_Resolved_Properties_List[$Property.Name]['Add'] | ForEach-Object {
                                                 $Delegation_AccessRule_Arguments = @(
                                                     [System.Security.Principal.IdentityReference] $_.'objectsid'
@@ -818,11 +826,53 @@ function Set-DSSRawObject {
                                                     [System.Security.AccessControl.AccessControlType]::Allow
                                                 )
                                                 $Delegation_AccessRule = New-Object 'System.DirectoryServices.ActiveDirectoryAccessRule' -ArgumentList $Delegation_AccessRule_Arguments
-                                                Write-Verbose ('{0}|Special: Add: Adding computer: {1}' -f $Function_Name, $_.'distinguishedname')
+                                                Write-Verbose ('{0}|Special {1}: Add: Adding computer: {2}' -f $Function_Name, $Property.Name, $_.'distinguishedname')
                                                 [void]$Existing_Rules.AddAccessRule($Delegation_AccessRule)
                                             }
-                                            Write-Verbose ('{0}|Special: Add: Setting "msds-allowedtoactonbehalfofotheridentity"' -f $Function_Name)
+                                            Write-Verbose ('{0}|Special {1}: Add: Setting "msds-allowedtoactonbehalfofotheridentity"' -f $Function_Name, $Property.Name)
                                             $Object.Put('msds-allowedtoactonbehalfofotheridentity', $Existing_Rules.GetSecurityDescriptorBinaryForm())
+                                        }
+                                    }
+                                } elseif ($Property.Name -eq 'certificates') {
+                                    # Unwind the nested arrays if needed, so they can be checked properly.
+                                    $UserCertificate_Values = @()
+                                    $Special_Resolved_Properties_List[$Property.Name].GetEnumerator() | Where-Object { $_.Name -ne 'Clear' } | ForEach-Object { $UserCertificate_Values += $_.Value }
+
+                                    foreach ($UserCertificate in $UserCertificate_Values) {
+                                        if ($UserCertificate -isnot [System.Security.Cryptography.X509Certificates.X509Certificate]) {
+                                            $Terminating_ErrorRecord_Parameters = @{
+                                                'Exception'      = 'System.ArgumentException'
+                                                'ID'             = 'DSS-{0}' -f $Function_Name
+                                                'Category'       = 'InvalidType'
+                                                'TargetObject'   = $Object
+                                                'Message'        = 'All values in the argument collection "{0}" must be of Type: System.Security.Cryptography.X509Certificates.X509Certificate' -f $Property.Name
+                                                'InnerException' = $_.Exception
+                                            }
+                                            $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+                                            $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+                                        }
+                                    }
+
+                                    if ($Special_Resolved_Properties_List[$Property.Name]['Clear']) {
+                                        Write-Verbose ('{0}|Special {1}: Clear: Clearing "usercertificate"' -f $Function_Name, $Property.Name)
+                                        $Object.PutEx($ADS_PROPERTY_CLEAR, 'usercertificate', @())
+                                    } elseif ($Special_Resolved_Properties_List[$Property.Name]['Replace']) {
+                                        $UserCertificate_Replace = @()
+                                        $Special_Resolved_Properties_List[$Property.Name]['Replace'] | ForEach-Object { $UserCertificate_Replace += , $_.GetRawCertData() }
+                                        Write-Verbose ('{0}|Special {1}: Replace: Setting "usercertificate" with {2} objects' -f $Function_Name, $Property.Name, $UserCertificate_Replace.Count)
+                                        $Object.PutEx($ADS_PROPERTY_UPDATE, 'usercertificate', $UserCertificate_Replace)
+                                    } else {
+                                        if ($Special_Resolved_Properties_List[$Property.Name]['Remove']) {
+                                            $UserCertificate_Remove = @()
+                                            $Special_Resolved_Properties_List[$Property.Name]['Remove'] | ForEach-Object { $UserCertificate_Remove += , $_.GetRawCertData() }
+                                            Write-Verbose ('{0}|Special {1}: Remove: Removing {2} objects from "usercertificate"' -f $Function_Name, $Property.Name, $UserCertificate_Replace.Count)
+                                            $Object.PutEx($ADS_PROPERTY_DELETE, 'usercertificate', $UserCertificate_Remove)
+                                        }
+                                        if ($Special_Resolved_Properties_List[$Property.Name]['Add']) {
+                                            $UserCertificate_Add = @()
+                                            $Special_Resolved_Properties_List[$Property.Name]['Add'] | ForEach-Object { $UserCertificate_Add += , $_.GetRawCertData() }
+                                            Write-Verbose ('{0}|Special {1}: Add: Adding {2} objects to "usercertificate"' -f $Function_Name, $Property.Name, $UserCertificate_Add.Count)
+                                            $Object.PutEx($ADS_PROPERTY_APPEND, 'usercertificate', $UserCertificate_Add)
                                         }
                                     }
                                 }
