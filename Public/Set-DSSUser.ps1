@@ -99,6 +99,9 @@ function Set-DSSUser {
         # Multiple actions can also be specified by providing multiple lines within the hashtable. For example:
         # -Certificates @{Remove=$cert1; Add=$cert2}
         #
+        # Multiple certificates can be specified per action, by separating them with a comma. For example:
+        # -Certificates @{Add=$cert1,$cert2}
+        #
         # You can clear all entries with this:
         # -Certificates $null
         #
