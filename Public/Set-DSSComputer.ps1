@@ -78,6 +78,41 @@ function Set-DSSComputer {
         [Boolean]
         $CannotChangePassword,
 
+        # A hashtable that defines the Certificate(s) to add, remove or replace on the object.
+        # Add and remove will add or remove individual entries (if found). Replace will replace all entries with just those specified.
+        # The hashtable KEY has to be add, remove or replace.
+        # The corresponding hashtable VALUE has to be an object (or an array) of type: System.Security.Cryptography.X509Certificates.X509Certificate
+        #
+        # See below for some examples:
+        #
+        # $TemplateCert = (Get-DSSComputer -DistinguishedName 'CN=TemplateServer,CN=Computers,DC=contoso,DC=com' -Properties Certificates).Certificates
+        # Set-DSSComputer -SAMAccountName LON-SRV-01 -Certificates @{Replace=$TemplateCert}
+        #
+        # All certificates on the LON-SRV-01 computer object will be replaced with the certificates from the TemplateServer account.
+        #
+        # $BadCert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate
+        # $BadCert.Import("badcert.cer")
+        # Set-DSSComputer -DistinguishedName 'CN=LON-SRV-01,CN=Computers,DC=contoso,DC=com' -Certificates @{Remove = $BadCert}
+        #
+        # Imports a certificate from a local file and removes that certificate from the LON-SRV-01 computer object's certificates.
+        #
+        # Multiple actions can also be specified by providing multiple lines within the hashtable. For example:
+        # -Certificates @{Remove=$cert1; Add=$cert2}
+        #
+        # Multiple certificates can be specified per action, by separating them with a comma. For example:
+        # -Certificates @{Add=$cert1,$cert2}
+        #
+        # You can clear all entries with this:
+        # -Certificates $null
+        #
+        # If specifying the Add, Remove and Replace parameters together, they are processed in this order:
+        # ..Remove
+        # ..Add
+        # ..Replace
+        [Parameter(Mandatory = $false)]
+        [Hashtable]
+        $Certificates,
+
         # A property or an array of properties to clear.
         # See below for some examples:
         #
@@ -450,7 +485,7 @@ function Set-DSSComputer {
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
 
     try {
-        $Null_Equal_Clear_Parameters = @('ServicePrincipalNames', 'PrincipalsAllowedToDelegateToAccount')
+        $Null_Equal_Clear_Parameters = @('Certificates', 'PrincipalsAllowedToDelegateToAccount', 'ServicePrincipalNames')
         $Null_Equal_Clear_Parameters | ForEach-Object {
             if ($PSBoundParameters.ContainsKey($_)) {
                 if ($null -eq $PSBoundParameters[$_]) {
