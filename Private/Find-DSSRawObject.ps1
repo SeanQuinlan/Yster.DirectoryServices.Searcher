@@ -163,7 +163,7 @@ function Find-DSSRawObject {
             if ($Non_LDAP_Properties -contains $Property) {
                 Write-Verbose ('{0}|Adding property to calculate later: {1}' -f $Function_Name, $Property)
                 $Properties_To_Calculate_Later.Add($Property)
-            } else {
+            } elseif ($Properties_To_Add -notcontains $Property) {
                 $Properties_To_Add.Add($Property)
             }
 
