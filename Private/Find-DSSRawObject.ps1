@@ -654,6 +654,14 @@ function Find-DSSRawObject {
                         }
                     }
 
+                    # Add any properties that were specified by -Properties, but were not found, for completeness.
+                    $Properties | Where-Object { $_ -ne '*' } | ForEach-Object {
+                        if ($null -eq $Result_Object[$_]) {
+                            Write-Verbose ('{0}|SpecifiedProperties: Adding property: {1}' -f $Function_Name, $_)
+                            $Result_Object[$_] = $null
+                        }
+                    }
+
                     $Directory_Searcher_Result_To_Return.Add($Result_Object)
                 }
 
