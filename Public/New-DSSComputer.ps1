@@ -23,7 +23,15 @@ function New-DSSComputer {
         # -AccountExpirationDate '25/12/1999 17:30:00'
         # -AccountExpirationDate (Get-Date).AddDays(90)
         [Parameter(Mandatory = $false)]
-        [ValidateNotNullOrEmpty()]
+        [ValidateScript(
+            {
+                if ($_ -gt '01/01/1601 00:00:00') {
+                    $true
+                } else {
+                    throw "Value has to be greater than 01/01/1601 00:00:00"
+                }
+            }
+        )]
         [Object]
         $AccountExpirationDate,
 

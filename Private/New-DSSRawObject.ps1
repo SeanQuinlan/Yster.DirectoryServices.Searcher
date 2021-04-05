@@ -153,7 +153,7 @@ function New-DSSRawObject {
                     } elseif ($Property.Name -eq 'AccountExpirationDate') {
                         Write-Verbose ('{0}|Converting DateTime to int64' -f $Function_Name)
                         $Account_Expires_Int64 = (Get-Date $Property.Value).ToFileTime()
-                        $New_Object.Put('accountexpires', '{0}' -f $Account_Expires_Int64) # Value has to be a string for some reason.
+                        $New_Object.Put('accountexpires', $Account_Expires_Int64.ToString()) # Value has to be a string for some reason.
                     } elseif ($Property.Name -eq 'AccountPassword') {
                         $Set_Account_Password = $true
                         $Account_Passsword = $Property.Value
