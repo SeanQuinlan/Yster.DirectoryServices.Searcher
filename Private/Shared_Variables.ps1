@@ -151,11 +151,12 @@ $Useful_Calculated_SubProperties = @{
 
 # A set of arguments/properties to Set-ADXXX which simply set a different LDAP property.
 $Set_Alias_Properties = @{
+    'accountexpires'                           = 'accountexpirationdate'
     'grouptype'                                = @('groupcategory', 'groupscope')
     'lockouttime'                              = 'unlock'
+    'msds-allowedtoactonbehalfofotheridentity' = 'principalsallowedtodelegatetoaccount'
     'msds-supportedencryptiontypes'            = @('compoundidentitysupported', 'kerberosencryptiontype')
     'ntsecuritydescriptor'                     = @('cannotchangepassword', 'protectedfromaccidentaldeletion')
-    'msds-allowedtoactonbehalfofotheridentity' = 'principalsallowedtodelegatetoaccount'
     'pwdlastset'                               = 'changepasswordatlogon'
     'usercertificate'                          = 'certificates'
 }

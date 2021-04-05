@@ -21,6 +21,7 @@ function Set-DSSRawObject {
         http://www.selfadsi.org/write.htm
         https://docs.microsoft.com/en-us/dotnet/api/system.directoryservices.activedirectoryaccessrule
         https://ldapwiki.com/wiki/GroupType
+        http://www.rlmueller.net/AccountExpires.htm
     #>
 
     [CmdletBinding(SupportsShouldProcess = $true)]
@@ -555,6 +556,35 @@ function Set-DSSRawObject {
                                         Write-Verbose ('{0}|Account has never been logged in, doing nothing' -f $Function_Name)
                                     }
 
+                                } elseif ($Property.Name -eq 'accountexpirationdate') {
+                                    if (($Property.Value -isnot [DateTime]) -and ($null -ne $Property.Value)) {
+                                        $Terminating_ErrorRecord_Parameters = @{
+                                            'Exception'      = 'System.ArgumentException'
+                                            'ID'             = 'DSS-{0}' -f $Function_Name
+                                            'Category'       = 'InvalidType'
+                                            'TargetObject'   = $Object
+                                            'Message'        = 'Specified property must be a DateTime: {0}' -f $Property.Name
+                                            'InnerException' = $_.Exception
+                                        }
+                                        $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+                                        $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+                                    }
+
+                                    if ($null -eq $Property.Value) {
+                                        Write-Verbose ('{0}|Expiration date is null, will clear expiration date' -f $Function_Name)
+                                        $Compare_Value = 0
+                                    } else {
+                                        $Compare_Value = $Property.Value.ToFileTime().ToString()
+                                    }
+
+                                    $Object_AccountExpirationDate = $Object.InvokeGet('accountexpirationdate')
+                                    if ($Object_AccountExpirationDate -ne $Compare_Value) {
+                                        Write-Verbose ('{0}|Setting "accountexpires" to: {1}' -f $Function_Name, $Compare_Value)
+                                        $Object.Put('accountExpires', $Compare_Value)
+                                    } else {
+                                        Write-Verbose ('{0}|Value for "accountexpires" unchanged, doing nothing' -f $Function_Name, $Property.Value)
+                                    }
+
                                 } else {
                                     if ($Set_Alias_Properties_Full -contains $Property.Name) {
                                         $Property_Name = ($Set_Alias_Properties.GetEnumerator() | Where-Object { $_.Value -eq $Property.Name }).Name
@@ -730,7 +760,7 @@ function Set-DSSRawObject {
                                             }
                                         }
 
-                                        Write-Verbose ('{0}|Replace: "{1}" with "{2}"' -f $Function_Name, $Property_Name, ($Compare_Value -join ','))
+                                        Write-Verbose ('{0}|Replace: "{1}" with value "{2}"' -f $Function_Name, $Property_Name, ($Compare_Value -join ','))
                                         $Object.PutEx($ADS_PROPERTY_UPDATE, $Property_Name, @($Compare_Value))
                                     } else {
                                         Write-Verbose ('{0}|Property already set correctly: {1}' -f $Function_Name, $Property_Name)
@@ -891,7 +921,7 @@ function Set-DSSRawObject {
                     if ($PSCmdlet.ShouldProcess($Whatif_Statement, $Confirm_Statement, $Confirm_Header.ToString())) {
                         Write-Verbose ('{0}|Found object, checking for ProtectFromAccidentalDeletion' -f $Function_Name)
                         $Check_Object_Parameters = @{
-                            'DistinguishedName'   = $Object.distinguishedname
+                            'DistinguishedName'   = $Object.'distinguishedname'
                             'Properties'          = 'protectedfromaccidentaldeletion'
                             'NoDefaultProperties' = $true
                         }
@@ -908,11 +938,11 @@ function Set-DSSRawObject {
                             $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
                         }
                         Write-Verbose ('{0}|Attempting delete' -f $Function_Name)
-                        if ($Object.objectclass -contains 'Group') {
+                        if ($Object.'objectclass' -contains 'Group') {
                             Write-Verbose ('{0}|Object is a group, getting parent OU first' -f $Function_Name)
                             $Group_Directory_Entry_Parent_OU = Get-DSSDirectoryEntry @Common_Search_Parameters -Path $Object.Parent
-                            $Group_Directory_Entry_Parent_OU.Delete('Group', ('CN={0}' -f $Object.cn.Value))
-                        } elseif ($Object.objectclass -contains 'OrganizationalUnit') {
+                            $Group_Directory_Entry_Parent_OU.Delete('Group', ('CN={0}' -f $Object.'cn'.Value))
+                        } elseif ($Object.'objectclass' -contains 'OrganizationalUnit') {
                             Write-Verbose ('{0}|Object is an OU, checking for child objects' -f $Function_Name)
                             if (([array]$Object.Children) -and (-not $Recursive)) {
                                 Write-Verbose ('{0}|Found child objects and Recursive switch not present, unable to delete' -f $Function_Name)
