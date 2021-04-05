@@ -65,6 +65,17 @@ function New-DSSUser {
         [Boolean]
         $CannotChangePassword,
 
+        # A list of Certificates to add to the object.
+        # These certificates must be of type: System.Security.Cryptography.X509Certificates.X509Certificate
+        # See below for some examples:
+        #
+        # -Certificates $cert1
+        # -Certificates $cert1, $cert2
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Array]
+        $Certificates,
+
         # Specifies whether an account is required to change it's password when next logging on.
         # An example of using this property is:
         #
@@ -591,7 +602,7 @@ function New-DSSUser {
     $PSBoundParameters.GetEnumerator() | ForEach-Object { Write-Verbose ('{0}|Arguments: {1} - {2}' -f $Function_Name, $_.Key, ($_.Value -join ' ')) }
 
     try {
-        $Convert_To_Hashtable_Parameters = @('ServicePrincipalNames', 'PrincipalsAllowedToDelegateToAccount')
+        $Convert_To_Hashtable_Parameters = @('Certificates', 'PrincipalsAllowedToDelegateToAccount', 'ServicePrincipalNames')
         $Convert_To_Hashtable_Parameters | ForEach-Object {
             if ($PSBoundParameters.ContainsKey($_)) {
                 $Parameter_New_Value = @{'Replace' = $PSBoundParameters[$_] }

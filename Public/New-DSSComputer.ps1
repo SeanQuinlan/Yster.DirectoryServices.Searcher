@@ -65,6 +65,17 @@ function New-DSSComputer {
         [Boolean]
         $CannotChangePassword,
 
+        # A list of Certificates to add to the object.
+        # These certificates must be of type: System.Security.Cryptography.X509Certificates.X509Certificate
+        # See below for some examples:
+        #
+        # -Certificates $cert1
+        # -Certificates $cert1, $cert2
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Array]
+        $Certificates,
+
         # Indicates whether an account supports Kerberos service tickets which includes the authorization data for the user's device.
         # An example of using this property is:
         #
@@ -363,7 +374,7 @@ function New-DSSComputer {
         if (-not $SAMAccountName) {
             $PSBoundParameters['SAMAccountName'] = ('{0}$' -f $Name)
         }
-        $Convert_To_Hashtable_Parameters = @('ServicePrincipalNames', 'PrincipalsAllowedToDelegateToAccount')
+        $Convert_To_Hashtable_Parameters = @('Certificates', 'PrincipalsAllowedToDelegateToAccount', 'ServicePrincipalNames')
         $Convert_To_Hashtable_Parameters | ForEach-Object {
             if ($PSBoundParameters.ContainsKey($_)) {
                 $Parameter_New_Value = @{'Replace' = $PSBoundParameters[$_] }
