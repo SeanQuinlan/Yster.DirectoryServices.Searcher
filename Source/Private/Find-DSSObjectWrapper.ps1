@@ -24,6 +24,7 @@ function Find-DSSObjectWrapper {
         [Parameter(Mandatory = $true)]
         [ValidateSet(
             'Computer',
+            'Contact',
             'DomainController',
             'Group',
             'Object',
@@ -75,6 +76,9 @@ function Find-DSSObjectWrapper {
             'Computer' {
                 $Default_LDAPFilter = '(objectcategory=computer)'
                 $Default_LDAPFilter_With_DeletedObjects = '(objectclass=computer)'
+            }
+            'Contact' {
+                $Default_LDAPFilter = '(objectclass=contact)'
             }
             'DomainController' {
                 $Default_LDAPFilter = '(userAccountControl:1.2.840.113556.1.4.803:=8192)'
