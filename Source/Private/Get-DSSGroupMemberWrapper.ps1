@@ -82,38 +82,28 @@ function Get-DSSGroupMemberWrapper {
                 'GroupMember' {
                     Write-Verbose ('{0}|DN Search:Calling Find-DSSGroup' -f $Function_Name)
                     $DN_Search_Return = Find-DSSGroup @Common_Search_Parameters @DN_Search_Parameters
-                    if (-not $DN_Search_Return) {
-                        $Terminating_ErrorRecord_Parameters = @{
-                            'Exception'    = 'Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException'
-                            'ID'           = 'DSS-{0}' -f $Function_Name
-                            'Category'     = 'ObjectNotFound'
-                            'TargetObject' = $DN_Search_Return
-                            'Message'      = ('Cannot find group with {0}: {1}' -f $DN_Search_Object, $DN_Search_Value)
-                        }
-                        $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
-                        $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
-                    } else {
-                        $DistinguishedName = $DN_Search_Return.'distinguishedname'
-                    }
+                    $DN_Search_Type = 'group'
                 }
 
                 'PrincipalGroupMembership' {
                     Write-Verbose ('{0}|DN Search:Calling Find-DSSObject' -f $Function_Name)
                     $DN_Search_Return = Find-DSSObject @Common_Search_Parameters @DN_Search_Parameters
-                    if (-not $DN_Search_Return) {
-                        $Terminating_ErrorRecord_Parameters = @{
-                            'Exception'    = 'Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException'
-                            'ID'           = 'DSS-{0}' -f $Function_Name
-                            'Category'     = 'ObjectNotFound'
-                            'TargetObject' = $DN_Search_Return
-                            'Message'      = ('Cannot find account with {0}: {1}' -f $DN_Search_Object, $DN_Search_Value)
-                        }
-                        $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
-                        $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
-                    } else {
-                        $DistinguishedName = $DN_Search_Return.'distinguishedname'
-                    }
+                    $DN_Search_Type = 'account'
                 }
+            }
+
+            if (-not $DN_Search_Return) {
+                $Terminating_ErrorRecord_Parameters = @{
+                    'Exception'    = 'Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException'
+                    'ID'           = 'DSS-{0}' -f $Function_Name
+                    'Category'     = 'ObjectNotFound'
+                    'TargetObject' = $DN_Search_Return
+                    'Message'      = ('Cannot find {0} with {1}: {2}' -f $DN_Search_Type, $DN_Search_Object, $DN_Search_Value)
+                }
+                $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
+                $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
+            } else {
+                $DistinguishedName = $DN_Search_Return.'distinguishedname'
             }
         }
 
