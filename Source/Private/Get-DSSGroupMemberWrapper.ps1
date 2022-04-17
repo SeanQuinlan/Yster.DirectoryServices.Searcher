@@ -5,7 +5,7 @@ function Get-DSSGroupMemberWrapper {
     .DESCRIPTION
         This will parse the PSBoundParameters of the calling function and pass the relevant values to Find-DSSRawObject to return the requested properties.
 
-        This is not meant to be used as an interactive function; it is a wrapper function around the Get-DSSGroupMember and Get-DSSPrincipalGroupMembership cmdlets, in order to reduce reuse of code.
+        This is not meant to be used as an interactive function; it is a wrapper function for the Get-DSSGroupMember and Get-DSSPrincipalGroupMembership cmdlets, in order to reduce reuse of code.
     .EXAMPLE
         Get-DSSGroupMemberWrapper -ObjectType 'PrincipalGroupMembership' -BoundParameters $PSBoundParameters
 
@@ -64,7 +64,7 @@ function Get-DSSGroupMemberWrapper {
             }
         }
 
-        # We need the DistinguishedName to perform the LDAP_MATCHING_RULE_IN_CHAIN search, so if another identity is given, perform a search to retrieve the DistinguishedName
+        # We need the DistinguishedName to perform the LDAP_MATCHING_RULE_IN_CHAIN search, so if another identity is given, perform a search to retrieve the DistinguishedName.
         if (-not $BoundParameters.ContainsKey('DistinguishedName')) {
             $Identity_Parameters = @('SAMAccountName', 'ObjectSID', 'ObjectGUID')
             foreach ($Parameter in $Identity_Parameters) {
