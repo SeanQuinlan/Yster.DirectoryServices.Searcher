@@ -161,10 +161,10 @@ function Set-DSSRawObject {
                         }
                         [void]$GroupMember_ShouldProcess.AppendLine($ShouldProcess_Line)
                     }
-                    $Whatif_Statement = $GroupMember_ShouldProcess.ToString().Trim()
-                    $Confirm_Statement = $Whatif_Statement
 
-                    if ($PSCmdlet.ShouldProcess($Whatif_Statement, $Confirm_Statement, $Confirm_Header.ToString())) {
+                    $Whatif_Statement = $GroupMember_ShouldProcess.ToString().Trim()
+                    $Confirm_Statement = ('Are you sure you want to perform this action?', $Whatif_Statement) -join [Environment]::NewLine
+                    if ($PSCmdlet.ShouldProcess($Whatif_Statement, $Confirm_Statement, 'Confirm')) {
                         # The Microsoft Add/Remove cmdlets do not return any output if the group members to remove are not currently members, or if the group members to add are already members.
                         # So just do the same here (suppress the specific error that is returned).
                         foreach ($GroupMember_Object in $GroupMember_Objects) {
@@ -318,8 +318,8 @@ function Set-DSSRawObject {
                     }
 
                     $Whatif_Statement = $Set_ShouldProcess.ToString().Trim()
-                    $Confirm_Statement = $Whatif_Statement
-                    if ($PSCmdlet.ShouldProcess($Whatif_Statement, $Confirm_Statement, $Confirm_Header.ToString())) {
+                    $Confirm_Statement = ('Are you sure you want to perform this action?', $Whatif_Statement) -join [Environment]::NewLine
+                    if ($PSCmdlet.ShouldProcess($Whatif_Statement, $Confirm_Statement, 'Confirm')) {
                         $ADS_PROPERTY_CLEAR = 1
                         $ADS_PROPERTY_UPDATE = 2
                         $ADS_PROPERTY_APPEND = 3
@@ -917,8 +917,8 @@ function Set-DSSRawObject {
 
                 'RemoveObject' {
                     $Whatif_Statement = 'Performing the operation "Remove" on target "{0}".' -f $($Object.'distinguishedname')
-                    $Confirm_Statement = $Whatif_Statement
-                    if ($PSCmdlet.ShouldProcess($Whatif_Statement, $Confirm_Statement, $Confirm_Header.ToString())) {
+                    $Confirm_Statement = ('Are you sure you want to perform this action?', $Whatif_Statement) -join [Environment]::NewLine
+                    if ($PSCmdlet.ShouldProcess($Whatif_Statement, $Confirm_Statement, 'Confirm')) {
                         Write-Verbose ('{0}|Found object, checking for ProtectFromAccidentalDeletion' -f $Function_Name)
                         $Check_Object_Parameters = @{
                             'DistinguishedName'   = $Object.'distinguishedname'
