@@ -26,6 +26,7 @@ function Set-DSSObjectWrapper {
         [ValidateSet(
             'Account',
             'Computer',
+            'Contact',
             'Group',
             'Object',
             'OrganizationalUnit',
@@ -51,6 +52,9 @@ function Set-DSSObjectWrapper {
             }
             'Computer' {
                 $Default_LDAPFilter = '(objectclass=computer)'
+            }
+            'Contact' {
+                $Default_LDAPFilter = '(objectclass=contact)'
             }
             'Group' {
                 $Default_LDAPFilter = '(objectclass=group)'
