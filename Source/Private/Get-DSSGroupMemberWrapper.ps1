@@ -88,7 +88,7 @@ function Get-DSSGroupMemberWrapper {
                             'ID'           = 'DSS-{0}' -f $Function_Name
                             'Category'     = 'ObjectNotFound'
                             'TargetObject' = $DN_Search_Return
-                            'Message'      = ('Cannot find group with identity: {0}' -f $DN_Search_Value)
+                            'Message'      = ('Cannot find group with {0}: {1}' -f $DN_Search_Object, $DN_Search_Value)
                         }
                         $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
                         $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
@@ -106,7 +106,7 @@ function Get-DSSGroupMemberWrapper {
                             'ID'           = 'DSS-{0}' -f $Function_Name
                             'Category'     = 'ObjectNotFound'
                             'TargetObject' = $DN_Search_Return
-                            'Message'      = ('Cannot find account with identity: {0}' -f $DN_Search_Value)
+                            'Message'      = ('Cannot find account with {0}: {1}' -f $DN_Search_Object, $DN_Search_Value)
                         }
                         $Terminating_ErrorRecord = New-ErrorRecord @Terminating_ErrorRecord_Parameters
                         $PSCmdlet.ThrowTerminatingError($Terminating_ErrorRecord)
