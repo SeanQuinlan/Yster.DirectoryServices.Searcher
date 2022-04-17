@@ -24,6 +24,7 @@ function Get-DSSObjectWrapper {
         [Parameter(Mandatory = $true)]
         [ValidateSet(
             'Computer',
+            'Contact',
             'DomainController',
             'Group',
             'Object',
@@ -67,6 +68,10 @@ function Get-DSSObjectWrapper {
             'Computer' {
                 Write-Verbose ('{0}|Calling Find-DSSComputer' -f $Function_Name)
                 Find-DSSComputer @BoundParameters
+            }
+            'Contact' {
+                Write-Verbose ('{0}|Calling Find-DSSContact' -f $Function_Name)
+                Find-DSSContact @BoundParameters
             }
             'DomainController' {
                 Write-Verbose ('{0}|Calling Find-DSSDomainController' -f $Function_Name)

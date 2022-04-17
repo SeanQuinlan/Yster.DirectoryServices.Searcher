@@ -139,7 +139,7 @@ function Find-DSSContact {
         'name'
         'objectclass'
         'objectguid'
-        'surname'
+        'sn'
     )
 
     # Full list of all properties returned with a wildcard.

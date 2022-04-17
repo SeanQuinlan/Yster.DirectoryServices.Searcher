@@ -1,22 +1,18 @@
-function Get-DSSOptionalFeature {
+function Get-DSSContact {
     <#
     .SYNOPSIS
-        Returns a specific optional feature object from Active Directory.
+        Returns a specific contact object from Active Directory.
     .DESCRIPTION
-        Queries Active Directory for a specific optional feature object, based on one of the following specified parameters:
+        Queries Active Directory for a specific contact object, based on one of the following specified parameters:
             - DistinguishedName
-            - FeatureGUID
+            - ObjectSID (SID)
             - ObjectGUID (GUID)
 
-        This is a wrapper function that takes one of the required parameters and passes that to Find-DSSOptionalFeature with a specific LDAPFilter.
+        This is a wrapper function that takes one of the required parameters and passes that to Find-DSSContact with a specific LDAPFilter.
     .EXAMPLE
-        Get-DSSOptionalFeature -ObjectGUID '4eb845c0-3626-4ae6-a892-873846a2953b'
+        Get-DSSContact -ObjectSID 'S-1-5-21-3515480276-2049723633-1306762111-500'
 
-        Returns the optional feature with the above GUID.
-    .EXAMPLE
-        Get-DSSOptionalFeature -FeatureGUID '766ddcd8-acd0-445e-f3b9-a7f9b6744f2a'
-
-        Returns the "Recycle Bin Feature", which has the FeatureGUID of 766ddcd8-acd0-445e-f3b9-a7f9b6744f2a.
+        Returns the contact with the above SID.
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'DistinguishedName')]
@@ -47,30 +43,40 @@ function Get-DSSOptionalFeature {
         [System.Management.Automation.Credential()]
         $Credential = [System.Management.Automation.PSCredential]::Empty,
 
-        # The DistinguishedName of the optional feature.
+        # The DistinguishedName of the object.
         [Parameter(Mandatory = $true, ParameterSetName = 'DistinguishedName')]
         [ValidateNotNullOrEmpty()]
         [Alias('DN')]
         [String]
         $DistinguishedName,
 
-        # The FeatureGUID of the optional feature.
-        [Parameter(Mandatory = $true, ParameterSetName = 'FeatureGUID')]
+        # Whether to return deleted objects in the search results.
+        # An example of using this property is:
+        #
+        # -IncludeDeletedObjects
+        [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
-        [String]
-        $FeatureGUID,
+        [Switch]
+        $IncludeDeletedObjects,
 
         # Whether or not to include default properties. By setting this switch, only the explicitly specified properties will be returned.
         [Parameter(Mandatory = $false)]
         [Switch]
         $NoDefaultProperties,
 
-        # The ObjectGUID of the optional feature.
+        # The ObjectGUID of the object.
         [Parameter(Mandatory = $true, ParameterSetName = 'GUID')]
         [ValidateNotNullOrEmpty()]
         [Alias('GUID')]
         [String]
         $ObjectGUID,
+
+        # The ObjectSID of the object.
+        [Parameter(Mandatory = $true, ParameterSetName = 'SID')]
+        [ValidateNotNullOrEmpty()]
+        [Alias('SID')]
+        [String]
+        $ObjectSID,
 
         # The number of results per page that is returned from the server. This is primarily to save server memory and bandwidth and does not affect the total number of results returned.
         # An example of using this property is:
@@ -86,7 +92,7 @@ function Get-DSSOptionalFeature {
         # Some examples of using this property are:
         #
         # -Properties 'mail'
-        # -Properties 'created','enabled','displayname'
+        # -Properties 'created','givenname','surname'
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         [Alias('Property')]
@@ -116,7 +122,7 @@ function Get-DSSOptionalFeature {
         }
 
         Write-Verbose ('{0}|Calling Get-DSSObjectWrapper' -f $Function_Name)
-        Get-DSSObjectWrapper -ObjectType 'OptionalFeature' -BoundParameters $PSBoundParameters
+        Get-DSSObjectWrapper -ObjectType 'Contact' -BoundParameters $PSBoundParameters
 
     } catch {
         if ($_.FullyQualifiedErrorId -match '^DSS-') {
