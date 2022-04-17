@@ -9,7 +9,7 @@ function Get-DSSDomainController {
             - ObjectGUID (GUID)
             - SAMAccountName
 
-        This is a wrapper function that takes one of the required parameters and passes that to the Find-DSSDomainController with a specific LDAPFilter.
+        This is a wrapper function that takes one of the required parameters and passes that to Find-DSSDomainController with a specific LDAPFilter.
     .EXAMPLE
         Get-DSSDomainController -ObjectGUID 'eaa2e65d-fe54-4fe2-9f4e-acf9f65a2323'
 

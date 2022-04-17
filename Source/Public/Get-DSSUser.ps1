@@ -9,7 +9,7 @@ function Get-DSSUser {
             - ObjectGUID (GUID)
             - SAMAccountName
 
-        This is a wrapper function that takes one of the required parameters and passes that to the Find-DSSUser with a specific LDAPFilter.
+        This is a wrapper function that takes one of the required parameters and passes that to Find-DSSUser with a specific LDAPFilter.
     .EXAMPLE
         Get-DSSUser -ObjectSID 'S-1-5-21-3515480276-2049723633-1306762111-500'
 

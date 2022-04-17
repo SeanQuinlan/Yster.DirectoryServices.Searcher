@@ -9,7 +9,7 @@ function Get-DSSGroup {
             - ObjectGUID (GUID)
             - SAMAccountName
 
-        This is a wrapper function that takes one of the required parameters and passes that to the Find-DSSGroup with a specific LDAPFilter.
+        This is a wrapper function that takes one of the required parameters and passes that to Find-DSSGroup with a specific LDAPFilter.
     .EXAMPLE
         Get-DSSGroup -ObjectSID 'S-1-5-21-3515480276-2049723633-1306762111-1103'
 

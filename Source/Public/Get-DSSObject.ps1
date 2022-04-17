@@ -9,7 +9,7 @@ function Get-DSSObject {
             - ObjectSID (SID)
             - SAMAccountName
 
-        This is a wrapper function that takes one of the required parameters and passes that to the Find-DSSObject with a specific LDAPFilter.
+        This is a wrapper function that takes one of the required parameters and passes that to the Find-DSSObject cmdlet with a specific LDAPFilter.
     .EXAMPLE
         Get-DSSObject -ObjectGUID 'd5d10b6f-089b-4578-9b52-7c2498e5f2cf'
 

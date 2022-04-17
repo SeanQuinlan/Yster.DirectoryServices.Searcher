@@ -7,7 +7,7 @@ function Get-DSSOrganizationalUnit {
             - DistinguishedName
             - ObjectGUID (GUID)
 
-        This is a wrapper function that takes one of the required parameters and passes that to the Find-DSSOrganizationalUnit with a specific LDAPFilter.
+        This is a wrapper function that takes one of the required parameters and passes that to Find-DSSOrganizationalUnit with a specific LDAPFilter.
     .EXAMPLE
         Get-DSSOrganizationalUnit -ObjectGUID 'cb738600-e378-471d-8bf2-3eb59c3be435'
 
