@@ -14,7 +14,7 @@ function Remove-DSSObject {
         Deletes the JSMITHLAP computer object.
     .NOTES
         References:
-        https://docs.microsoft.com/en-us/powershell/module/addsadministration/remove-adobject
+        https://docs.microsoft.com/en-us/powershell/module/activedirectory/remove-adobject
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'DistinguishedName', SupportsShouldProcess = $true)]

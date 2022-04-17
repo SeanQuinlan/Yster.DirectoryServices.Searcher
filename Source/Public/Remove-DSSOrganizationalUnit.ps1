@@ -12,7 +12,7 @@ function Remove-DSSOrganizationalUnit {
         Deletes the Sales OU.
     .NOTES
         References:
-        https://docs.microsoft.com/en-us/powershell/module/addsadministration/remove-adorganizationalunit
+        https://docs.microsoft.com/en-us/powershell/module/activedirectory/remove-adorganizationalunit
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'DistinguishedName', SupportsShouldProcess = $true)]

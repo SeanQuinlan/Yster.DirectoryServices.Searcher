@@ -10,7 +10,7 @@ function Get-DSSForest {
         Returns basic information on the forest 'contoso.com'
     .NOTES
         References:
-        https://docs.microsoft.com/en-us/powershell/module/addsadministration/get-adforest
+        https://docs.microsoft.com/en-us/powershell/module/activedirectory/get-adforest
         https://docs.microsoft.com/en-us/dotnet/api/system.directoryservices.activedirectory.directorycontext
     #>
 

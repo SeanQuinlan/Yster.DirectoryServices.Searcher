@@ -15,7 +15,7 @@ function Set-DSSGroup {
         Sets the Description attribute of the "Application_Servers" group, replacing any value that is already there.
     .NOTES
         References:
-        https://docs.microsoft.com/en-us/powershell/module/addsadministration/set-adgroup
+        https://docs.microsoft.com/en-us/powershell/module/activedirectory/set-adgroup
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'DistinguishedName', SupportsShouldProcess = $true)]

@@ -23,7 +23,7 @@ function Find-DSSRawObject {
 
         References:
         https://docs.microsoft.com/en-us/dotnet/api/system.directoryservices.directorysearcher
-        https://docs.microsoft.com/en-us/powershell/module/addsadministration/get-adobject
+        https://docs.microsoft.com/en-us/powershell/module/activedirectory/get-adobject
         https://gallery.technet.microsoft.com/scriptcenter/List-Members-of-Large-Group-0eea0132
         https://evetsleep.github.io/activedirectory/2016/08/06/PagingMembers.html
     #>

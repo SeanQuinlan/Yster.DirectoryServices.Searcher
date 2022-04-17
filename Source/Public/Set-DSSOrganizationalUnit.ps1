@@ -13,7 +13,7 @@ function Set-DSSOrganizationalUnit {
         Sets the Description attribute of the Sales OU, replacing any value that is already there.
     .NOTES
         References:
-        https://docs.microsoft.com/en-us/powershell/module/addsadministration/set-adorganizationalunit
+        https://docs.microsoft.com/en-us/powershell/module/activedirectory/set-adorganizationalunit
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'DistinguishedName', SupportsShouldProcess = $true)]

@@ -18,7 +18,7 @@ function Get-DSSGroupMember {
         Gets the all the members of the group with the above SID, including nested members, filtering the results so that only user objects are returned.
     .NOTES
         References:
-        https://docs.microsoft.com/en-us/powershell/module/addsadministration/get-adgroupmember
+        https://docs.microsoft.com/en-us/powershell/module/activedirectory/get-adgroupmember
         https://social.technet.microsoft.com/Forums/ie/en-US/f238d2b0-a1d7-48e8-8a60-542e7ccfa2e8/recursive-retrieval-of-all-ad-group-memberships-of-a-user?forum=ITCG
     #>
 

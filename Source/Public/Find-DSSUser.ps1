@@ -14,7 +14,7 @@ function Find-DSSUser {
         Finds all users that have the samaccountname starting with "test", in the Users container.
     .NOTES
         References:
-        https://docs.microsoft.com/en-us/powershell/module/addsadministration/get-aduser
+        https://docs.microsoft.com/en-us/powershell/module/activedirectory/get-aduser
         https://social.technet.microsoft.com/wiki/contents/articles/12037.active-directory-get-aduser-default-and-extended-properties.aspx
     #>
 

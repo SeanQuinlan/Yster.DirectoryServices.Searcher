@@ -15,7 +15,7 @@ function Set-DSSComputer {
         Sets the Description attribute of the APPSRV01 computer object, replacing any value that is already there.
     .NOTES
         References:
-        https://docs.microsoft.com/en-us/powershell/module/addsadministration/set-adcomputer
+        https://docs.microsoft.com/en-us/powershell/module/activedirectory/set-adcomputer
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'DistinguishedName', SupportsShouldProcess = $true)]

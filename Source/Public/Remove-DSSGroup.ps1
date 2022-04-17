@@ -14,7 +14,7 @@ function Remove-DSSGroup {
         Deletes the group with the above SID.
     .NOTES
         References:
-        https://docs.microsoft.com/en-us/powershell/module/addsadministration/remove-adgroup
+        https://docs.microsoft.com/en-us/powershell/module/activedirectory/remove-adgroup
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'SAM', SupportsShouldProcess = $true)]

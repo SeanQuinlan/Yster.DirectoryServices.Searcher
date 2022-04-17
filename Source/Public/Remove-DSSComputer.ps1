@@ -14,7 +14,7 @@ function Remove-DSSComputer {
         Deletes the computer with the above GUID.
     .NOTES
         References:
-        https://docs.microsoft.com/en-us/powershell/module/addsadministration/remove-adcomputer
+        https://docs.microsoft.com/en-us/powershell/module/activedirectory/remove-adcomputer
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'SAM', SupportsShouldProcess = $true)]

@@ -14,7 +14,7 @@ function Remove-DSSGroupMember {
         Removes the above 3 users from group with the specified SID.
     .NOTES
         References:
-        https://docs.microsoft.com/en-us/powershell/module/addsadministration/remove-adgroupmember
+        https://docs.microsoft.com/en-us/powershell/module/activedirectory/remove-adgroupmember
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'SAM', SupportsShouldProcess = $true)]

@@ -5,12 +5,12 @@ function New-DSSUser {
     .DESCRIPTION
         Creates a user account in Active Directory, using the properties supplied.
     .EXAMPLE
-        New-DSSComputer -Name 'WIN-SRV01' -Path 'OU=Computers,OU=Company,DC=contoso,DC=com'
+        New-DSSUser -Name 'JohnSmith' -Path 'OU=Users,OU=Company,DC=contoso,DC=com'
 
-        Creates the computer object in the specified OU path.
+        Creates the user object in the specified OU path.
     .NOTES
         References:
-        https://docs.microsoft.com/en-us/powershell/module/addsadministration/new-aduser
+        https://docs.microsoft.com/en-us/powershell/module/activedirectory/new-aduser
     #>
 
     [CmdletBinding(SupportsShouldProcess = $true)]

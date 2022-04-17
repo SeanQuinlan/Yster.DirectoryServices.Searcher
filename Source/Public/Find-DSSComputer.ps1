@@ -14,7 +14,7 @@ function Find-DSSComputer {
         Finds all computers that have a name starting with "appserver", in the "Mkt_Servers" OU.
     .NOTES
         References:
-        https://docs.microsoft.com/en-us/powershell/module/addsadministration/get-adcomputer
+        https://docs.microsoft.com/en-us/powershell/module/activedirectory/get-adcomputer
         https://social.technet.microsoft.com/wiki/contents/articles/12056.active-directory-get-adcomputer-default-and-extended-properties.aspx
     #>
 

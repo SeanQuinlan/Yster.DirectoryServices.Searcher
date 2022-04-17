@@ -14,7 +14,7 @@ function Find-DSSGroup {
         Returns all properties for any groups with "grp" in a common indexed attribute, only if found under the specified OU.
     .NOTES
         References:
-        https://docs.microsoft.com/en-us/powershell/module/addsadministration/get-adgroup
+        https://docs.microsoft.com/en-us/powershell/module/activedirectory/get-adgroup
         https://social.technet.microsoft.com/wiki/contents/articles/12079.active-directory-get-adgroup-default-and-extended-properties.aspx
     #>
 

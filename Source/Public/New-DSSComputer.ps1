@@ -10,7 +10,7 @@ function New-DSSComputer {
         Creates the computer object in the specified OU path.
     .NOTES
         References:
-        https://docs.microsoft.com/en-us/powershell/module/addsadministration/new-adcomputer
+        https://docs.microsoft.com/en-us/powershell/module/activedirectory/new-adcomputer
     #>
 
     [CmdletBinding(SupportsShouldProcess = $true)]

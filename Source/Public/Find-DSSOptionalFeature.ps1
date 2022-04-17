@@ -14,7 +14,7 @@ function Find-DSSOptionalFeature {
         Finds all optional features within Active Directory.
     .NOTES
         References:
-        https://docs.microsoft.com/en-us/powershell/module/addsadministration/get-adoptionalfeature
+        https://docs.microsoft.com/en-us/powershell/module/activedirectory/get-adoptionalfeature
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'Name')]

@@ -14,7 +14,7 @@ function Remove-DSSPrincipalGroupMembership {
         Removes the object with the above SID from the 'Administrators' group.
     .NOTES
         References:
-        https://docs.microsoft.com/en-us/powershell/module/addsadministration/remove-adprincipalgroupmembership
+        https://docs.microsoft.com/en-us/powershell/module/activedirectory/remove-adprincipalgroupmembership
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'SAM', SupportsShouldProcess = $true)]

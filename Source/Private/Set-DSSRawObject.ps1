@@ -13,7 +13,7 @@ function Set-DSSRawObject {
         Removes (deletes) the object with the above SID.
     .NOTES
         References:
-        https://docs.microsoft.com/en-us/powershell/module/addsadministration/remove-adobject
+        https://docs.microsoft.com/en-us/powershell/module/activedirectory/remove-adobject
         https://docs.microsoft.com/en-us/dotnet/api/system.directoryservices.directoryentry
         https://docs.microsoft.com/en-us/windows/win32/api/iads/nf-iads-iadsgroup-remove
         https://docs.microsoft.com/en-us/dotnet/api/system.management.automation.cmdlet.shouldprocess

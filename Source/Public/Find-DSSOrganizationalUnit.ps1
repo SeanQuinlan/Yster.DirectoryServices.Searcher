@@ -14,7 +14,7 @@ function Find-DSSOrganizationalUnit {
         Finds all the OUs that have a "name" starting with "UK", under the above OU, and return all properties for each result.
     .NOTES
         References:
-        https://docs.microsoft.com/en-us/powershell/module/addsadministration/get-adorganizationalunit
+        https://docs.microsoft.com/en-us/powershell/module/activedirectory/get-adorganizationalunit
         https://social.technet.microsoft.com/wiki/contents/articles/12089.active-directory-get-adorganizationalunit-default-and-extended-properties.aspx
     #>
 

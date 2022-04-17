@@ -20,7 +20,7 @@ function Set-DSSAccountExpiration {
         Sets the account expiration date on the "JSmith" account to a date 60 days in the future.
     .NOTES
         References:
-        https://docs.microsoft.com/en-us/powershell/module/addsadministration/set-adaccountexpiration
+        https://docs.microsoft.com/en-us/powershell/module/activedirectory/set-adaccountexpiration
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'SAM', SupportsShouldProcess = $true)]

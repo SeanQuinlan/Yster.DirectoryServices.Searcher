@@ -10,7 +10,7 @@ function Enable-DSSAccount {
         Enables the "Guest" account.
     .NOTES
         References:
-        https://docs.microsoft.com/en-us/powershell/module/addsadministration/enable-adaccount
+        https://docs.microsoft.com/en-us/powershell/module/activedirectory/enable-adaccount
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'SAM', SupportsShouldProcess = $true)]

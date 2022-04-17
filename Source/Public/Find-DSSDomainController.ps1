@@ -14,7 +14,7 @@ function Find-DSSDomainController {
         Finds all domain controllers in the current forest.
     .NOTES
         References:
-        https://docs.microsoft.com/en-us/powershell/module/addsadministration/get-addomaincontroller
+        https://docs.microsoft.com/en-us/powershell/module/activedirectory/get-addomaincontroller
         http://www.selfadsi.org/extended-ad/search-domain-controllers.htm
     #>
 

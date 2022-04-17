@@ -10,7 +10,7 @@ function Unlock-DSSAccount {
         Unlocks the "Guest" account.
     .NOTES
         References:
-        https://docs.microsoft.com/en-us/powershell/module/addsadministration/unlock-adaccount
+        https://docs.microsoft.com/en-us/powershell/module/activedirectory/unlock-adaccount
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'SAM', SupportsShouldProcess = $true)]

@@ -15,7 +15,7 @@ function Set-DSSObject {
         Sets the Description attribute of the "SQL Servers" object, replacing any value that is already there.
     .NOTES
         References:
-        https://docs.microsoft.com/en-us/powershell/module/addsadministration/set-adobject
+        https://docs.microsoft.com/en-us/powershell/module/activedirectory/set-adobject
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'DistinguishedName', SupportsShouldProcess = $true)]

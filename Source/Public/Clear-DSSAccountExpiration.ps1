@@ -10,7 +10,7 @@ function Clear-DSSAccountExpiration {
         Clear the account expiration date on the "Guest" account.
     .NOTES
         References:
-        https://docs.microsoft.com/en-us/powershell/module/addsadministration/clear-adaccountexpiration
+        https://docs.microsoft.com/en-us/powershell/module/activedirectory/clear-adaccountexpiration
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'SAM', SupportsShouldProcess = $true)]

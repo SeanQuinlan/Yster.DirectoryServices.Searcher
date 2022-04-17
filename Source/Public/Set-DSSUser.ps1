@@ -15,7 +15,7 @@ function Set-DSSUser {
         Sets the DisplayName of the JSmith user, replacing any value that is already there.
     .NOTES
         References:
-        https://docs.microsoft.com/en-us/powershell/module/addsadministration/set-aduser
+        https://docs.microsoft.com/en-us/powershell/module/activedirectory/set-aduser
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'DistinguishedName', SupportsShouldProcess = $true)]

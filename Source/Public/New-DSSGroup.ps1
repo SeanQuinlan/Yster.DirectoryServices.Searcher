@@ -10,7 +10,7 @@ function New-DSSGroup {
         Creates the group object in the specified OU path.
     .NOTES
         References:
-        https://docs.microsoft.com/en-us/powershell/module/addsadministration/new-adgroup
+        https://docs.microsoft.com/en-us/powershell/module/activedirectory/new-adgroup
     #>
 
     [CmdletBinding(SupportsShouldProcess = $true)]

@@ -16,7 +16,7 @@ function Get-DSSDomain {
         The ObjectSID and ObjectGUID properties can only reference domains/subdomains from the currently connected domain.
 
         References:
-        https://docs.microsoft.com/en-us/powershell/module/addsadministration/get-addomain
+        https://docs.microsoft.com/en-us/powershell/module/activedirectory/get-addomain
         https://docs.microsoft.com/en-us/dotnet/api/system.directoryservices.activedirectory.directorycontext
     #>
 

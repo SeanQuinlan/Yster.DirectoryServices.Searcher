@@ -12,7 +12,7 @@ function New-DSSRawObject {
         Creates the above computer object in the specified OU.
     .NOTES
         References:
-        https://docs.microsoft.com/en-us/powershell/module/addsadministration/new-adobject
+        https://docs.microsoft.com/en-us/powershell/module/activedirectory/new-adobject
         https://docs.microsoft.com/en-us/dotnet/api/system.directoryservices.directoryentry
         https://www.petri.com/creating-active-directory-user-accounts-adsi-powershell
     #>

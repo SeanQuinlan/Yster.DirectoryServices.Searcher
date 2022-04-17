@@ -14,7 +14,7 @@ function Add-DSSGroupMember {
         Adds the above 3 users to the group with the specified SID.
     .NOTES
         References:
-        https://docs.microsoft.com/en-us/powershell/module/addsadministration/add-adgroupmember
+        https://docs.microsoft.com/en-us/powershell/module/activedirectory/add-adgroupmember
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'SAM', SupportsShouldProcess = $true)]

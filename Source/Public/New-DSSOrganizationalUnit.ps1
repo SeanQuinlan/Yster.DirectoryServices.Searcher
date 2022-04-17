@@ -10,7 +10,7 @@ function New-DSSOrganizationalUnit {
         Creates the organizational unit 'Sales' in the above path.
     .NOTES
         References:
-        https://docs.microsoft.com/en-us/powershell/module/addsadministration/new-adorganizationalunit
+        https://docs.microsoft.com/en-us/powershell/module/activedirectory/new-adorganizationalunit
     #>
 
     [CmdletBinding(SupportsShouldProcess = $true)]

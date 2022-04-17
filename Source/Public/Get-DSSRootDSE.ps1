@@ -14,7 +14,7 @@ function Get-DSSRootDSE {
         Returns the DistinguishedName of the Active Directory domain.
     .NOTES
         References:
-        https://docs.microsoft.com/en-us/powershell/module/addsadministration/get-adrootdse
+        https://docs.microsoft.com/en-us/powershell/module/activedirectory/get-adrootdse
     #>
 
     [CmdletBinding()]

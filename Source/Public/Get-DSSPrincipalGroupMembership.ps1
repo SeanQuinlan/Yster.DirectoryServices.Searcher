@@ -18,7 +18,7 @@ function Get-DSSPrincipalGroupMembership {
         Returns all the groups that the Administrator account is a member of.
     .NOTES
         References:
-        https://docs.microsoft.com/en-us/powershell/module/addsadministration/get-adprincipalgroupmembership
+        https://docs.microsoft.com/en-us/powershell/module/activedirectory/get-adprincipalgroupmembership
         https://social.technet.microsoft.com/Forums/ie/en-US/f238d2b0-a1d7-48e8-8a60-542e7ccfa2e8/recursive-retrieval-of-all-ad-group-memberships-of-a-user?forum=ITCG
         https://social.technet.microsoft.com/wiki/contents/articles/5392.active-directory-ldap-syntax-filters.aspx
     #>

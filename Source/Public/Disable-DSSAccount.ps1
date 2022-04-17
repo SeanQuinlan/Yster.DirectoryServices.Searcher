@@ -10,7 +10,7 @@ function Disable-DSSAccount {
         Disables the "Guest" account.
     .NOTES
         References:
-        https://docs.microsoft.com/en-us/powershell/module/addsadministration/disable-adaccount
+        https://docs.microsoft.com/en-us/powershell/module/activedirectory/disable-adaccount
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'SAM', SupportsShouldProcess = $true)]

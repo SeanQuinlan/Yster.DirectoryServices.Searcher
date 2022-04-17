@@ -14,7 +14,7 @@ function Add-DSSPrincipalGroupMembership {
         Adds the object with the above SID to the 'Administrators' group.
     .NOTES
         References:
-        https://docs.microsoft.com/en-us/powershell/module/addsadministration/add-adprincipalgroupmembership
+        https://docs.microsoft.com/en-us/powershell/module/activedirectory/add-adprincipalgroupmembership
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'SAM', SupportsShouldProcess = $true)]

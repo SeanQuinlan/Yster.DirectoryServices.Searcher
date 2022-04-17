@@ -14,7 +14,7 @@ function Remove-DSSUser {
         Deletes the user with the above GUID.
     .NOTES
         References:
-        https://docs.microsoft.com/en-us/powershell/module/addsadministration/remove-aduser
+        https://docs.microsoft.com/en-us/powershell/module/activedirectory/remove-aduser
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'SAM', SupportsShouldProcess = $true)]

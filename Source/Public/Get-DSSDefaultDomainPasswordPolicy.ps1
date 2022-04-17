@@ -10,7 +10,7 @@ function Get-DSSDefaultDomainPasswordPolicy {
         Returns password policy information for the domain 'sales.contoso.com'
     .NOTES
         References:
-        https://docs.microsoft.com/en-us/powershell/module/addsadministration/get-addefaultdomainpasswordpolicy
+        https://docs.microsoft.com/en-us/powershell/module/activedirectory/get-addefaultdomainpasswordpolicy
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'DNSName')]

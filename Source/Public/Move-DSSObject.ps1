@@ -15,7 +15,7 @@ function Move-DSSObject {
         Moves the "SQL Servers" object to the new location.
     .NOTES
         References:
-        https://docs.microsoft.com/en-us/powershell/module/addsadministration/move-adobject
+        https://docs.microsoft.com/en-us/powershell/module/activedirectory/move-adobject
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'DistinguishedName', SupportsShouldProcess = $true)]

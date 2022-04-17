@@ -14,7 +14,7 @@ function Rename-DSSObject {
         Renames the "SQL Servers" object to "London SQL Servers".
     .NOTES
         References:
-        https://docs.microsoft.com/en-us/powershell/module/addsadministration/rename-adobject
+        https://docs.microsoft.com/en-us/powershell/module/activedirectory/rename-adobject
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'DistinguishedName', SupportsShouldProcess = $true)]

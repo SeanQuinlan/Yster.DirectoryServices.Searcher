@@ -10,7 +10,7 @@ function New-DSSObject {
         Creates the user object in the specified OU path.
     .NOTES
         References:
-        https://docs.microsoft.com/en-us/powershell/module/addsadministration/new-adobject
+        https://docs.microsoft.com/en-us/powershell/module/activedirectory/new-adobject
     #>
 
     [CmdletBinding(SupportsShouldProcess = $true)]
