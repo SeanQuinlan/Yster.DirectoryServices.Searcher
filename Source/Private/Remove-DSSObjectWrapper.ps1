@@ -38,6 +38,7 @@ function Remove-DSSObjectWrapper {
         [Parameter(Mandatory = $true)]
         [ValidateSet(
             'Computer',
+            'Contact',
             'Group',
             'GroupMember',
             'Object',
@@ -70,6 +71,10 @@ function Remove-DSSObjectWrapper {
                 $Default_LDAPFilter = '(objectclass=computer)'
                 $Set_Action = 'RemoveObject'
             }
+            'Contact' {
+                $Default_LDAPFilter = '(objectclass=contact)'
+                $Set_Action = 'RemoveObject'
+            }
             'Group' {
                 $Default_LDAPFilter = '(objectclass=group)'
                 $Set_Action = 'RemoveObject'
@@ -93,6 +98,17 @@ function Remove-DSSObjectWrapper {
             'User' {
                 $Default_LDAPFilter = '(objectclass=user)'
                 $Set_Action = 'RemoveObject'
+            }
+        }
+
+        $Confirm_Parameters = @{}
+        # This will add the -Confirm parameter if ConfirmPreference is set high enough.
+        # The Set-DSSRawObject doesn't have a default ConfirmImpact set, so this passes the ConfirmImpact from this function if required.
+        if (-not $BoundParameters.ContainsKey('Confirm')) {
+            $ConfirmImpact = 'High'
+            if ([System.Management.Automation.ConfirmImpact]::$ConfirmImpact.Value__ -ge [System.Management.Automation.ConfirmImpact]::$ConfirmPreference.Value__) {
+                Write-Verbose ('{0}|Adding Confirm parameter' -f $Function_Name)
+                $Confirm_Parameters['Confirm'] = $True
             }
         }
 
@@ -152,7 +168,7 @@ function Remove-DSSObjectWrapper {
                 'Object' = $Object_Directory_Entry
             }
             Write-Verbose ('{0}|Calling Set-DSSRawObject' -f $Function_Name)
-            Set-DSSRawObject @Common_Search_Parameters @Set_Parameters @BoundParameters
+            Set-DSSRawObject @Common_Search_Parameters @Set_Parameters @BoundParameters @Confirm_Parameters
         } else {
             $Terminating_ErrorRecord_Parameters = @{
                 'Exception'    = 'System.DirectoryServices.ActiveDirectory.ActiveDirectoryObjectNotFoundException'
